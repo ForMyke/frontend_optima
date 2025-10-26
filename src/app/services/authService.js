@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 // Configuración de la URL del backend
-const API_URL = process.env.NEXT_PUBLIC_API_URL
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://transportes-backend.fly.dev'
 
 
 // 🔍 LOGS TEMPORALES - Eliminar después de verificar
