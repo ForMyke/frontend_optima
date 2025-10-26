@@ -1,14 +1,8 @@
 import axios from 'axios'
 
 // Configuración de la URL del backend
-const getBackendURL = () => {
-  if (typeof window !== 'undefined') {
-    return process.env.NEXT_PUBLIC_API_URL
-  }
-  return process.env.NEXT_PUBLIC_API_URL
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL
 
-const API_URL = getBackendURL()
 
 // 🔍 LOGS TEMPORALES - Eliminar después de verificar
 console.log('🔍 Backend URL configurada:', API_URL)
