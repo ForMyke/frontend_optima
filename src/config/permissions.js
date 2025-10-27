@@ -47,25 +47,23 @@ export const PERMISSIONS = {
     displayName: 'Administrador'
   },
 
-  [ROLES.OPERADOR]: {
+  [ROLES.ALMACEN]: {
     allowedRoutes: [
       '/dashboard',
-      '/dashboard/viajes',
-      '/dashboard/bitacora',
-      '/dashboard/unidades',
+      '/dashboard/almacen',
     ],
-    displayName: 'Operador'
+    displayName: 'Almacen'
   },
 
-  [ROLES.CLIENTE]: {
+  [ROLES.NOMINA]: {
     allowedRoutes: [
       '/dashboard',
-      '/dashboard/viajes',
+      '/dashboard/operador',
     ],
-    displayName: 'Cliente'
+    displayName: 'Nomina'
   },
 
-  [ROLES.CONTADOR]: {
+  [ROLES.AVIAJE]: {
     allowedRoutes: [
       '/dashboard',
       '/dashboard/pagos',
@@ -75,10 +73,10 @@ export const PERMISSIONS = {
       '/dashboard/clientes',
       '/dashboard/operadores',
     ],
-    displayName: 'Contador'
+    displayName: 'Logística de asignación de viajes'
   },
 
-  [ROLES.SUPERVISOR]: {
+  [ROLES.RVIAJE]: {
     allowedRoutes: [
       '/dashboard',
       '/dashboard/clientes',
@@ -88,7 +86,7 @@ export const PERMISSIONS = {
       '/dashboard/unidades',
       '/dashboard/pagos',
     ],
-    displayName: 'Supervisor'
+    displayName: 'Logística de recepción de viajes'
   },
 }
 
