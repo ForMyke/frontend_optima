@@ -338,7 +338,7 @@ export function Sidebar({ isOpen, onClose }) {
                             </div>
                             <div>
                                 <p className="text-xs font-medium text-gray-700">Sistema</p>
-                                <p className="text-xs text-gray-500">v1.0.0(BETA)</p>
+                                <p className="text-xs text-gray-500">v1.0.1 (BETA)</p>
                             </div>
                         </div>
                     </div>

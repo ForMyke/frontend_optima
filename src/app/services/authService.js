@@ -33,11 +33,19 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expirado o inválido - solo en el cliente
+    // Manejar errores 401 (No autorizado) y 403 (Prohibido)
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      // Solo hacer logout si estamos en el cliente
       if (typeof window !== 'undefined') {
+        console.log(`❌ Error ${error.response.status}: Token inválido o expirado`)
+        
+        // Limpiar autenticación
         authService.logout()
-        window.location.href = '/'
+        
+        // Redirigir al login solo si no estamos ya en la página de login
+        if (window.location.pathname !== '/') {
+          window.location.href = '/'
+        }
       }
     }
     return Promise.reject(error)
@@ -73,8 +81,14 @@ export const authService = {
       // Guardar token en localStorage Y en cookies para el middleware
       localStorage.setItem('token', data.token)
       
+      // Calcular fecha de expiración (10 horas desde ahora)
+      const expirationDate = new Date()
+      expirationDate.setHours(expirationDate.getHours() + 10)
+      localStorage.setItem('tokenExpiration', expirationDate.toISOString())
+      
       // Guardar token en cookies para que el middleware pueda leerlo
-      document.cookie = `token=${data.token}; path=/; max-age=36000; SameSite=Strict`
+      const maxAge = 36000 // 10 horas en segundos
+      document.cookie = `token=${data.token}; path=/; max-age=${maxAge}; SameSite=Strict; Secure`
       
       // Normalizar el rol: extraer el primer rol y quitar el prefijo "ROLE_"
       let userRole = data.rol
@@ -94,6 +108,8 @@ export const authService = {
       }
       localStorage.setItem('user', JSON.stringify(userData))
       localStorage.setItem('isAuthenticated', 'true')
+      
+      console.log('✅ Sesión guardada. Expira:', expirationDate.toLocaleString())
     } catch (error) {
       console.error('Error saving auth data:', error)
     }
@@ -103,7 +119,9 @@ export const authService = {
     if (typeof window === 'undefined') return
     
     try {
+      console.log('🚪 Cerrando sesión...')
       localStorage.removeItem('token')
+      localStorage.removeItem('tokenExpiration')
       localStorage.removeItem('user')
       localStorage.removeItem('isAuthenticated')
       
@@ -137,8 +155,29 @@ export const authService = {
 
   isAuthenticated() {
     if (typeof window === 'undefined') return false
+    
     try {
-      return localStorage.getItem('isAuthenticated') === 'true' && this.getToken()
+      const token = this.getToken()
+      const isAuth = localStorage.getItem('isAuthenticated') === 'true'
+      
+      if (!token || !isAuth) {
+        return false
+      }
+      
+      // Verificar si el token ha expirado
+      const expirationStr = localStorage.getItem('tokenExpiration')
+      if (expirationStr) {
+        const expiration = new Date(expirationStr)
+        const now = new Date()
+        
+        if (now >= expiration) {
+          console.log('⏰ Token expirado. Limpiando sesión...')
+          this.logout()
+          return false
+        }
+      }
+      
+      return true
     } catch (error) {
       console.error('Error checking authentication:', error)
       return false

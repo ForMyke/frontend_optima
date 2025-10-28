@@ -204,6 +204,7 @@ const CreateBitacoraModal = ({ isOpen, onClose, onSave, viajes, operadores, clie
     caja: '',
     casetas: '',
     dieselLitros: '',
+    precioDiesel: '', // Nuevo campo para precio por litro
     comisionOperador: '',
     gastosExtras: '',
     costoTotal: '',
@@ -212,6 +213,7 @@ const CreateBitacoraModal = ({ isOpen, onClose, onSave, viajes, operadores, clie
   })
   const [isLoading, setIsLoading] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
+  const [costoDiesel, setCostoDiesel] = useState(0) // Estado para mostrar el cálculo
 
   // Obtener usuario autenticado al abrir el modal
   useEffect(() => {
@@ -220,6 +222,14 @@ const CreateBitacoraModal = ({ isOpen, onClose, onSave, viajes, operadores, clie
       setCurrentUser(user)
     }
   }, [isOpen])
+
+  // Calcular costo de diesel cuando cambien litros o precio
+  useEffect(() => {
+    const litros = parseFloat(formData.dieselLitros) || 0
+    const precio = parseFloat(formData.precioDiesel) || 0
+    const costo = litros * precio
+    setCostoDiesel(costo)
+  }, [formData.dieselLitros, formData.precioDiesel])
 
   // Autocompletar datos cuando se selecciona un viaje
   const handleViajeChange = (viajeId) => {
@@ -249,7 +259,12 @@ const CreateBitacoraModal = ({ isOpen, onClose, onSave, viajes, operadores, clie
     
     setIsLoading(true)
     try {
-      // Convertir strings a números donde corresponda
+      // Calcular el costo total del diesel (litros × precio)
+      const litros = parseFloat(formData.dieselLitros) || 0
+      const precio = parseFloat(formData.precioDiesel) || 0
+      const costoDieselTotal = litros * precio
+
+      // Convertir strings a números y enviar costo de diesel calculado
       const dataToSend = {
         ...formData,
         viajeId: parseInt(formData.viajeId),
@@ -257,7 +272,7 @@ const CreateBitacoraModal = ({ isOpen, onClose, onSave, viajes, operadores, clie
         operadorId: parseInt(formData.operadorId),
         unidadId: parseInt(formData.unidadId),
         casetas: parseFloat(formData.casetas) || 0,
-        dieselLitros: parseFloat(formData.dieselLitros) || 0,
+        dieselLitros: costoDieselTotal, // Enviar el costo total del diesel (litros × precio)
         comisionOperador: parseFloat(formData.comisionOperador) || 0,
         gastosExtras: parseFloat(formData.gastosExtras) || 0,
         costoTotal: parseFloat(formData.costoTotal) || 0,
@@ -278,12 +293,14 @@ const CreateBitacoraModal = ({ isOpen, onClose, onSave, viajes, operadores, clie
         caja: '',
         casetas: '',
         dieselLitros: '',
+        precioDiesel: '',
         comisionOperador: '',
         gastosExtras: '',
         costoTotal: '',
         comentarios: '',
         numeroFactura: ''
       })
+      setCostoDiesel(0)
       onClose()
     } catch (error) {
       console.error('Error saving bitácora:', error)
@@ -552,6 +569,36 @@ const CreateBitacoraModal = ({ isOpen, onClose, onSave, viajes, operadores, clie
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Precio Diesel ($/Litro)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.precioDiesel}
+                    onChange={(e) => setFormData({ ...formData, precioDiesel: e.target.value })}
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                    placeholder="24.50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Costo total diesel
+                  </label>
+                  <div className="w-full px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 font-semibold flex items-center">
+                    <Fuel className="h-4 w-4 mr-2 text-amber-600" />
+                    {new Intl.NumberFormat('es-MX', {
+                      style: 'currency',
+                      currency: 'MXN'
+                    }).format(costoDiesel)}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {formData.dieselLitros && formData.precioDiesel 
+                      ? `${formData.dieselLitros} L × $${formData.precioDiesel} = $${costoDiesel.toFixed(2)}`
+                      : 'Ingresa litros y precio para calcular'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     Comisión Operador ($)
                   </label>
                   <input
@@ -666,6 +713,7 @@ const EditBitacoraModal = ({ isOpen, onClose, onSave, bitacora, viajes, operador
     caja: '',
     casetas: '',
     dieselLitros: '',
+    precioDiesel: '', // Nuevo campo para precio por litro
     comisionOperador: '',
     gastosExtras: '',
     costoTotal: '',
@@ -675,6 +723,7 @@ const EditBitacoraModal = ({ isOpen, onClose, onSave, bitacora, viajes, operador
   })
   const [isLoading, setIsLoading] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
+  const [costoDiesel, setCostoDiesel] = useState(0) // Estado para mostrar el cálculo
 
   // Obtener usuario autenticado al abrir el modal
   useEffect(() => {
@@ -683,6 +732,14 @@ const EditBitacoraModal = ({ isOpen, onClose, onSave, bitacora, viajes, operador
       setCurrentUser(user)
     }
   }, [isOpen])
+
+  // Calcular costo de diesel cuando cambien litros o precio
+  useEffect(() => {
+    const litros = parseFloat(formData.dieselLitros) || 0
+    const precio = parseFloat(formData.precioDiesel) || 0
+    const costo = litros * precio
+    setCostoDiesel(costo)
+  }, [formData.dieselLitros, formData.precioDiesel])
 
   useEffect(() => {
     if (bitacora) {
@@ -700,6 +757,7 @@ const EditBitacoraModal = ({ isOpen, onClose, onSave, bitacora, viajes, operador
         caja: bitacora.caja || '',
         casetas: bitacora.casetas || '',
         dieselLitros: bitacora.dieselLitros || '',
+        precioDiesel: bitacora.precioDiesel || '', // Cargar precio diesel existente
         comisionOperador: bitacora.comisionOperador || '',
         gastosExtras: bitacora.gastosExtras || '',
         costoTotal: bitacora.costoTotal || '',
@@ -720,6 +778,11 @@ const EditBitacoraModal = ({ isOpen, onClose, onSave, bitacora, viajes, operador
     
     setIsLoading(true)
     try {
+      // Calcular el costo total del diesel (litros × precio)
+      const litros = parseFloat(formData.dieselLitros) || 0
+      const precio = parseFloat(formData.precioDiesel) || 0
+      const costoDieselTotal = litros * precio
+
       const dataToSend = {
         ...formData,
         viajeId: parseInt(formData.viajeId),
@@ -727,7 +790,7 @@ const EditBitacoraModal = ({ isOpen, onClose, onSave, bitacora, viajes, operador
         operadorId: parseInt(formData.operadorId),
         unidadId: parseInt(formData.unidadId),
         casetas: parseFloat(formData.casetas) || 0,
-        dieselLitros: parseFloat(formData.dieselLitros) || 0,
+        dieselLitros: costoDieselTotal, // Enviar el costo total del diesel (litros × precio)
         comisionOperador: parseFloat(formData.comisionOperador) || 0,
         gastosExtras: parseFloat(formData.gastosExtras) || 0,
         costoTotal: parseFloat(formData.costoTotal) || 0,
@@ -994,6 +1057,36 @@ const EditBitacoraModal = ({ isOpen, onClose, onSave, bitacora, viajes, operador
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Precio Diesel ($/Litro)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.precioDiesel}
+                    onChange={(e) => setFormData({ ...formData, precioDiesel: e.target.value })}
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                    placeholder="24.50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Costo Total Diesel (calculado)
+                  </label>
+                  <div className="w-full px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 font-semibold flex items-center">
+                    <Fuel className="h-4 w-4 mr-2 text-amber-600" />
+                    {new Intl.NumberFormat('es-MX', {
+                      style: 'currency',
+                      currency: 'MXN'
+                    }).format(costoDiesel)}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {formData.dieselLitros && formData.precioDiesel 
+                      ? `${formData.dieselLitros} L × $${formData.precioDiesel} = $${costoDiesel.toFixed(2)}`
+                      : 'Ingresa litros y precio para calcular'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     Comisión Operador ($)
                   </label>
                   <input
@@ -1229,7 +1322,7 @@ const ViewBitacoraModal = ({ isOpen, onClose, bitacora, viajes, operadores, clie
           <div>
             <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center">
               <Truck className="h-4 w-4 mr-2" />
-              Recursos Asignados
+              Recursos asignados
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
@@ -1270,9 +1363,9 @@ const ViewBitacoraModal = ({ isOpen, onClose, bitacora, viajes, operadores, clie
               <div className="bg-slate-50 p-3 rounded-lg">
                 <label className="text-xs font-medium text-slate-500 flex items-center">
                   <Fuel className="h-3 w-3 mr-1" />
-                  Diesel (Litros)
+                  Costo total diesel
                 </label>
-                <p className="text-sm text-slate-900 mt-1 font-semibold">{bitacora.dieselLitros} L</p>
+                <p className="text-sm text-slate-900 mt-1 font-semibold">${bitacora.dieselLitros}</p>
               </div>
               <div className="bg-slate-50 p-3 rounded-lg">
                 <label className="text-xs font-medium text-slate-500">Comisión Operador</label>

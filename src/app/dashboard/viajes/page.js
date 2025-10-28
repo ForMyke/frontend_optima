@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { 
+import {
   Truck,
   Plus,
   Search,
@@ -19,7 +19,10 @@ import {
   XCircle,
   AlertCircle,
   Navigation,
-  Filter
+  Filter,
+  Camera,
+  Upload,
+  X
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { viajesService } from '@/app/services/viajesService'
@@ -27,6 +30,7 @@ import { operadoresService } from '@/app/services/operadoresService'
 import { clientsService } from '@/app/services/clientsService'
 import { unidadesService } from '@/app/services/unidadesService'
 import { authService } from '@/app/services/authService'
+import Image from 'next/image'
 
 const ESTADOS = {
   PENDIENTE: { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
@@ -60,7 +64,7 @@ const StatCard = ({ title, value, icon: Icon, color, description }) => (
   </div>
 )
 
-const ViajeCard = ({ viaje, onEdit, onDelete, onViewDetails, operadores, clientes, unidades }) => {
+const ViajeCard = ({ viaje, onEdit, onDelete, onViewDetails, operadores, clientes, unidades, onEstadoChange }) => {
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef(null)
 
@@ -108,6 +112,13 @@ const ViajeCard = ({ viaje, onEdit, onDelete, onViewDetails, operadores, cliente
     unidadNumero = unidadEncontrada?.numeroEconomico || unidadEncontrada?.placas
   }
 
+  const handleEstadoChange = (e) => {
+    const nuevoEstado = e.target.value
+    if (nuevoEstado !== viaje.estado) {
+      onEstadoChange(viaje, nuevoEstado)
+    }
+  }
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-all">
       <div className="p-6">
@@ -119,10 +130,6 @@ const ViajeCard = ({ viaje, onEdit, onDelete, onViewDetails, operadores, cliente
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-1">
                 <h3 className="text-lg font-semibold text-slate-900">Viaje #{viaje.id}</h3>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${estadoInfo.color}`}>
-                  <EstadoIcon className="h-3 w-3 mr-1" />
-                  {estadoInfo.label}
-                </span>
               </div>
               <div className="flex items-center text-sm text-slate-500 space-x-2">
                 <MapPin className="h-3.5 w-3.5" />
@@ -173,6 +180,27 @@ const ViajeCard = ({ viaje, onEdit, onDelete, onViewDetails, operadores, cliente
               </div>
             )}
           </div>
+        </div>
+
+        {/* Select de estado - NUEVO */}
+        <div className="mb-4">
+          <label className="block text-xs font-medium text-slate-500 mb-2">
+            Estado del viaje
+          </label>
+          <select
+            value={viaje.estado}
+            onChange={handleEstadoChange}
+            className={`w-full px-3 py-2 rounded-lg border-2 transition-all font-medium text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 ${viaje.estado === 'PENDIENTE' ? 'border-yellow-200 bg-yellow-50 text-yellow-800' :
+              viaje.estado === 'EN_CURSO' ? 'border-blue-200 bg-blue-50 text-blue-800' :
+                viaje.estado === 'COMPLETADO' ? 'border-green-200 bg-green-50 text-green-800' :
+                  'border-red-200 bg-red-50 text-red-800'
+              }`}
+          >
+            <option value="PENDIENTE">Pendiente</option>
+            <option value="EN_CURSO">En curso</option>
+            <option value="COMPLETADO">Completado</option>
+            <option value="CANCELADO">Cancelado</option>
+          </select>
         </div>
 
         <div className="space-y-3 mb-4">
@@ -247,8 +275,8 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
       const user = authService.getUser()
       setCurrentUser(user)
       if (user?.id) {
-        setFormData(prev => ({ 
-          ...prev, 
+        setFormData(prev => ({
+          ...prev,
           creadoPor: user.id.toString(),
           responsableLogistica: user.id.toString()
         }))
@@ -258,12 +286,12 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     if (!currentUser?.id) {
       toast.error('No se pudo obtener el usuario autenticado')
       return
     }
-    
+
     setIsLoading(true)
     try {
       await onSave({
@@ -319,7 +347,7 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
           <h2 className="text-2xl font-bold text-slate-900">Nuevo viaje</h2>
           <p className="text-sm text-slate-600 mt-1">Registra un nuevo viaje con todos sus detalles</p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Sección: Asignaciones */}
           <div>
@@ -671,12 +699,12 @@ const EditViajeModal = ({ isOpen, onClose, onSave, viaje, operadores, clientes, 
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     if (!currentUser?.id) {
       toast.error('No se pudo obtener el usuario autenticado')
       return
     }
-    
+
     setIsLoading(true)
     try {
       await onSave(viaje.id, {
@@ -714,7 +742,7 @@ const EditViajeModal = ({ isOpen, onClose, onSave, viaje, operadores, clientes, 
           <h2 className="text-2xl font-bold text-slate-900">Editar viaje #{viaje?.id}</h2>
           <p className="text-sm text-slate-600 mt-1">Actualiza la información del viaje</p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Sección: Asignaciones */}
           <div>
@@ -1038,7 +1066,7 @@ const ViewViajeModal = ({ isOpen, onClose, viaje }) => {
             </div>
           </div>
         </div>
-        
+
         <div className="p-6 space-y-6">
           {/* Estado y Tipo */}
           <div className="flex items-center space-x-3">
@@ -1205,7 +1233,7 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, viaje }) => {
           </div>
           <h2 className="text-xl font-bold text-slate-900 mb-2">Eliminar viaje</h2>
           <p className="text-slate-600 mb-6">
-            ¿Estás seguro de que deseas eliminar el <span className="font-semibold">Viaje #{viaje?.id}</span>? 
+            ¿Estás seguro de que deseas eliminar el <span className="font-semibold">Viaje #{viaje?.id}</span>?
             Esta acción no se puede deshacer.
           </p>
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 mb-6">
@@ -1233,6 +1261,238 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, viaje }) => {
   )
 }
 
+const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado }) => {
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [previewUrl, setPreviewUrl] = useState(null)
+  const [uploading, setUploading] = useState(false)
+  const [comentarios, setComentarios] = useState('')
+  const fileInputRef = useRef(null)
+
+  useEffect(() => {
+    // Limpiar preview cuando se cierre el modal
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
+    }
+  }, [previewUrl])
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      // Validar que sea una imagen
+      if (!file.type.startsWith('image/')) {
+        toast.error('Por favor selecciona una imagen válida')
+        return
+      }
+
+      // Validar tamaño (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('La imagen no debe superar los 5MB')
+        return
+      }
+
+      setSelectedFile(file)
+
+      // Crear preview
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    if (!selectedFile) {
+      toast.error('Por favor selecciona una imagen')
+      return
+    }
+
+    setUploading(true)
+    try {
+      // Aquí normalmente subirías la imagen a un servicio como S3, Cloudinary, etc.
+      // Por ahora simulamos la URL
+      const evidenciaUrl = previewUrl // En producción sería la URL del servidor
+
+      await onSave({
+        evidenciaUrl,
+        comentarios,
+        nuevoEstado
+      })
+
+      toast.success('Evidencia cargada exitosamente')
+      handleClose()
+    } catch (error) {
+      toast.error('Error al cargar la evidencia')
+      console.error(error)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleClose = () => {
+    setSelectedFile(null)
+    setPreviewUrl(null)
+    setComentarios('')
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+    onClose()
+  }
+
+  if (!isOpen) return null
+
+  const estadoInfo = ESTADOS[nuevoEstado] || ESTADOS.PENDIENTE
+  const EstadoIcon = estadoInfo.icon
+
+  return (
+    <div className="fixed inset-0 backdrop-blur-xs bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full">
+        <div className="p-6 border-b border-slate-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900">Subir evidencia fotográfica</h2>
+              <p className="text-sm text-slate-600 mt-1">
+                Viaje #{viaje?.id} - Cambio a estado:
+                <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${estadoInfo.color}`}>
+                  <EstadoIcon className="h-3 w-3 mr-1" />
+                  {estadoInfo.label}
+                </span>
+              </p>
+            </div>
+            <button
+              onClick={handleClose}
+              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              <X className="h-5 w-5 text-slate-400" />
+            </button>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Área de carga de imagen */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-3">
+              Fotografía de evidencia *
+            </label>
+
+            {!previewUrl ? (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer"
+              >
+                <Camera className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-600 font-medium mb-1">Click para seleccionar una imagen</p>
+                <p className="text-sm text-slate-500">PNG, JPG o JPEG (máx. 5MB)</p>
+              </div>
+            ) : (
+              <div className="relative">
+                <Image
+                  height={64}
+                  width={64}
+                  src={previewUrl}
+                  alt="Preview"
+                  className="w-full h-64 object-cover rounded-xl border-2 border-slate-200"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedFile(null)
+                    setPreviewUrl(null)
+                    if (fileInputRef.current) {
+                      fileInputRef.current.value = ''
+                    }
+                  }}
+                  className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute bottom-2 right-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  <span>Cambiar imagen</span>
+                </button>
+              </div>
+            )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+          </div>
+
+          {/* Comentarios */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Comentarios adicionales (opcional)
+            </label>
+            <textarea
+              value={comentarios}
+              onChange={(e) => setComentarios(e.target.value)}
+              className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+              rows={4}
+              placeholder="Agrega notas o comentarios sobre este cambio de estado..."
+            />
+          </div>
+
+          {/* Información del viaje */}
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-slate-900 mb-3">Información del viaje</h4>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <span className="text-slate-500">Origen:</span>
+                <span className="ml-2 font-medium text-slate-900">{viaje?.origen}</span>
+              </div>
+              <div>
+                <span className="text-slate-500">Destino:</span>
+                <span className="ml-2 font-medium text-slate-900">{viaje?.destino}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Botones */}
+          <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={handleClose}
+              disabled={uploading}
+              className="px-6 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={uploading || !selectedFile}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            >
+              {uploading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  <span>Subiendo...</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4" />
+                  <span>Subir evidencia</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 const ViajesPage = () => {
   const [viajes, setViajes] = useState([])
   const [operadores, setOperadores] = useState([])
@@ -1245,8 +1505,10 @@ const ViajesPage = () => {
   const [showEditModal, setShowEditModal] = useState(false)
   const [showViewModal, setShowViewModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showEvidenciaModal, setShowEvidenciaModal] = useState(false)
   const [selectedViaje, setSelectedViaje] = useState(null)
   const [viajeToDelete, setViajeToDelete] = useState(null)
+  const [nuevoEstado, setNuevoEstado] = useState(null)
   const [stats, setStats] = useState({
     total: 0,
     pendientes: 0,
@@ -1262,15 +1524,15 @@ const ViajesPage = () => {
       } else {
         response = await viajesService.getViajesByEstado(estadoFilter, 0, 100)
       }
-      
+
       const viajesData = response.content || []
       setViajes(viajesData)
-      
+
       // Calcular estadísticas
       const pendientes = viajesData.filter(v => v.estado === 'PENDIENTE').length
       const enCurso = viajesData.filter(v => v.estado === 'EN_CURSO').length
       const completados = viajesData.filter(v => v.estado === 'COMPLETADO').length
-      
+
       setStats({
         total: response.totalElements || viajesData.length,
         pendientes,
@@ -1329,7 +1591,7 @@ const ViajesPage = () => {
         setLoading(false)
       }
     }
-    
+
     loadInitialData()
   }, [estadoFilter])
 
@@ -1389,10 +1651,10 @@ const ViajesPage = () => {
   const handleViewDetails = async (viaje) => {
     try {
       const fullViaje = await viajesService.getViajeById(viaje.id)
-      
+
       // Si la API individual solo retorna IDs, buscar la información completa
       let viajeCompleto = { ...fullViaje }
-      
+
       // Buscar operador si solo tenemos el ID
       if (fullViaje.idOperador && !fullViaje.operador) {
         const operadorEncontrado = operadores.find(op => op.id === fullViaje.idOperador)
@@ -1400,7 +1662,7 @@ const ViajesPage = () => {
           viajeCompleto.operador = operadorEncontrado
         }
       }
-      
+
       // Buscar cliente si solo tenemos el ID
       if (fullViaje.idCliente && !fullViaje.cliente) {
         const clienteEncontrado = clientes.find(cl => cl.id === fullViaje.idCliente)
@@ -1408,7 +1670,7 @@ const ViajesPage = () => {
           viajeCompleto.cliente = clienteEncontrado
         }
       }
-      
+
       // Buscar unidad si solo tenemos el ID
       if (fullViaje.idUnidad && !fullViaje.unidad) {
         const unidadEncontrada = unidades.find(un => un.id === fullViaje.idUnidad)
@@ -1416,7 +1678,7 @@ const ViajesPage = () => {
           viajeCompleto.unidad = unidadEncontrada
         }
       }
-      
+
       setSelectedViaje(viajeCompleto)
       setShowViewModal(true)
     } catch (error) {
@@ -1424,14 +1686,39 @@ const ViajesPage = () => {
     }
   }
 
+  const handleEstadoChange = (viaje, nuevoEstado) => {
+    setSelectedViaje(viaje)
+    setNuevoEstado(nuevoEstado)
+    setShowEvidenciaModal(true)
+  }
+
+  const handleSaveEvidencia = async ({ evidenciaUrl, comentarios, nuevoEstado }) => {
+    try {
+      await viajesService.updateViaje(selectedViaje.id, {
+        ...selectedViaje,
+        evidenciaUrl,
+        comentarios,
+        estado: nuevoEstado
+      })
+      toast.success('Estado del viaje actualizado')
+      setShowEvidenciaModal(false)
+      setSelectedViaje(null)
+      setNuevoEstado(null)
+      loadViajes()
+    } catch (error) {
+      toast.error('Error al actualizar el estado del viaje')
+      console.error(error)
+    }
+  }
+
   const filteredViajes = viajes.filter(viaje => {
-    const matchesSearch = 
+    const matchesSearch =
       viaje.origen?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       viaje.destino?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       viaje.operador?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       viaje.cliente?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       viaje.id?.toString().includes(searchTerm)
-    
+
     return matchesSearch
   })
 
@@ -1541,6 +1828,7 @@ const ViajesPage = () => {
             onDelete={handleDeleteViaje}
             onViewDetails={handleViewDetails}
             operadores={operadores}
+            onEstadoChange={handleEstadoChange}
             clientes={clientes}
             unidades={unidades}
           />
@@ -1594,6 +1882,18 @@ const ViajesPage = () => {
         }}
         onConfirm={confirmDelete}
         viaje={viajeToDelete}
+      />
+
+      <EvidenciaModal
+        isOpen={showEvidenciaModal}
+        onClose={() => {
+          setShowEvidenciaModal(false)
+          setSelectedViaje(null)
+          setNuevoEstado(null)
+        }}
+        onSave={handleSaveEvidencia}
+        viaje={selectedViaje}
+        nuevoEstado={nuevoEstado}
       />
     </div>
   )

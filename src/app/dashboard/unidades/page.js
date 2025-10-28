@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { 
+import {
   Truck,
   Plus,
   Search,
@@ -14,10 +14,13 @@ import {
   AlertCircle,
   CheckCircle,
   Settings,
-  Wrench
+  Wrench,
+  User
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { unidadesService } from '@/app/services/unidadesService'
+import { usersService } from '@/app/services/usersService'
+import { authService } from '@/app/services/authService'
 
 const StatCard = ({ title, value, icon: Icon, color, description }) => (
   <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200 hover:shadow-md transition-shadow">
@@ -187,6 +190,7 @@ const UnidadCard = ({ unidad, onEdit, onDelete, onViewDetails }) => {
 }
 
 const CreateUnidadModal = ({ isOpen, onClose, onSave }) => {
+  const [currentUser, setCurrentUser] = useState(null)
   const [formData, setFormData] = useState({
     placas: '',
     marca: '',
@@ -195,20 +199,31 @@ const CreateUnidadModal = ({ isOpen, onClose, onSave }) => {
     tipo: 'TRACTOCAMION',
     kilometrajeActual: '',
     fechaUltimoMto: '',
-    estado: 'ACTIVA',
-    creadoPorId: 1
+    estado: 'ACTIVA'
   })
   const [isLoading, setIsLoading] = useState(false)
 
+  useEffect(() => {
+    // Obtener usuario autenticado al montar el componente
+    const user = authService.getUser()
+    setCurrentUser(user)
+  }, [])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    if (!currentUser?.id) {
+      toast.error('No se pudo identificar el usuario autenticado')
+      return
+    }
+
     setIsLoading(true)
     try {
       const dataToSend = {
         ...formData,
         anio: parseInt(formData.anio),
         kilometrajeActual: parseFloat(formData.kilometrajeActual) || 0,
-        creadoPorId: parseInt(formData.creadoPorId)
+        creadoPorId: currentUser.id
       }
       await onSave(dataToSend)
       setFormData({
@@ -219,8 +234,7 @@ const CreateUnidadModal = ({ isOpen, onClose, onSave }) => {
         tipo: 'TRACTOCAMION',
         kilometrajeActual: '',
         fechaUltimoMto: '',
-        estado: 'ACTIVA',
-        creadoPorId: 1
+        estado: 'ACTIVA'
       })
       onClose()
     } catch (error) {
@@ -239,7 +253,7 @@ const CreateUnidadModal = ({ isOpen, onClose, onSave }) => {
           <h2 className="text-2xl font-bold text-slate-900">Nueva unidad</h2>
           <p className="text-sm text-slate-600 mt-1">Registra una nueva unidad en el sistema</p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
           <div className="space-y-6">
             {/* Información Básica */}
@@ -383,26 +397,21 @@ const CreateUnidadModal = ({ isOpen, onClose, onSave }) => {
               </div>
             </div>
 
-            {/* Usuario */}
+            {/* Usuario - Mostrar info del usuario autenticado */}
             <div>
               <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
                 <Calendar className="h-5 w-5 mr-2" />
                 Información de registro
               </h3>
-              <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Creado por (ID Usuario) *
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.creadoPorId}
-                    onChange={(e) => setFormData({ ...formData, creadoPorId: e.target.value })}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-                    placeholder="1"
-                    required
-                  />
+              <div>
+                <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-700">
+                  <div className="flex items-center">
+                    <User className="h-4 w-4 mr-2 text-slate-500" />
+                    <span className="font-medium">{currentUser?.nombre || 'Cargando...'}</span>
+                    <span className="ml-2 text-sm text-slate-500">({currentUser?.email})</span>
+                  </div>
                 </div>
+                <p className="text-xs text-slate-500 mt-1">Usuario autenticado actualmente</p>
               </div>
             </div>
           </div>
@@ -487,7 +496,7 @@ const EditUnidadModal = ({ isOpen, onClose, onSave, unidad }) => {
           <h2 className="text-2xl font-bold text-slate-900">Editar unidad</h2>
           <p className="text-sm text-slate-600 mt-1">Actualiza la información de la unidad</p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
           <div className="space-y-6">
             {/* Información Básica */}
@@ -673,6 +682,26 @@ const EditUnidadModal = ({ isOpen, onClose, onSave, unidad }) => {
 }
 
 const ViewUnidadModal = ({ isOpen, onClose, unidad }) => {
+  const [creadorNombre, setCreadorNombre] = useState('Cargando...')
+
+  useEffect(() => {
+    const fetchCreador = async () => {
+      if (unidad?.creadoPorId) {
+        try {
+          const usuario = await usersService.getUserById(unidad.creadoPorId)
+          setCreadorNombre(usuario.nombre || 'Usuario desconocido')
+        } catch (error) {
+          console.error('Error al cargar usuario:', error)
+          setCreadorNombre('Usuario no encontrado')
+        }
+      }
+    }
+
+    if (isOpen && unidad) {
+      fetchCreador()
+    }
+  }, [isOpen, unidad])
+
   const formatDate = (date) => {
     if (!date) return 'N/A'
     return new Date(date).toLocaleDateString('es-MX', {
@@ -708,7 +737,7 @@ const ViewUnidadModal = ({ isOpen, onClose, unidad }) => {
             </div>
           </div>
         </div>
-        
+
         <div className="p-6 space-y-6 max-h-[calc(100vh-250px)] overflow-y-auto">
           {/* Información General */}
           <div>
@@ -779,13 +808,10 @@ const ViewUnidadModal = ({ isOpen, onClose, unidad }) => {
               Información del Sistema
             </h3>
             <div className="grid grid-cols-2 gap-4">
+
               <div>
-                <label className="text-xs font-medium text-slate-500">ID de la Unidad</label>
-                <p className="text-sm text-slate-900 mt-1">#{unidad.id}</p>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-slate-500">Creado por (ID Usuario)</label>
-                <p className="text-sm text-slate-900 mt-1">#{unidad.creadoPorId}</p>
+                <label className="text-xs font-medium text-slate-500">Creado por</label>
+                <p className="text-sm text-slate-900 mt-1">{creadorNombre}</p>
               </div>
             </div>
           </div>
@@ -816,7 +842,7 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, unidadPlacas }) => {
           </div>
           <h2 className="text-xl font-bold text-slate-900 mb-2">Eliminar unidad</h2>
           <p className="text-slate-600 mb-6">
-            ¿Estás seguro de que deseas eliminar la unidad con placas <span className="font-semibold">{unidadPlacas}</span>? 
+            ¿Estás seguro de que deseas eliminar la unidad con placas <span className="font-semibold">{unidadPlacas}</span>?
             Esta acción no se puede deshacer y se perderán todos los registros asociados.
           </p>
           <div className="flex space-x-3">
