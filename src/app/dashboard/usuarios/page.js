@@ -143,25 +143,6 @@ const UserCard = ({ user, onEdit, onDelete, onToggleStatus, onViewDetails }) => 
                   <Edit2 className="h-4 w-4 mr-3 text-slate-400" />
                   Editar
                 </button>
-                <button
-                  onClick={() => {
-                    onToggleStatus(user)
-                    setShowMenu(false)
-                  }}
-                  className="flex cursor-pointer items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                >
-                  {user.activo ? (
-                    <>
-                      <Lock className="h-4 w-4 mr-3 text-slate-400" />
-                      Desactivar
-                    </>
-                  ) : (
-                    <>
-                      <Unlock className="h-4 w-4 mr-3 text-slate-400" />
-                      Activar
-                    </>
-                  )}
-                </button>
                 <hr className="my-2 border-slate-100" />
                 <button
                   onClick={() => {
