@@ -135,5 +135,39 @@ export const viajesService = {
       console.error('Error al obtener viajes por operador:', error)
       throw error
     }
+  },
+
+  // Completar un viaje con evidencia fotográfica
+  async completarViaje(id, archivo) {
+    try {
+      // Validar que sea una imagen
+      if (!archivo.type.startsWith('image/')) {
+        throw new Error('El archivo debe ser una imagen')
+      }
+
+      const formData = new FormData()
+      formData.append('archivo', archivo)
+
+      console.log('📤 Enviando archivo a la API:', {
+        id,
+        fileName: archivo.name,
+        fileType: archivo.type,
+        fileSize: archivo.size
+      })
+
+      const response = await apiClient.post(`/api/viajes/${id}/completar`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+
+      console.log('✅ Respuesta del servidor:', response.data)
+      return response.data
+    } catch (error) {
+      console.error('❌ Error al completar viaje:', error)
+      console.error('Detalles del error:', error.response?.data)
+      const message = error.response?.data?.message || error.message || 'Error al completar viaje'
+      throw new Error(message)
+    }
   }
 }
