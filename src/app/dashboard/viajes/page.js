@@ -266,6 +266,7 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
     evidenciaUrl: '',
     creadoPor: ''
   })
+  const [errors, setErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
 
@@ -281,11 +282,98 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
           responsableLogistica: user.id.toString()
         }))
       }
+      // Limpiar errores al abrir el modal
+      setErrors({})
     }
   }, [isOpen])
 
+  // Función de validación
+  const validateForm = () => {
+    const newErrors = {}
+
+    // Validar asignaciones
+    if (!formData.idOperador) {
+      newErrors.idOperador = 'Debes seleccionar un operador'
+    }
+    if (!formData.idCliente) {
+      newErrors.idCliente = 'Debes seleccionar un cliente'
+    }
+    if (!formData.idUnidad) {
+      newErrors.idUnidad = 'Debes seleccionar una unidad'
+    }
+
+    // Validar origen (mínimo 5 caracteres)
+    if (!formData.origen.trim()) {
+      newErrors.origen = 'El origen es obligatorio'
+    } else if (formData.origen.trim().length < 5) {
+      newErrors.origen = 'El origen debe tener al menos 5 caracteres'
+    }
+
+    // Validar destino (mínimo 5 caracteres)
+    if (!formData.destino.trim()) {
+      newErrors.destino = 'El destino es obligatorio'
+    } else if (formData.destino.trim().length < 5) {
+      newErrors.destino = 'El destino debe tener al menos 5 caracteres'
+    } else if (formData.destino.toLowerCase() === formData.origen.toLowerCase()) {
+      newErrors.destino = 'El destino no puede ser igual al origen'
+    }
+
+    // Validar fechas
+    if (!formData.fechaSalida) {
+      newErrors.fechaSalida = 'La fecha de salida es obligatoria'
+    }
+
+    if (!formData.fechaEstimadaLlegada) {
+      newErrors.fechaEstimadaLlegada = 'La fecha estimada de llegada es obligatoria'
+    }
+
+    // Validar que la fecha de llegada sea posterior a la de salida
+    if (formData.fechaSalida && formData.fechaEstimadaLlegada) {
+      const fechaSalida = new Date(formData.fechaSalida)
+      const fechaLlegada = new Date(formData.fechaEstimadaLlegada)
+      
+      if (fechaLlegada <= fechaSalida) {
+        newErrors.fechaEstimadaLlegada = 'La fecha de llegada debe ser posterior a la fecha de salida'
+      }
+    }
+
+    // Validar distancia
+    if (!formData.distanciaKm) {
+      newErrors.distanciaKm = 'La distancia es obligatoria'
+    } else if (parseFloat(formData.distanciaKm) <= 0) {
+      newErrors.distanciaKm = 'La distancia debe ser mayor a 0'
+    } else if (parseFloat(formData.distanciaKm) > 10000) {
+      newErrors.distanciaKm = 'La distancia no puede exceder 10,000 km'
+    }
+
+    // Validar tarifa (debe ser positiva)
+    if (!formData.tarifa) {
+      newErrors.tarifa = 'La tarifa es obligatoria'
+    } else if (parseFloat(formData.tarifa) < 0) {
+      newErrors.tarifa = 'La tarifa no puede ser negativa'
+    } else if (parseFloat(formData.tarifa) > 1000000) {
+      newErrors.tarifa = 'La tarifa no puede exceder $1,000,000'
+    }
+
+    // Validar descripción de carga
+    if (!formData.cargaDescripcion.trim()) {
+      newErrors.cargaDescripcion = 'La descripción de la carga es obligatoria'
+    } else if (formData.cargaDescripcion.trim().length < 10) {
+      newErrors.cargaDescripcion = 'La descripción debe tener al menos 10 caracteres'
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    // Validar formulario
+    if (!validateForm()) {
+      toast.error('Por favor corrige los errores en el formulario')
+      return
+    }
 
     if (!currentUser?.id) {
       toast.error('No se pudo obtener el usuario autenticado')

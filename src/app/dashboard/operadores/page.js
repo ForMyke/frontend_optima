@@ -214,18 +214,20 @@ const CreateOperadorModal = ({ isOpen, onClose, onSave, users }) => {
   const validateForm = () => {
     const newErrors = {}
 
-    // Validar nombre
+    // Validar nombre (mínimo 3 caracteres, no números)
     if (!formData.nombre.trim()) {
       newErrors.nombre = 'El nombre es obligatorio'
     } else if (formData.nombre.trim().length < 3) {
       newErrors.nombre = 'El nombre debe tener al menos 3 caracteres'
+    } else if (/\d/.test(formData.nombre)) {
+      newErrors.nombre = 'El nombre no puede contener números'
     }
 
-    // Validar teléfono
+    // Validar teléfono (exactamente 10 dígitos)
     if (!formData.telefono.trim()) {
       newErrors.telefono = 'El teléfono es obligatorio'
     } else if (!/^\d{10}$/.test(formData.telefono.replace(/\s/g, ''))) {
-      newErrors.telefono = 'El teléfono debe tener 10 dígitos'
+      newErrors.telefono = 'El teléfono debe tener exactamente 10 dígitos'
     }
 
     // Validar dirección
@@ -235,11 +237,15 @@ const CreateOperadorModal = ({ isOpen, onClose, onSave, users }) => {
       newErrors.direccion = 'La dirección debe tener al menos 10 caracteres'
     }
 
-    // Validar número de licencia
+    // Validar número de licencia (formato típico mexicano: 8-16 caracteres alfanuméricos)
     if (!formData.licenciaNumero.trim()) {
       newErrors.licenciaNumero = 'El número de licencia es obligatorio'
     } else if (formData.licenciaNumero.trim().length < 8) {
       newErrors.licenciaNumero = 'El número de licencia debe tener al menos 8 caracteres'
+    } else if (formData.licenciaNumero.trim().length > 16) {
+      newErrors.licenciaNumero = 'El número de licencia no puede tener más de 16 caracteres'
+    } else if (!/^[A-Z0-9]+$/.test(formData.licenciaNumero.trim())) {
+      newErrors.licenciaNumero = 'El número de licencia solo puede contener letras mayúsculas y números'
     }
 
     // Validar tipo de licencia
@@ -432,7 +438,8 @@ const CreateOperadorModal = ({ isOpen, onClose, onSave, users }) => {
                 type="text"
                 value={formData.licenciaNumero}
                 onChange={(e) => {
-                  setFormData({ ...formData, licenciaNumero: e.target.value })
+                  const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')
+                  setFormData({ ...formData, licenciaNumero: value })
                   if (errors.licenciaNumero) setErrors({ ...errors, licenciaNumero: '' })
                 }}
                 className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${
@@ -440,7 +447,8 @@ const CreateOperadorModal = ({ isOpen, onClose, onSave, users }) => {
                     ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
                     : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
                 }`}
-                placeholder="12345678"
+                maxLength={16}
+                placeholder="ABC123456789"
               />
               {errors.licenciaNumero && (
                 <p className="mt-1 text-sm text-red-600 flex items-center">
@@ -671,8 +679,12 @@ const EditOperadorModal = ({ isOpen, onClose, onSave, operador, users }) => {
               <input
                 type="text"
                 value={formData.licenciaNumero}
-                onChange={(e) => setFormData({ ...formData, licenciaNumero: e.target.value })}
+                onChange={(e) => {
+                  const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')
+                  setFormData({ ...formData, licenciaNumero: value })
+                }}
                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                maxLength={16}
                 required
               />
             </div>

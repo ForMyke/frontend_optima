@@ -159,20 +159,22 @@ const CreateClientModal = ({ isOpen, onClose, onSave }) => {
   const validateForm = () => {
     const newErrors = {}
 
-    // Validar nombre
+    // Validar nombre (no debe contener números)
     if (!formData.nombre.trim()) {
       newErrors.nombre = 'El nombre es obligatorio'
     } else if (formData.nombre.trim().length < 3) {
       newErrors.nombre = 'El nombre debe tener al menos 3 caracteres'
+    } else if (/\d/.test(formData.nombre)) {
+      newErrors.nombre = 'El nombre no puede contener números'
     }
 
-    // Validar RFC
+    // Validar RFC (exactamente 13 caracteres)
     if (!formData.rfc.trim()) {
       newErrors.rfc = 'El RFC es obligatorio'
-    } else if (formData.rfc.trim().length < 12 || formData.rfc.trim().length > 13) {
-      newErrors.rfc = 'El RFC debe tener 12 o 13 caracteres'
-    } else if (!/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/.test(formData.rfc.trim())) {
-      newErrors.rfc = 'El formato del RFC no es válido'
+    } else if (formData.rfc.trim().length !== 13) {
+      newErrors.rfc = 'El RFC debe tener exactamente 13 caracteres'
+    } else if (!/^[A-ZÑ&]{4}\d{6}[A-Z0-9]{3}$/.test(formData.rfc.trim().toUpperCase())) {
+      newErrors.rfc = 'El formato del RFC no es válido (4 letras + 6 dígitos + 3 alfanuméricos)'
     }
 
     // Validar teléfono
@@ -182,11 +184,11 @@ const CreateClientModal = ({ isOpen, onClose, onSave }) => {
       newErrors.telefono = 'El teléfono debe tener 10 dígitos'
     }
 
-    // Validar correo
+    // Validar correo (mejorada para evitar puntos antes del @)
     if (!formData.correo.trim()) {
       newErrors.correo = 'El correo electrónico es obligatorio'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.correo.trim())) {
-      newErrors.correo = 'El formato del correo no es válido'
+    } else if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(formData.correo.trim())) {
+      newErrors.correo = 'El formato del correo no es válido (no puede empezar o terminar con punto antes del @)'
     }
 
     // Validar dirección

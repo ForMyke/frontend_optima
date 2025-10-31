@@ -221,23 +221,27 @@ const CreateUnidadModal = ({ isOpen, onClose, onSave }) => {
   const validateForm = () => {
     const newErrors = {}
 
-    // Validar placas
+    // Validar placas (formato mexicano: 7 caracteres - 3 letras + 4 números o 4 letras + 3 números)
     if (!formData.placas.trim()) {
       newErrors.placas = 'Las placas son obligatorias'
-    } else if (formData.placas.trim().length < 5) {
-      newErrors.placas = 'Las placas deben tener al menos 5 caracteres'
-    } else if (!/^[A-Z0-9\-]+$/i.test(formData.placas.trim())) {
-      newErrors.placas = 'Las placas solo pueden contener letras, números y guiones'
+    } else if (formData.placas.trim().length < 6) {
+      newErrors.placas = 'Las placas deben tener al menos 6 caracteres'
+    } else if (formData.placas.trim().length > 10) {
+      newErrors.placas = 'Las placas no pueden tener más de 10 caracteres'
+    } else if (!/^[A-Z0-9-]+$/.test(formData.placas.trim())) {
+      newErrors.placas = 'Las placas solo pueden contener letras mayúsculas, números y guiones'
     }
 
-    // Validar marca
+    // Validar marca (mínimo 2 caracteres, solo letras)
     if (!formData.marca.trim()) {
       newErrors.marca = 'La marca es obligatoria'
     } else if (formData.marca.trim().length < 2) {
       newErrors.marca = 'La marca debe tener al menos 2 caracteres'
+    } else if (/\d/.test(formData.marca)) {
+      newErrors.marca = 'La marca no puede contener números'
     }
 
-    // Validar modelo
+    // Validar modelo (mínimo 2 caracteres)
     if (!formData.modelo.trim()) {
       newErrors.modelo = 'El modelo es obligatorio'
     } else if (formData.modelo.trim().length < 2) {
@@ -258,9 +262,12 @@ const CreateUnidadModal = ({ isOpen, onClose, onSave }) => {
       newErrors.tipo = 'Debes seleccionar un tipo de unidad'
     }
 
-    // Validar kilometraje (opcional pero debe ser válido si se ingresa)
-    if (formData.kilometrajeActual && parseFloat(formData.kilometrajeActual) < 0) {
-      newErrors.kilometrajeActual = 'El kilometraje no puede ser negativo'
+    // Validar kilometraje (debe ser positivo)
+    if (formData.kilometrajeActual) {
+      const km = parseFloat(formData.kilometrajeActual)
+      if (isNaN(km) || km < 0) {
+        newErrors.kilometrajeActual = 'El kilometraje debe ser un número positivo'
+      }
     }
 
     // Validar fecha de último mantenimiento (opcional pero debe ser válida)
@@ -351,13 +358,15 @@ const CreateUnidadModal = ({ isOpen, onClose, onSave }) => {
                     type="text"
                     value={formData.placas}
                     onChange={(e) => {
-                      setFormData({ ...formData, placas: e.target.value })
+                      const value = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')
+                      setFormData({ ...formData, placas: value })
                       if (errors.placas) setErrors({ ...errors, placas: '' })
                     }}
                     className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 ${
                       errors.placas ? 'border-red-500' : 'border-slate-200'
                     }`}
-                    placeholder="TX-9021-B"
+                    maxLength={10}
+                    placeholder="ABC123DEF"
                   />
                   {errors.placas && (
                     <p className="text-red-500 text-sm mt-1 flex items-center">
@@ -515,9 +524,11 @@ const CreateUnidadModal = ({ isOpen, onClose, onSave }) => {
                   <input
                     type="number"
                     step="0.1"
+                    min="0"
                     value={formData.kilometrajeActual}
                     onChange={(e) => {
-                      setFormData({ ...formData, kilometrajeActual: e.target.value })
+                      const value = Math.max(0, parseFloat(e.target.value) || 0)
+                      setFormData({ ...formData, kilometrajeActual: value.toString() })
                       if (errors.kilometrajeActual) setErrors({ ...errors, kilometrajeActual: '' })
                     }}
                     className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 ${
@@ -673,8 +684,12 @@ const EditUnidadModal = ({ isOpen, onClose, onSave, unidad }) => {
                   <input
                     type="text"
                     value={formData.placas}
-                    onChange={(e) => setFormData({ ...formData, placas: e.target.value })}
+                    onChange={(e) => {
+                      const value = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')
+                      setFormData({ ...formData, placas: value })
+                    }}
                     className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                    maxLength={10}
                     required
                   />
                 </div>
@@ -775,8 +790,12 @@ const EditUnidadModal = ({ isOpen, onClose, onSave, unidad }) => {
                   <input
                     type="number"
                     step="0.1"
+                    min="0"
                     value={formData.kilometrajeActual}
-                    onChange={(e) => setFormData({ ...formData, kilometrajeActual: e.target.value })}
+                    onChange={(e) => {
+                      const value = Math.max(0, parseFloat(e.target.value) || 0)
+                      setFormData({ ...formData, kilometrajeActual: value.toString() })
+                    }}
                     className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
                     required
                   />
