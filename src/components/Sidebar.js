@@ -27,6 +27,7 @@ import {
     Users2,
     ToolCaseIcon,
     X,
+    BarChart,
     Globe
 } from 'lucide-react'
 import { useState, useMemo, useEffect } from 'react'
@@ -48,6 +49,7 @@ const availablePages = [
     '/dashboard/bitacora',
     '/dashboard/unidades',
     '/dashboard/monlo',
+    '/dashboard/graficos',
 ]
 
 const menuItems = [
@@ -133,6 +135,11 @@ const menuItems = [
         title: 'Monlo',
         icon: Globe,
         href: '/dashboard/monlo',
+    },
+    {
+        title: 'Gráficos',
+        icon: BarChart,
+        href: '/dashboard/graficos',
     },
     {
         title: 'Configuración',

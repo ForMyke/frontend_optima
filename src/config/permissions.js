@@ -41,6 +41,7 @@ export const PERMISSIONS = {
       '/dashboard/maintenance',
       '/dashboard/vehicles',
       '/dashboard/monlo',
+      '/dashboard/graficos',
       // El admin tiene acceso a TODO
       '*' // Wildcard: acceso completo
     ],

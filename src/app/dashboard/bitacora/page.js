@@ -1140,6 +1140,14 @@ const EditBitacoraModal = ({ isOpen, onClose, onSave, bitacora, viajes, operador
 
   useEffect(() => {
     if (bitacora) {
+      // El campo dieselLitros en el backend almacena el COSTO TOTAL en pesos
+      // Necesitamos calcular los litros reales si tenemos el precio
+      const costoDieselTotal = parseFloat(bitacora.dieselLitros) || 0
+      const precioDelDiesel = parseFloat(bitacora.precioDiesel) || 0
+      
+      // Si tenemos precio, calculamos los litros; si no, dejamos el costo como litros (para retrocompatibilidad)
+      const litrosCalculados = precioDelDiesel > 0 ? (costoDieselTotal / precioDelDiesel) : costoDieselTotal
+      
       setFormData({
         viajeId: bitacora.viajeId || '',
         folio: bitacora.folio || '',
@@ -1153,8 +1161,8 @@ const EditBitacoraModal = ({ isOpen, onClose, onSave, bitacora, viajes, operador
         unidadId: bitacora.unidadId || '',
         caja: bitacora.caja || '',
         casetas: bitacora.casetas || '',
-        dieselLitros: bitacora.dieselLitros || '',
-        precioDiesel: bitacora.precioDiesel || '', // Cargar precio diesel existente
+        dieselLitros: litrosCalculados.toFixed(2), // Mostrar litros reales calculados
+        precioDiesel: precioDelDiesel || '', // Cargar precio diesel existente
         comisionOperador: bitacora.comisionOperador || '',
         gastosExtras: bitacora.gastosExtras || '',
         costoTotal: bitacora.costoTotal || '',
