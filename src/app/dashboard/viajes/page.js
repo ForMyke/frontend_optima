@@ -318,8 +318,8 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
     // Validar destino (mínimo 5 caracteres)
     if (!formData.destino || !formData.destino.trim()) {
       newErrors.destino = 'El destino es obligatorio'
-    } else if (formData.destino.trim().length < 5) {
-      newErrors.destino = 'El destino debe tener al menos 5 caracteres'
+    } else if (formData.destino.trim().length < 3 ) {
+      newErrors.destino = 'El destino debe tener al menos 3 caracteres'
     } else if (formData.destino.toLowerCase() === formData.origen.toLowerCase()) {
       newErrors.destino = 'El destino no puede ser igual al origen'
     }

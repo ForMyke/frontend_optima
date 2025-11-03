@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { 
-  Users as UsersIcon, 
+import {
+  Users as UsersIcon,
   UserPlus,
   Search,
   Filter,
@@ -85,19 +85,17 @@ const OperadorCard = ({ operador, onEdit, onDelete, onViewDetails }) => {
       <div className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center space-x-4">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-              operador.activo 
-                ? 'bg-gradient-to-br from-emerald-600 to-emerald-700' 
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${operador.activo
+                ? 'bg-gradient-to-br from-emerald-600 to-emerald-700'
                 : 'bg-gradient-to-br from-slate-600 to-slate-700'
-            }`}>
+              }`}>
               <User className="h-6 w-6 text-white" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-slate-900">{operador.nombre}</h3>
               <div className="flex items-center space-x-2 mt-1">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium ${
-                  operador.activo ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
-                }`}>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium ${operador.activo ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                  }`}>
                   {operador.activo ? (
                     <>
                       <CheckCircle className="h-3 w-3 mr-1" />
@@ -189,7 +187,6 @@ const OperadorCard = ({ operador, onEdit, onDelete, onViewDetails }) => {
   )
 }
 
-// Función auxiliar para parsear dirección desde string a objeto
 const parseDireccion = (direccionString) => {
   if (!direccionString) return {
     calle: '',
@@ -203,7 +200,16 @@ const parseDireccion = (direccionString) => {
   }
 
   const partes = direccionString.split(',').map(p => p.trim())
-  
+
+  // Debug: mostrar cómo viene la dirección
+  console.log('Dirección guardada:', direccionString)
+  console.log('Partes encontradas:', partes.length, partes)
+
+  // El orden real en la BD parece ser:
+  // 0: calle, 1: numExt, 2: numInt, 3: colonia, 4: ciudad, 
+  // 5: estado, 6: estado abreviado(?), 7: CP, 8: país
+  // O tiene un campo extra que está desplazando todo
+
   return {
     calle: partes[0] || '',
     numeroExterior: partes[1] || '',
@@ -211,8 +217,8 @@ const parseDireccion = (direccionString) => {
     colonia: partes[3] || '',
     ciudad: partes[4] || '',
     estado: partes[5] || '',
-    codigoPostal: partes[6] || '',
-    pais: partes[7] || 'México'
+    codigoPostal: partes[7] || '', // <- CAMBIO AQUÍ (era partes[6])
+    pais: partes[8] || 'México'     // <- CAMBIO AQUÍ (era partes[7])
   }
 }
 
@@ -240,17 +246,17 @@ const CreateOperadorModal = ({ isOpen, onClose, onSave, users }) => {
     e.preventDefault()
     setIsLoading(true)
     try {
-      // Concatenar dirección
+      // Concatenar dirección manteniendo el orden exacto (sin filtrar vacíos)
       const direccionCompleta = [
-        formData.calle,
-        formData.numeroExterior,
-        formData.numeroInterior,
-        formData.colonia,
-        formData.ciudad,
-        formData.estado,
-        formData.codigoPostal,
-        formData.pais
-      ].filter(campo => campo.trim() !== '').join(', ')
+        formData.calle || '',
+        formData.numeroExterior || '',
+        formData.numeroInterior || '',
+        formData.colonia || '',
+        formData.ciudad || '',
+        formData.estado || '',
+        formData.codigoPostal || '',
+        formData.pais || 'México'
+      ].join(', ')
 
       const dataToSend = {
         nombre: formData.nombre,
@@ -298,7 +304,7 @@ const CreateOperadorModal = ({ isOpen, onClose, onSave, users }) => {
           <h2 className="text-2xl font-bold text-slate-900">Nuevo operador</h2>
           <p className="text-sm text-slate-600 mt-1">Completa la información del operador</p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Información Personal */}
@@ -590,17 +596,17 @@ const EditOperadorModal = ({ isOpen, onClose, onSave, operador, users }) => {
     e.preventDefault()
     setIsLoading(true)
     try {
-      // Concatenar dirección
+      // Concatenar dirección manteniendo el orden exacto (sin filtrar vacíos)
       const direccionCompleta = [
-        formData.calle,
-        formData.numeroExterior,
-        formData.numeroInterior,
-        formData.colonia,
-        formData.ciudad,
-        formData.estado,
-        formData.codigoPostal,
-        formData.pais
-      ].filter(campo => campo.trim() !== '').join(', ')
+        formData.calle || '',
+        formData.numeroExterior || '',
+        formData.numeroInterior || '',
+        formData.colonia || '',
+        formData.ciudad || '',
+        formData.estado || '',
+        formData.codigoPostal || '',
+        formData.pais || 'México'
+      ].join(', ')
 
       const dataToSend = {
         nombre: formData.nombre,
@@ -631,7 +637,7 @@ const EditOperadorModal = ({ isOpen, onClose, onSave, operador, users }) => {
           <h2 className="text-2xl font-bold text-slate-900">Editar operador</h2>
           <p className="text-sm text-slate-600 mt-1">Actualiza la información del operador</p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Información Personal */}
@@ -897,16 +903,15 @@ const ViewOperadorModal = ({ isOpen, onClose, operador }) => {
               <h2 className="text-2xl font-bold text-slate-900">Detalles del operador</h2>
               <p className="text-sm text-slate-600 mt-1">Información completa del operador</p>
             </div>
-            <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
-              operador.activo 
-                ? 'bg-gradient-to-br from-emerald-600 to-emerald-700' 
+            <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${operador.activo
+                ? 'bg-gradient-to-br from-emerald-600 to-emerald-700'
                 : 'bg-gradient-to-br from-slate-600 to-slate-700'
-            }`}>
+              }`}>
               <User className="h-7 w-7 text-white" />
             </div>
           </div>
         </div>
-        
+
         <div className="p-6 space-y-6">
           {/* Información Personal */}
           <div>
@@ -935,11 +940,11 @@ const ViewOperadorModal = ({ isOpen, onClose, operador }) => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-medium text-slate-500">Calle</label>
-                <p className="text-sm text-slate-900 mt-1">{direccionParsed.calle}</p>
+                <p className="text-sm text-slate-900 mt-1">{direccionParsed.calle || 'N/A'}</p>
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-500">Número Exterior</label>
-                <p className="text-sm text-slate-900 mt-1">{direccionParsed.numeroExterior}</p>
+                <p className="text-sm text-slate-900 mt-1">{direccionParsed.numeroExterior || 'N/A'}</p>
               </div>
               {direccionParsed.numeroInterior && (
                 <div>
@@ -949,23 +954,23 @@ const ViewOperadorModal = ({ isOpen, onClose, operador }) => {
               )}
               <div>
                 <label className="text-xs font-medium text-slate-500">Colonia</label>
-                <p className="text-sm text-slate-900 mt-1">{direccionParsed.colonia}</p>
+                <p className="text-sm text-slate-900 mt-1">{direccionParsed.colonia || 'N/A'}</p>
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-500">Ciudad</label>
-                <p className="text-sm text-slate-900 mt-1">{direccionParsed.ciudad}</p>
+                <p className="text-sm text-slate-900 mt-1">{direccionParsed.ciudad || 'N/A'}</p>
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-500">Estado</label>
-                <p className="text-sm text-slate-900 mt-1">{direccionParsed.estado}</p>
+                <p className="text-sm text-slate-900 mt-1">{direccionParsed.estado || 'N/A'}</p>
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-500">Código Postal</label>
-                <p className="text-sm text-slate-900 mt-1">{direccionParsed.codigoPostal}</p>
+                <p className="text-sm text-slate-900 mt-1">{direccionParsed.codigoPostal || 'N/A'}</p>
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-500">País</label>
-                <p className="text-sm text-slate-900 mt-1">{direccionParsed.pais}</p>
+                <p className="text-sm text-slate-900 mt-1">{direccionParsed.pais || 'N/A'}</p>
               </div>
             </div>
           </div>
@@ -998,9 +1003,8 @@ const ViewOperadorModal = ({ isOpen, onClose, operador }) => {
               <div>
                 <label className="text-xs font-medium text-slate-500">Estado</label>
                 <div className="mt-1">
-                  <span className={`inline-flex items-center px-3 py-1 rounded-md text-xs font-medium ${
-                    operador.activo ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
-                  }`}>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-md text-xs font-medium ${operador.activo ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                    }`}>
                     {operador.activo ? (
                       <>
                         <CheckCircle className="h-3 w-3 mr-1" />
@@ -1046,7 +1050,7 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, operadorName }) => {
           </div>
           <h2 className="text-xl font-bold text-slate-900 mb-2">Eliminar operador</h2>
           <p className="text-slate-600 mb-6">
-            ¿Estás seguro de que deseas eliminar a <span className="font-semibold">{operadorName}</span>? 
+            ¿Estás seguro de que deseas eliminar a <span className="font-semibold">{operadorName}</span>?
             Esta acción no se puede deshacer.
           </p>
           <div className="flex space-x-3">
@@ -1093,7 +1097,7 @@ const OperadoresPage = () => {
       const response = await operadoresService.getOperadores(0, 100)
       const operadoresData = response.content || []
       setOperadores(operadoresData)
-      
+
       // Calcular licencias vencidas
       const today = new Date()
       const licenciasVencidas = operadoresData.filter(op => {
@@ -1135,7 +1139,7 @@ const OperadoresPage = () => {
         setLoading(false)
       }
     }
-    
+
     loadInitialData()
   }, [])
 
@@ -1204,16 +1208,16 @@ const OperadoresPage = () => {
 
   const filteredOperadores = operadores.filter(operador => {
     const matchesSearch = operador.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         operador.telefono.includes(searchTerm) ||
-                         operador.licenciaNumero.toLowerCase().includes(searchTerm.toLowerCase())
-    
+      operador.telefono.includes(searchTerm) ||
+      operador.licenciaNumero.toLowerCase().includes(searchTerm.toLowerCase())
+
     let matchesStatus = true
     if (filterStatus === 'activo') {
       matchesStatus = operador.activo === true
     } else if (filterStatus === 'inactivo') {
       matchesStatus = operador.activo === false
     }
-    
+
     return matchesSearch && matchesStatus
   })
 

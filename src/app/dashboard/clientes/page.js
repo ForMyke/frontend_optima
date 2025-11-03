@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { 
-  Users as UsersIcon, 
+import {
+  Users as UsersIcon,
   UserPlus,
   Search,
   Filter,
@@ -59,12 +59,40 @@ const ClientCard = ({ client, onEdit, onDelete, onViewDetails }) => {
     }
   }, [showMenu])
 
+  // NUEVO: Función para formatear la dirección desde JSON o string
+  const formatearDireccion = () => {
+    if (!client.direccion) return 'Sin dirección'
+
+    try {
+      const direccion = typeof client.direccion === 'string'
+        ? JSON.parse(client.direccion)
+        : client.direccion
+
+      // Construir dirección compacta para el card
+      const partes = []
+
+      if (direccion.calle && direccion.numeroExterior) {
+        partes.push(`${direccion.calle} ${direccion.numeroExterior}`)
+      } else if (direccion.calle) {
+        partes.push(direccion.calle)
+      }
+
+      if (direccion.ciudad) partes.push(direccion.ciudad)
+      if (direccion.estado) partes.push(direccion.estado)
+
+      return partes.join(', ') || 'Sin dirección'
+    } catch (e) {
+      // Si no es JSON, retornar el string tal cual (retrocompatibilidad)
+      return client.direccion
+    }
+  }
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-all">
       <div className="p-4 lg:p-6">
         <div className="flex items-start justify-between mb-3 lg:mb-4">
           <div className="flex items-center space-x-3 lg:space-x-4">
-            <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center bg-linear-to-br from-blue-600 to-blue-700 shrink-0">
+            <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-blue-600 to-blue-700 shrink-0">
               <Building2 className="h-5 w-5 lg:h-6 lg:w-6 text-white" />
             </div>
             <div>
@@ -128,7 +156,7 @@ const ClientCard = ({ client, onEdit, onDelete, onViewDetails }) => {
           </div>
           <div className="flex items-start text-xs lg:text-sm text-slate-600">
             <MapPin className="h-4 w-4 mr-2 text-slate-400 shrink-0 mt-0.5" />
-            <span className="line-clamp-2">{client.direccion}</span>
+            <span className="line-clamp-2">{formatearDireccion()}</span>
           </div>
         </div>
       </div>
@@ -138,7 +166,7 @@ const ClientCard = ({ client, onEdit, onDelete, onViewDetails }) => {
 
 // Función auxiliar para parsear dirección desde string a objeto
 const parseDireccion = (direccionString) => {
-  if (!direccionString) return {
+  const defaultDireccion = {
     calle: '',
     numeroExterior: '',
     numeroInterior: '',
@@ -149,17 +177,35 @@ const parseDireccion = (direccionString) => {
     pais: 'México'
   }
 
-  const partes = direccionString.split(',').map(p => p.trim())
-  
-  return {
-    calle: partes[0] || '',
-    numeroExterior: partes[1] || '',
-    numeroInterior: partes[2] || '',
-    colonia: partes[3] || '',
-    ciudad: partes[4] || '',
-    estado: partes[5] || '',
-    codigoPostal: partes[6] || '',
-    pais: partes[7] || 'México'
+  if (!direccionString) return defaultDireccion
+
+  try {
+    // Intentar parsear como JSON primero (nuevos registros)
+    const direccionObj = JSON.parse(direccionString)
+    return { ...defaultDireccion, ...direccionObj }
+  } catch (e) {
+    // Si falla, es un registro antiguo con formato de string concatenado
+    console.log('Parseando dirección legacy:', direccionString)
+
+    const partes = direccionString.split(',').map(p => p.trim())
+
+    // Manejar diferentes longitudes del array
+    if (partes.length >= 8) {
+      return {
+        calle: partes[0] || '',
+        numeroExterior: partes[1] || '',
+        numeroInterior: partes[2] || '',
+        colonia: partes[3] || '',
+        ciudad: partes[4] || '',
+        estado: partes[5] || '',
+        codigoPostal: partes[6] || '',
+        pais: partes[7] || 'México'
+      }
+    }
+
+    // Si tiene menos partes, retornar default
+    console.warn('Formato de dirección no reconocido:', direccionString)
+    return defaultDireccion
   }
 }
 
@@ -184,27 +230,30 @@ const CreateClientModal = ({ isOpen, onClose, onSave }) => {
     e.preventDefault()
     setIsLoading(true)
     try {
-      // Concatenar dirección
-      const direccionCompleta = [
-        formData.calle,
-        formData.numeroExterior,
-        formData.numeroInterior,
-        formData.colonia,
-        formData.ciudad,
-        formData.estado,
-        formData.codigoPostal,
-        formData.pais
-      ].filter(campo => campo.trim() !== '').join(', ')
+      // Guardar como JSON en lugar de string concatenado
+      const direccionJSON = JSON.stringify({
+        calle: formData.calle || '',
+        numeroExterior: formData.numeroExterior || '',
+        numeroInterior: formData.numeroInterior || '',
+        colonia: formData.colonia || '',
+        ciudad: formData.ciudad || '',
+        estado: formData.estado || '',
+        codigoPostal: formData.codigoPostal || '',
+        pais: formData.pais || 'México'
+      })
 
       const dataToSend = {
         nombre: formData.nombre,
         rfc: formData.rfc,
-        direccion: direccionCompleta,
+        direccion: direccionJSON,
         telefono: formData.telefono,
         correo: formData.correo
       }
 
+      console.log('Guardando cliente:', dataToSend)
       await onSave(dataToSend)
+
+      // Resetear formulario
       setFormData({
         nombre: '',
         rfc: '',
@@ -236,7 +285,7 @@ const CreateClientModal = ({ isOpen, onClose, onSave }) => {
           <h2 className="text-2xl font-bold text-slate-900">Nuevo cliente</h2>
           <p className="text-sm text-slate-600 mt-1">Completa la información del cliente</p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Información General */}
@@ -467,26 +516,27 @@ const EditClientModal = ({ isOpen, onClose, onSave, client }) => {
     e.preventDefault()
     setIsLoading(true)
     try {
-      // Concatenar dirección
-      const direccionCompleta = [
-        formData.calle,
-        formData.numeroExterior,
-        formData.numeroInterior,
-        formData.colonia,
-        formData.ciudad,
-        formData.estado,
-        formData.codigoPostal,
-        formData.pais
-      ].filter(campo => campo.trim() !== '').join(', ')
+      // Guardar como JSON en lugar de string concatenado
+      const direccionJSON = JSON.stringify({
+        calle: formData.calle || '',
+        numeroExterior: formData.numeroExterior || '',
+        numeroInterior: formData.numeroInterior || '',
+        colonia: formData.colonia || '',
+        ciudad: formData.ciudad || '',
+        estado: formData.estado || '',
+        codigoPostal: formData.codigoPostal || '',
+        pais: formData.pais || 'México'
+      })
 
       const dataToSend = {
         nombre: formData.nombre,
         rfc: formData.rfc,
-        direccion: direccionCompleta,
+        direccion: direccionJSON,
         telefono: formData.telefono,
         correo: formData.correo
       }
 
+      console.log('Actualizando cliente:', dataToSend)
       await onSave(client.id, dataToSend)
       onClose()
     } catch (error) {
@@ -505,7 +555,7 @@ const EditClientModal = ({ isOpen, onClose, onSave, client }) => {
           <h2 className="text-2xl font-bold text-slate-900">Editar cliente</h2>
           <p className="text-sm text-slate-600 mt-1">Actualiza la información del cliente</p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Información General */}
@@ -592,27 +642,25 @@ const EditClientModal = ({ isOpen, onClose, onSave, client }) => {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Número Exterior *
+                Números Exterior / Interior *
               </label>
-              <input
-                type="text"
-                value={formData.numeroExterior}
-                onChange={(e) => setFormData({ ...formData, numeroExterior: e.target.value })}
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Número Interior
-              </label>
-              <input
-                type="text"
-                value={formData.numeroInterior}
-                onChange={(e) => setFormData({ ...formData, numeroInterior: e.target.value })}
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  value={formData.numeroExterior}
+                  onChange={(e) => setFormData({ ...formData, numeroExterior: e.target.value })}
+                  placeholder="Ext.*"
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                  required
+                />
+                <input
+                  type="text"
+                  value={formData.numeroInterior}
+                  onChange={(e) => setFormData({ ...formData, numeroInterior: e.target.value })}
+                  placeholder="Int."
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                />
+              </div>
             </div>
 
             <div>
@@ -723,7 +771,7 @@ const ViewClientModal = ({ isOpen, onClose, client }) => {
             </div>
           </div>
         </div>
-        
+
         <div className="p-6 space-y-6">
           {/* Información General */}
           <div>
@@ -770,11 +818,11 @@ const ViewClientModal = ({ isOpen, onClose, client }) => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-medium text-slate-500">Calle</label>
-                <p className="text-sm text-slate-900 mt-1">{direccionParsed.calle}</p>
+                <p className="text-sm text-slate-900 mt-1">{direccionParsed.calle || 'N/A'}</p>
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-500">Número Exterior</label>
-                <p className="text-sm text-slate-900 mt-1">{direccionParsed.numeroExterior}</p>
+                <p className="text-sm text-slate-900 mt-1">{direccionParsed.numeroExterior || 'N/A'}</p>
               </div>
               {direccionParsed.numeroInterior && (
                 <div>
@@ -784,23 +832,23 @@ const ViewClientModal = ({ isOpen, onClose, client }) => {
               )}
               <div>
                 <label className="text-xs font-medium text-slate-500">Colonia</label>
-                <p className="text-sm text-slate-900 mt-1">{direccionParsed.colonia}</p>
+                <p className="text-sm text-slate-900 mt-1">{direccionParsed.colonia || 'N/A'}</p>
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-500">Ciudad</label>
-                <p className="text-sm text-slate-900 mt-1">{direccionParsed.ciudad}</p>
+                <p className="text-sm text-slate-900 mt-1">{direccionParsed.ciudad || 'N/A'}</p>
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-500">Estado</label>
-                <p className="text-sm text-slate-900 mt-1">{direccionParsed.estado}</p>
+                <p className="text-sm text-slate-900 mt-1">{direccionParsed.estado || 'N/A'}</p>
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-500">Código Postal</label>
-                <p className="text-sm text-slate-900 mt-1">{direccionParsed.codigoPostal}</p>
+                <p className="text-sm text-slate-900 mt-1">{direccionParsed.codigoPostal || 'N/A'}</p>
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-500">País</label>
-                <p className="text-sm text-slate-900 mt-1">{direccionParsed.pais}</p>
+                <p className="text-sm text-slate-900 mt-1">{direccionParsed.pais || 'N/A'}</p>
               </div>
             </div>
           </div>
@@ -832,19 +880,19 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, clientName }) => {
           </div>
           <h2 className="text-xl font-bold text-slate-900 mb-2">Eliminar cliente</h2>
           <p className="text-slate-600 mb-6">
-            ¿Estás seguro de que deseas eliminar a <span className="font-semibold">{clientName}</span>? 
+            ¿Estás seguro de que deseas eliminar a <span className="font-semibold">{clientName}</span>?
             Esta acción no se puede deshacer.
           </p>
           <div className="flex space-x-3">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+              className="flex-1 cursor-pointer px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
             >
               Cancelar
             </button>
             <button
               onClick={onConfirm}
-              className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+              className="flex-1 cursor-pointer px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
             >
               Eliminar
             </button>
@@ -874,7 +922,7 @@ const ClientesPage = () => {
       const response = await clientsService.getClients(0, 100)
       const clientsData = response.content || []
       setClients(clientsData)
-      
+
       setStats({
         total: response.totalElements || clientsData.length
       })
@@ -896,7 +944,7 @@ const ClientesPage = () => {
         setLoading(false)
       }
     }
-    
+
     loadInitialData()
   }, [])
 
@@ -965,8 +1013,8 @@ const ClientesPage = () => {
 
   const filteredClients = clients.filter(client => {
     const matchesSearch = client.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         client.rfc.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         client.correo.toLowerCase().includes(searchTerm.toLowerCase())
+      client.rfc.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.correo.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesSearch
   })
 
