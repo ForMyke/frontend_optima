@@ -1,0 +1,6 @@
+export { default as StatCard } from './StatCard'
+export { default as BitacoraCard } from './BitacoraCard'
+export { default as ConfirmDeleteModal } from './ConfirmDeleteModal'
+export { default as EditBitacoraModal } from './EditBitacoraModal'
+export { default as CreateBitacoraModal } from './CreateBitacoraModal'
+export { default as ViewBitacoraModal } from './ViewBitacoraModal'
