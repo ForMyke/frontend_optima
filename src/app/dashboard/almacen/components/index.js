@@ -1,0 +1,6 @@
+export { default as StatCard } from './StatCard'
+export { default as AlmacenCard } from './AlmacenCard'
+export { default as CreateAlmacenModal } from './CreateAlmacenModal'
+export { default as EditAlmacenModal } from './EditAlmacenModal'
+export { default as ViewAlmacenModal } from './ViewAlmacenModal'
+export { default as ConfirmDeleteModal } from './ConfirmDeleteModal'

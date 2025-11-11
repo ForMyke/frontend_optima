@@ -3,32 +3,21 @@
 import {
     Home,
     Truck,
-    Users,
     FileText,
     Calculator,
-    Route,
-    Shield,
     DollarSign,
-    Quote,
     Settings,
     Building2,
-    FolderOpen,
-    HelpCircle,
     ChevronDown,
-    ChevronRight,
-    MapPin,
-    BarChart3,
     CreditCard,
-    Wrench,
     Coins,
     ToolCase,
-    CoinsIcon,
-    User2,
     Users2,
-    ToolCaseIcon,
     X,
     BarChart,
-    Globe
+    Receipt,
+    UsersIcon,
+    Users2Icon
 } from 'lucide-react'
 import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
@@ -50,6 +39,8 @@ const availablePages = [
     '/dashboard/unidades',
     '/dashboard/monlo',
     '/dashboard/graficos',
+    '/dashboard/almacen',
+    '/dashboard/refacciones',
 ]
 
 const menuItems = [
@@ -92,7 +83,7 @@ const menuItems = [
         title: 'Mantenimiento',
         icon: ToolCase,
         children: [
-            { title: 'Mantenimiento de refacciones', href: '/dashboard/insurance' },
+            { title: 'Mantenimiento de refacciones', href: '/dashboard/refacciones' },
             { title: 'Renovación de seguros', href: '/dashboard/licenses' },
             { title: 'Mantenimiento proveedor', href: '/dashboard/maintenance' },
             { title: 'Mantenimiento unidad', href: '/dashboard/unidades' },
@@ -101,7 +92,7 @@ const menuItems = [
     },
     {
         title: 'Facturación',
-        icon: CoinsIcon,
+        icon: Receipt,
         children: [
             { title: 'Factura de viaje', href: '/dashboard/insurance' },
             { title: 'Factura extra', href: '/dashboard/licenses' },
@@ -110,7 +101,7 @@ const menuItems = [
     },
     {
         title: 'Gastos',
-        icon: CoinsIcon,
+        icon: CreditCard,
         children: [
             { title: 'Gastos operativos', href: '/dashboard/insurance' },
             { title: 'Gastos administrativos', href: '/dashboard/licenses' },
@@ -119,7 +110,7 @@ const menuItems = [
     },
     {
         title: 'Tarifas',
-        icon: CoinsIcon,
+        icon: Calculator,
         children: [
             { title: 'Tarifa cliente', href: '/dashboard/insurance' },
             { title: 'Tarifa operador', href: '/dashboard/licenses' }
@@ -130,13 +121,13 @@ const menuItems = [
         icon: Building2,
         children: [
             { title: 'Mantenimiento', href: '/dashboard/insurance' },
-            { title: 'Registro', href: '/dashboard/licenses' },
+            { title: 'Registro', href: '/dashboard/almacen' },
 
         ]
     },
     {
         title: 'Clientes',
-        icon: Users2,
+        icon: UsersIcon,
         href: '/dashboard/clientes',
     },
         {
@@ -146,7 +137,7 @@ const menuItems = [
     },
     {
         title: 'Usuarios',
-        icon: Users,
+        icon: Users2Icon,
         href: '/dashboard/usuarios',
     },
     {
