@@ -42,8 +42,10 @@ const availablePages = [
     '/dashboard/almacen',
     '/dashboard/refacciones',
     '/dashboard/facturas',
+    '/dashboard/facturas/extra',
     '/dashboard/tarifas-comisiones',
-      '/dashboard/almacen/mantenimiento',
+    '/dashboard/gastos',
+    '/dashboard/almacen/mantenimiento',
 ]
 
 const menuItems = [
@@ -98,7 +100,7 @@ const menuItems = [
         icon: Receipt,
         children: [
             { title: 'Factura de viaje', href: '/dashboard/insurance' },
-            { title: 'Factura extra', href: '/dashboard/licenses' },
+            { title: 'Factura extra', href: '/dashboard/facturas/extra' },
             { title: 'Facturaciones', href: '/dashboard/facturas' }
         ]
     },
@@ -107,11 +109,11 @@ const menuItems = [
         icon: CreditCard,
         children: [
             { title: 'Gastos operativos', href: '/dashboard/insurance' },
-            { title: 'Gastos administrativos', href: '/dashboard/licenses' },
+            { title: 'Gastos administrativos', href: '/dashboard/gastos' },
 
         ]
     },
-        {
+    {
         title: 'Tarifas y comisiones',
         icon: Calculator,
         href: '/dashboard/tarifas-comisiones',
@@ -130,7 +132,7 @@ const menuItems = [
         icon: UsersIcon,
         href: '/dashboard/clientes',
     },
-        {
+    {
         title: 'Operadores',
         icon: Users2,
         href: '/dashboard/operadores',

@@ -2,10 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import {
-  FileText,
-  MapPin,
-  Calendar,
-  Truck,
   DollarSign,
   Package,
   User,
@@ -60,82 +56,13 @@ const CreateBitacoraModal = ({ isOpen, onClose, onSave, viajes, operadores, clie
     setCostoDiesel(costo)
   }, [formData.dieselLitros, formData.precioDiesel])
 
-  // Función de validación
+  // Función de validación (solo para campos de costos visibles)
   const validateForm = () => {
     const newErrors = {}
 
     // Validar viaje
     if (!formData.viajeId) {
       newErrors.viajeId = 'Debes seleccionar un viaje'
-    }
-
-    // Validar folio
-    if (!formData.folio.trim()) {
-      newErrors.folio = 'El folio es obligatorio'
-    } else if (formData.folio.trim().length < 5) {
-      newErrors.folio = 'El folio debe tener al menos 5 caracteres'
-    }
-
-    // Validar cliente
-    if (!formData.clienteId) {
-      newErrors.clienteId = 'Debes seleccionar un cliente'
-    }
-
-    // Validar origen
-    if (!formData.origen.trim()) {
-      newErrors.origen = 'El origen es obligatorio'
-    } else if (formData.origen.trim().length < 3) {
-      newErrors.origen = 'El origen debe tener al menos 3 caracteres'
-    }
-
-    // Validar destino
-    if (!formData.destino.trim()) {
-      newErrors.destino = 'El destino es obligatorio'
-    } else if (formData.destino.trim().length < 3) {
-      newErrors.destino = 'El destino debe tener al menos 3 caracteres'
-    } else if (formData.destino.toLowerCase() === formData.origen.toLowerCase()) {
-      newErrors.destino = 'El destino no puede ser igual al origen'
-    }
-
-    // Validar fechas
-    if (!formData.fechaCarga) {
-      newErrors.fechaCarga = 'La fecha de carga es obligatoria'
-    }
-
-    if (!formData.fechaEntrega) {
-      newErrors.fechaEntrega = 'La fecha de entrega es obligatoria'
-    }
-
-    // Validar que la fecha de entrega sea posterior o igual a la de carga
-    if (formData.fechaCarga && formData.fechaEntrega) {
-      const fechaCarga = new Date(formData.fechaCarga)
-      const fechaEntrega = new Date(formData.fechaEntrega)
-
-      if (fechaEntrega < fechaCarga) {
-        newErrors.fechaEntrega = 'La fecha de entrega debe ser posterior o igual a la fecha de carga'
-      }
-    }
-
-    // Validar hora de entrega
-    if (!formData.horaEntrega) {
-      newErrors.horaEntrega = 'La hora de entrega es obligatoria'
-    }
-
-    // Validar operador
-    if (!formData.operadorId) {
-      newErrors.operadorId = 'Debes seleccionar un operador'
-    }
-
-    // Validar unidad
-    if (!formData.unidadId) {
-      newErrors.unidadId = 'Debes seleccionar una unidad'
-    }
-
-    // Validar caja
-    if (!formData.caja.trim()) {
-      newErrors.caja = 'El número de caja es obligatorio'
-    } else if (formData.caja.trim().length < 3) {
-      newErrors.caja = 'El número de caja debe tener al menos 3 caracteres'
     }
 
     // Validar gastos (opcionales pero deben ser valores válidos si se ingresan)
@@ -167,24 +94,6 @@ const CreateBitacoraModal = ({ isOpen, onClose, onSave, viajes, operadores, clie
     return Object.keys(newErrors).length === 0
   }
 
-  // Autocompletar datos cuando se selecciona un viaje
-  const handleViajeChange = (viajeId) => {
-    const viaje = viajes.find(v => v.id === parseInt(viajeId))
-    if (viaje) {
-      setFormData({
-        ...formData,
-        viajeId,
-        clienteId: viaje.idCliente || viaje.clienteId || '',
-        origen: viaje.origen || '',
-        destino: viaje.destino || '',
-        operadorId: viaje.idOperador || viaje.operadorId || '',
-        unidadId: viaje.idUnidad || viaje.unidadId || ''
-      })
-    } else {
-      setFormData({ ...formData, viajeId })
-    }
-  }
-
   const handleSubmit = async (e) => {
     e.preventDefault()
 
@@ -206,18 +115,32 @@ const CreateBitacoraModal = ({ isOpen, onClose, onSave, viajes, operadores, clie
       const precio = parseFloat(formData.precioDiesel) || 0
       const costoDieselTotal = litros * precio
 
+      // Obtener valores por defecto para campos no visibles
+      const today = new Date().toISOString().split('T')[0]
+      const defaultCliente = clientes && clientes.length > 0 ? clientes[0].id : 1
+      const defaultOperador = operadores && operadores.length > 0 ? operadores[0].id : 1
+      const defaultUnidad = unidades && unidades.length > 0 ? unidades[0].id : 1
+
       // Convertir strings a números y enviar costo de diesel calculado
       const dataToSend = {
-        ...formData,
         viajeId: parseInt(formData.viajeId),
-        clienteId: parseInt(formData.clienteId),
-        operadorId: parseInt(formData.operadorId),
-        unidadId: parseInt(formData.unidadId),
+        folio: `BIT-${Date.now()}`,
+        clienteId: defaultCliente,
+        origen: 'N/A',
+        destino: 'N/A',
+        fechaCarga: today,
+        fechaEntrega: today,
+        horaEntrega: '12:00',
+        operadorId: defaultOperador,
+        unidadId: defaultUnidad,
+        caja: 'N/A',
         casetas: parseFloat(formData.casetas) || 0,
         dieselLitros: costoDieselTotal, // Enviar el costo total del diesel (litros × precio)
         comisionOperador: parseFloat(formData.comisionOperador) || 0,
         gastosExtras: parseFloat(formData.gastosExtras) || 0,
         costoTotal: parseFloat(formData.costoTotal) || 0,
+        comentarios: formData.comentarios || '',
+        numeroFactura: formData.numeroFactura || '',
         creadoPor: currentUser.id // Usar el ID del usuario autenticado
       }
       await onSave(dataToSend)
@@ -256,341 +179,44 @@ const CreateBitacoraModal = ({ isOpen, onClose, onSave, viajes, operadores, clie
 
   return (
     <div className="fixed inset-0 backdrop-blur-xs bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full my-8">
+      <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full my-8">
         <div className="p-6 border-b border-slate-200">
-          <h2 className="text-2xl font-bold text-slate-900">Nueva bitácora de viaje</h2>
-          <p className="text-sm text-slate-600 mt-1">Registra un nuevo viaje con todos sus detalles</p>
+          <h2 className="text-2xl font-bold text-slate-900">Registrar Costos de Viaje</h2>
+          <p className="text-sm text-slate-600 mt-1">Captura los costos y gastos asociados al viaje</p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
           <div className="space-y-6">
-            {/* Información General */}
+            {/* Selección de Viaje */}
             <div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
-                <FileText className="h-5 w-5 mr-2" />
-                Información General
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Viaje *
-                  </label>
-                  <select
-                    value={formData.viajeId}
-                    onChange={(e) => {
-                      handleViajeChange(e.target.value)
-                      if (errors.viajeId) setErrors({ ...errors, viajeId: '' })
-                    }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${errors.viajeId
-                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                        : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
-                      }`}
-                  >
-                    <option value="">Selecciona un viaje</option>
-                    {viajes && viajes.map((viaje) => (
-                      <option key={viaje.id} value={viaje.id}>
-                        #{viaje.id} - {viaje.origen} → {viaje.destino}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.viajeId ? (
-                    <p className="mt-1 text-sm text-red-600 flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {errors.viajeId}
-                    </p>
-                  ) : (
-                    <p className="text-xs text-slate-500 mt-1">El viaje autocompletará algunos campos</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Folio *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.folio}
-                    onChange={(e) => {
-                      setFormData({ ...formData, folio: e.target.value })
-                      if (errors.folio) setErrors({ ...errors, folio: '' })
-                    }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${errors.folio
-                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                        : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
-                      }`}
-                    placeholder="BIT-2025-001"
-                  />
-                  {errors.folio && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {errors.folio}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Cliente *
-                  </label>
-                  <select
-                    value={formData.clienteId}
-                    onChange={(e) => {
-                      setFormData({ ...formData, clienteId: e.target.value })
-                      if (errors.clienteId) setErrors({ ...errors, clienteId: '' })
-                    }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${errors.clienteId
-                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                        : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
-                      }`}
-                  >
-                    <option value="">Selecciona un cliente</option>
-                    {clientes && clientes.map((cliente) => (
-                      <option key={cliente.id} value={cliente.id}>
-                        {cliente.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Número de Factura
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.numeroFactura}
-                    onChange={(e) => setFormData({ ...formData, numeroFactura: e.target.value })}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-                    placeholder="FACT-2025-001"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Ruta */}
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
-                <MapPin className="h-5 w-5 mr-2" />
-                Ruta
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Origen *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.origen}
-                    onChange={(e) => {
-                      setFormData({ ...formData, origen: e.target.value })
-                      if (errors.origen) setErrors({ ...errors, origen: '' })
-                    }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${errors.origen
-                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                        : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
-                      }`}
-                    placeholder="Ciudad de México"
-                  />
-                  {errors.origen && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {errors.origen}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Destino *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.destino}
-                    onChange={(e) => {
-                      setFormData({ ...formData, destino: e.target.value })
-                      if (errors.destino) setErrors({ ...errors, destino: '' })
-                    }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${errors.destino
-                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                        : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
-                      }`}
-                    placeholder="Guadalajara"
-                  />
-                  {errors.destino && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {errors.destino}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Fechas y Horarios */}
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
-                <Calendar className="h-5 w-5 mr-2" />
-                Fechas y Horarios
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Fecha de Carga *
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.fechaCarga}
-                    onChange={(e) => {
-                      setFormData({ ...formData, fechaCarga: e.target.value })
-                      if (errors.fechaCarga) setErrors({ ...errors, fechaCarga: '' })
-                    }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${errors.fechaCarga
-                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                        : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
-                      }`}
-                  />
-                  {errors.fechaCarga && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {errors.fechaCarga}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Fecha de Entrega *
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.fechaEntrega}
-                    onChange={(e) => {
-                      setFormData({ ...formData, fechaEntrega: e.target.value })
-                      if (errors.fechaEntrega) setErrors({ ...errors, fechaEntrega: '' })
-                    }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${errors.fechaEntrega
-                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                        : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
-                      }`}
-                  />
-                  {errors.fechaEntrega && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {errors.fechaEntrega}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Hora de Entrega *
-                  </label>
-                  <input
-                    type="time"
-                    value={formData.horaEntrega}
-                    onChange={(e) => {
-                      setFormData({ ...formData, horaEntrega: e.target.value })
-                      if (errors.horaEntrega) setErrors({ ...errors, horaEntrega: '' })
-                    }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${errors.horaEntrega
-                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                        : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
-                      }`}
-                  />
-                  {errors.horaEntrega && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {errors.horaEntrega}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Recursos */}
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
-                <Truck className="h-5 w-5 mr-2" />
-                Recursos
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Operador *
-                  </label>
-                  <select
-                    value={formData.operadorId}
-                    onChange={(e) => {
-                      setFormData({ ...formData, operadorId: e.target.value })
-                      if (errors.operadorId) setErrors({ ...errors, operadorId: '' })
-                    }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${errors.operadorId
-                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                        : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
-                      }`}
-                  >
-                    <option value="">Selecciona un operador</option>
-                    {operadores && operadores.map((operador) => (
-                      <option key={operador.id} value={operador.id}>
-                        {operador.nombre} - {operador.licencia}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.operadorId && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {errors.operadorId}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Unidad *
-                  </label>
-                  <select
-                    value={formData.unidadId}
-                    onChange={(e) => {
-                      setFormData({ ...formData, unidadId: e.target.value })
-                      if (errors.unidadId) setErrors({ ...errors, unidadId: '' })
-                    }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${errors.unidadId
-                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                        : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
-                      }`}
-                  >
-                    <option value="">Selecciona una unidad</option>
-                    {unidades && unidades.map((unidad) => (
-                      <option key={unidad.id} value={unidad.id}>
-                        {unidad.numeroEconomico} - {unidad.placas}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.unidadId && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {errors.unidadId}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Caja *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.caja}
-                    onChange={(e) => {
-                      setFormData({ ...formData, caja: e.target.value })
-                      if (errors.caja) setErrors({ ...errors, caja: '' })
-                    }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${errors.caja
-                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                        : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
-                      }`}
-                    placeholder="CAJA-001"
-                  />
-                  {errors.caja && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {errors.caja}
-                    </p>
-                  )}
-                </div>
-              </div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Viaje * <span className="text-slate-500 font-normal">(selecciona el viaje al que pertenecen estos costos)</span>
+              </label>
+              <select
+                value={formData.viajeId}
+                onChange={(e) => {
+                  setFormData({ ...formData, viajeId: e.target.value })
+                  if (errors.viajeId) setErrors({ ...errors, viajeId: '' })
+                }}
+                className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${
+                  errors.viajeId
+                    ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                    : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
+                }`}
+              >
+                <option value="">Selecciona un viaje</option>
+                {viajes && viajes.map((viaje) => (
+                  <option key={viaje.id} value={viaje.id}>
+                    #{viaje.id} - {viaje.origen} → {viaje.destino}
+                  </option>
+                ))}
+              </select>
+              {errors.viajeId && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {errors.viajeId}
+                </p>
+              )}
             </div>
 
             {/* Costos */}
@@ -770,13 +396,38 @@ const CreateBitacoraModal = ({ isOpen, onClose, onSave, viajes, operadores, clie
               </div>
             </div>
 
-            {/* Adicional */}
+            {/* Información Adicional */}
             <div>
               <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
                 <Package className="h-5 w-5 mr-2" />
                 Información Adicional
               </h3>
               <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Número de Factura
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.numeroFactura}
+                      onChange={(e) => setFormData({ ...formData, numeroFactura: e.target.value })}
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                      placeholder="FACT-2025-001"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Registrado por
+                    </label>
+                    <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-700">
+                      <div className="flex items-center">
+                        <User className="h-4 w-4 mr-2 text-slate-500" />
+                        <span className="font-medium">{currentUser?.nombre || 'Cargando...'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     Comentarios
@@ -788,19 +439,6 @@ const CreateBitacoraModal = ({ isOpen, onClose, onSave, viajes, operadores, clie
                     rows={3}
                     placeholder="Observaciones o incidencias del viaje..."
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Registrado por
-                  </label>
-                  <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-700">
-                    <div className="flex items-center">
-                      <User className="h-4 w-4 mr-2 text-slate-500" />
-                      <span className="font-medium">{currentUser?.nombre || 'Cargando...'}</span>
-                      <span className="ml-2 text-sm text-slate-500">({currentUser?.email})</span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-1">Usuario autenticado actualmente</p>
                 </div>
               </div>
             </div>

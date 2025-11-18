@@ -57,22 +57,24 @@ export const PERMISSIONS = {
 
   [ROLES.NOMINA]: {
     allowedRoutes: [
-      '/dashboard/graficos',
-      '/dashboard/operador',
       '/dashboard/nomina',
+      '/dashboard/facturas',
+      '/dashboard/facturas/extra',
+      '/dashboard/gastos',
+      '/dashboard/graficos',
+      '/dashboard/operadores',
     ],
     displayName: 'Nomina'
   },
 
   [ROLES.LOGISTICA]: {
     allowedRoutes: [
-      '/dashboard',
       '/dashboard/tarifas-comisiones',
-      '/dashboard/carta-portes',
-      '/dashboard/compliance',
-      '/dashboard/quotes',
+      '/dashboard/graficos',
+      '/dashboard/viajes',
+      '/dashboard/monlo',
       '/dashboard/clientes',
-      '/dashboard/operadores',
+      '/dashboard/bitacora',
     ],
     displayName: 'Logística de asignación de viajes'
   }
@@ -86,15 +88,15 @@ export const PERMISSIONS = {
  */
 export const normalizeRole = (role) => {
   if (!role) return null
-  
+
   // Si es un array, tomar el primer elemento
   let normalizedRole = Array.isArray(role) ? role[0] : role
-  
+
   // Quitar el prefijo "ROLE_" si existe
   if (typeof normalizedRole === 'string' && normalizedRole.startsWith('ROLE_')) {
     normalizedRole = normalizedRole.replace('ROLE_', '')
   }
-  
+
   return normalizedRole
 }
 
@@ -110,10 +112,10 @@ export const hasPermission = (userRole, route) => {
 
   // Normalizar el rol antes de verificar permisos
   const normalizedRole = normalizeRole(userRole)
-  
+
   // Obtener los permisos del rol
   const rolePermissions = PERMISSIONS[normalizedRole]
-  
+
   // Si el rol no existe, no hay permiso
   if (!rolePermissions) {
     console.warn(`Rol no encontrado en PERMISSIONS: ${normalizedRole}`)
@@ -154,7 +156,7 @@ export const filterMenuByPermissions = (menuItems, userRole) => {
     .map(item => {
       // Si el item tiene hijos, filtrarlos recursivamente
       if (item.children) {
-        const filteredChildren = item.children.filter(child => 
+        const filteredChildren = item.children.filter(child =>
           hasPermission(userRole, child.href)
         )
 
