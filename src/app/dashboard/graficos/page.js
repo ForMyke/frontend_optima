@@ -33,6 +33,8 @@ import toast from 'react-hot-toast'
 import { viajesService } from '@/app/services/viajesService'
 import { bitacoraService } from '@/app/services/bitacoraService'
 import { unidadesService } from '@/app/services/unidadesService'
+import { authService } from '@/app/services/authService'
+import { canViewChart, getRoleDisplayName } from '@/config/permissions'
 
 const COLORS = {
   primary: ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'],
@@ -93,8 +95,14 @@ export default function GraficosPage() {
   const [unidades, setUnidades] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedPeriod, setSelectedPeriod] = useState('6m') // 1m, 3m, 6m, 1a
+  const [userRole, setUserRole] = useState(null)
 
   useEffect(() => {
+    // Obtener el rol del usuario
+    const user = authService.getUser()
+    if (user?.rol) {
+      setUserRole(user.rol)
+    }
     loadData()
   }, [])
 
@@ -393,6 +401,7 @@ export default function GraficosPage() {
         {/* Gráficos principales */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Ingresos vs Gastos */}
+          {canViewChart(userRole, 'ingresos-vs-gastos') && (
           <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -433,8 +442,10 @@ export default function GraficosPage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
+          )}
 
           {/* Gastos por categoría */}
+          {canViewChart(userRole, 'gastos-categoria') && (
           <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -489,11 +500,13 @@ export default function GraficosPage() {
               </PieChart>
             </ResponsiveContainer>
           </div>
+          )}
         </div>
 
         {/* Gráficos de viajes */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Viajes por mes */}
+          {canViewChart(userRole, 'viajes-mes') && (
           <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -526,8 +539,10 @@ export default function GraficosPage() {
               </AreaChart>
             </ResponsiveContainer>
           </div>
+          )}
 
           {/* Viajes por estado */}
+          {canViewChart(userRole, 'viajes-estado') && (
           <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -558,11 +573,13 @@ export default function GraficosPage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
+          )}
         </div>
 
         {/* Gráficos de unidades */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Unidades por estado */}
+          {canViewChart(userRole, 'unidades-estado') && (
           <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -618,8 +635,10 @@ export default function GraficosPage() {
               </PieChart>
             </ResponsiveContainer>
           </div>
+          )}
 
           {/* Kilometraje por unidad */}
+          {canViewChart(userRole, 'kilometraje-unidad') && (
           <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -644,9 +663,11 @@ export default function GraficosPage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
+          )}
         </div>
 
         {/* Gastos mensuales */}
+        {canViewChart(userRole, 'gastos-mensuales') && (
         <div className="mt-6">
           <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
             <div className="flex items-center justify-between mb-6">
@@ -683,6 +704,7 @@ export default function GraficosPage() {
             </ResponsiveContainer>
           </div>
         </div>
+        )}
       </div>
     </div>
   )

@@ -42,6 +42,8 @@ const availablePages = [
     '/dashboard/almacen',
     '/dashboard/refacciones',
     '/dashboard/facturas',
+    '/dashboard/tarifas-comisiones',
+      '/dashboard/almacen/mantenimiento',
 ]
 
 const menuItems = [
@@ -109,19 +111,16 @@ const menuItems = [
 
         ]
     },
-    {
-        title: 'Tarifas',
+        {
+        title: 'Tarifas y comisiones',
         icon: Calculator,
-        children: [
-            { title: 'Tarifa cliente', href: '/dashboard/insurance' },
-            { title: 'Tarifa operador', href: '/dashboard/licenses' }
-        ]
+        href: '/dashboard/tarifas-comisiones',
     },
     {
         title: 'Almacén',
         icon: Building2,
         children: [
-            { title: 'Mantenimiento', href: '/dashboard/insurance' },
+            { title: 'Mantenimiento', href: '/dashboard/almacen/mantenimiento' },
             { title: 'Registro', href: '/dashboard/almacen' },
 
         ]

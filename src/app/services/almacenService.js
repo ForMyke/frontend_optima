@@ -79,5 +79,35 @@ export const almacenService = {
       console.error('Error al obtener todos los almacenes:', error)
       throw error
     }
+  },
+
+  // ========== SERVICIOS DE MANTENIMIENTO ==========
+
+  // Obtener todos los mantenimientos con paginación
+  async getMantenimientos(page = 0, size = 15) {
+    try {
+      const response = await apiClient.get('/api/mantenimientos', {
+        params: {
+          page,
+          size
+        }
+      })
+      return response.data
+    } catch (error) {
+      console.error('Error al obtener mantenimientos:', error)
+      throw error
+    }
+  },
+
+  // Crear un nuevo mantenimiento
+  async createMantenimiento(mantenimientoData) {
+    try {
+      const response = await apiClient.post('/api/mantenimientos', mantenimientoData)
+      return response.data
+    } catch (error) {
+      console.error('Error al crear mantenimiento:', error)
+      const message = error.response?.data?.message || 'Error al crear mantenimiento'
+      throw new Error(message)
+    }
   }
 }

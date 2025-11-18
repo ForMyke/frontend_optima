@@ -11,8 +11,7 @@ export const ROLES = {
   ADMIN: 'ADMIN',
   ALMACEN: 'ALMACEN',
   NOMINA: 'NOMINA',
-  AVIAJE: 'AVIAJE',
-  RVIAJE: 'RVIAJE',
+  LOGISTICA: 'LOGISTICA'
   // Agrega más roles aquí según los vayas creando
 }
 
@@ -65,10 +64,10 @@ export const PERMISSIONS = {
     displayName: 'Nomina'
   },
 
-  [ROLES.AVIAJE]: {
+  [ROLES.LOGISTICA]: {
     allowedRoutes: [
       '/dashboard',
-      '/dashboard/pagos',
+      '/dashboard/tarifas-comisiones',
       '/dashboard/carta-portes',
       '/dashboard/compliance',
       '/dashboard/quotes',
@@ -76,20 +75,7 @@ export const PERMISSIONS = {
       '/dashboard/operadores',
     ],
     displayName: 'Logística de asignación de viajes'
-  },
-
-  [ROLES.RVIAJE]: {
-    allowedRoutes: [
-      '/dashboard',
-      '/dashboard/clientes',
-      '/dashboard/operadores',
-      '/dashboard/viajes',
-      '/dashboard/bitacora',
-      '/dashboard/unidades',
-      '/dashboard/pagos',
-    ],
-    displayName: 'Logística de recepción de viajes'
-  },
+  }
 }
 
 /**
@@ -198,4 +184,87 @@ export const filterMenuByPermissions = (menuItems, userRole) => {
  */
 export const getRoleDisplayName = (role) => {
   return PERMISSIONS[role]?.displayName || role
+}
+
+/**
+ * Configuración de gráficos permitidos por rol
+ * Define qué gráficos puede ver cada rol en la página de gráficos
+ */
+export const GRAFICOS_PERMISSIONS = {
+  [ROLES.ADMIN]: {
+    allowedCharts: [
+      'ingresos-vs-gastos',
+      'gastos-categoria',
+      'viajes-mes',
+      'viajes-estado',
+      'unidades-estado',
+      'kilometraje-unidad',
+      'gastos-mensuales',
+      'mantenimientos-tipo',
+      'mantenimientos-costo'
+    ]
+  },
+
+  [ROLES.ALMACEN]: {
+    allowedCharts: [
+      'unidades-estado',
+      'kilometraje-unidad',
+      'mantenimientos-tipo',
+      'mantenimientos-costo'
+    ]
+  },
+
+  [ROLES.NOMINA]: {
+    allowedCharts: [
+      'gastos-mensuales',
+      'gastos-categoria',
+      'viajes-mes',
+      'viajes-estado'
+    ]
+  },
+
+  [ROLES.LOGISTICA]: {
+    allowedCharts: [
+      'viajes-mes',
+      'viajes-estado',
+      'ingresos-vs-gastos',
+      'unidades-estado'
+    ]
+  }
+}
+
+/**
+ * Verifica si un rol puede ver un gráfico específico
+ * @param {string} userRole - El rol del usuario
+ * @param {string} chartId - ID del gráfico
+ * @returns {boolean} - true si puede ver el gráfico
+ */
+export const canViewChart = (userRole, chartId) => {
+  if (!userRole) return false
+
+  const normalizedRole = normalizeRole(userRole)
+  const roleCharts = GRAFICOS_PERMISSIONS[normalizedRole]
+
+  if (!roleCharts) return false
+
+  // Admin puede ver todo
+  if (normalizedRole === ROLES.ADMIN) return true
+
+  return roleCharts.allowedCharts.includes(chartId)
+}
+
+/**
+ * Obtiene la lista de gráficos permitidos para un rol
+ * @param {string} userRole - El rol del usuario
+ * @returns {Array} - Array de IDs de gráficos permitidos
+ */
+export const getAllowedCharts = (userRole) => {
+  if (!userRole) return []
+
+  const normalizedRole = normalizeRole(userRole)
+  const roleCharts = GRAFICOS_PERMISSIONS[normalizedRole]
+
+  if (!roleCharts) return []
+
+  return roleCharts.allowedCharts
 }
