@@ -16,6 +16,7 @@ import {
   XCircle,
   Navigation
 } from 'lucide-react'
+import { authService } from '@/app/services/authService'
 
 const ESTADOS = {
   PENDIENTE: { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
@@ -32,7 +33,14 @@ const TIPOS_VIAJE = {
 
 const ViajeCard = ({ viaje, onEdit, onDelete, onViewDetails, operadores, clientes, unidades, onEstadoChange }) => {
   const [showMenu, setShowMenu] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
   const menuRef = useRef(null)
+
+  // Verificar si el usuario es ADMIN
+  useEffect(() => {
+    const user = authService.getUser()
+    setIsAdmin(user?.rol === 'ADMIN')
+  }, [])
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -121,27 +129,33 @@ const ViajeCard = ({ viaje, onEdit, onDelete, onViewDetails, operadores, cliente
                   <Eye className="h-4 w-4 mr-3 text-slate-400" />
                   Ver detalles
                 </button>
-                <button
-                  onClick={() => {
-                    onEdit(viaje)
-                    setShowMenu(false)
-                  }}
-                  className="flex cursor-pointer items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                >
-                  <Edit2 className="h-4 w-4 mr-3 text-slate-400" />
-                  Editar
-                </button>
-                <hr className="my-2 border-slate-100" />
-                <button
-                  onClick={() => {
-                    onDelete(viaje)
-                    setShowMenu(false)
-                  }}
-                  className="flex cursor-pointer items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                >
-                  <Trash2 className="h-4 w-4 mr-3" />
-                  Eliminar
-                </button>
+                
+                {/* Solo ADMIN puede editar y eliminar */}
+                {isAdmin && (
+                  <>
+                    <button
+                      onClick={() => {
+                        onEdit(viaje)
+                        setShowMenu(false)
+                      }}
+                      className="flex cursor-pointer items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                    >
+                      <Edit2 className="h-4 w-4 mr-3 text-slate-400" />
+                      Editar
+                    </button>
+                    <hr className="my-2 border-slate-100" />
+                    <button
+                      onClick={() => {
+                        onDelete(viaje)
+                        setShowMenu(false)
+                      }}
+                      className="flex cursor-pointer items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4 mr-3" />
+                      Eliminar
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>

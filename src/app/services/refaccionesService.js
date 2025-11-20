@@ -81,5 +81,50 @@ export const refaccionesService = {
       console.error('Error al obtener todas las refacciones:', error)
       throw error
     }
+  },
+
+  // Obtener refacciones por almacén (filtrado en frontend)
+  async getRefaccionesByAlmacen(almacenId) {
+    try {
+      // Convertir almacenId a número para asegurar comparación correcta
+      const almacenIdNum = parseInt(almacenId)
+      console.log('🔍 Buscando refacciones para almacén ID:', almacenIdNum)
+      
+      // Obtener todas las refacciones
+      const response = await apiClient.get('/api/refacciones', {
+        params: {
+          page: 0,
+          size: 1000,
+          sort: 'nombre,asc'
+        }
+      })
+      
+      const allRefacciones = response.data.content || []
+      console.log('📦 Total de refacciones en sistema:', allRefacciones.length)
+      
+      // Filtrar por almacen.id (la API devuelve el objeto almacen completo, no solo almacenId)
+      const refaccionesFiltradas = allRefacciones.filter(refaccion => {
+        const refaccionAlmacenId = refaccion.almacen?.id
+        const match = parseInt(refaccionAlmacenId) === almacenIdNum
+        if (match) {
+          console.log(`  ✅ Match encontrado: ${refaccion.nombre} (almacen.id=${refaccionAlmacenId})`)
+        }
+        return match
+      })
+      
+      console.log('✅ Refacciones filtradas para almacén', almacenIdNum + ':', refaccionesFiltradas.length)
+      
+      // Retornar en el mismo formato que la API paginada
+      return {
+        content: refaccionesFiltradas,
+        totalElements: refaccionesFiltradas.length,
+        totalPages: 1,
+        number: 0,
+        size: refaccionesFiltradas.length
+      }
+    } catch (error) {
+      console.error('Error al obtener refacciones por almacén:', error)
+      throw error
+    }
   }
 }

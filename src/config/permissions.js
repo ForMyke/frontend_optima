@@ -51,6 +51,7 @@ export const PERMISSIONS = {
     allowedRoutes: [
       '/dashboard/graficos',
       '/dashboard/almacen',
+      '/dashboard/almacen/*', // Permite todas las subrutas de almacen
     ],
     displayName: 'Almacen'
   },

@@ -36,29 +36,18 @@ export function RouteGuard({ children }) {
           return
         }
 
-        // 3. Validar token con el backend (verificar que no esté expirado)
-        try {
-          const response = await authService.getApiClient().get(`/api/usuarios/${user.id}`)
-          
-          if (response.status !== 200) {
-            console.log('❌ Token inválido en el servidor')
-            authService.logout()
-            router.push('/')
-            return
-          }
-          
-          console.log('✅ Token válido en el servidor')
-        } catch (error) {
-          if (error.response?.status === 401 || error.response?.status === 403) {
-            console.log('❌ Token expirado o sin permisos:', error.response.status)
-            authService.logout()
-            router.push('/')
-            return
-          }
-          
-          // Si es error de red u otro error, permitir acceso temporalmente
-          console.warn('⚠️ Error al validar token, permitiendo acceso temporal:', error.message)
+        // 3. Validar token (el interceptor de authService ya verifica la expiración)
+        // Si el token está expirado, el interceptor lo detectará y cerrará sesión
+        // No necesitamos hacer una petición al backend aquí
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+        if (!token) {
+          console.log('❌ No hay token')
+          authService.logout()
+          router.push('/')
+          return
         }
+        
+        console.log('✅ Token presente y válido')
 
         // 4. Verificar si tiene permiso para acceder a esta ruta
         const hasAccess = hasPermission(user.rol, pathname)

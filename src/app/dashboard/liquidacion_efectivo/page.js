@@ -8,14 +8,15 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  Filter
+  Filter,
+  Banknote
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { facturaService } from '@/app/services/facturaService'
 import { clientsService } from '@/app/services/clientsService'
-import { FacturaCard, StatCard, PagarFacturaModal, ViewFacturaModal } from './components'
+import { FacturaCard, StatCard, PagarFacturaModal, ViewFacturaModal } from '../facturas/components'
 
-const FacturasPage = () => {
+const LiquidacionEfectivoPage = () => {
   const [facturas, setFacturas] = useState([])
   const [clientes, setClientes] = useState([])
   const [loading, setLoading] = useState(true)
@@ -28,32 +29,30 @@ const FacturasPage = () => {
     total: 0,
     pagadas: 0,
     pendientes: 0,
-    vencidas: 0,
     totalMonto: 0
   })
 
   const loadFacturas = async () => {
     try {
-      const response = await facturaService.getFacturas(0, 100)
+      // Obtener facturas de tipo SIN_FACTURA (pagadas en efectivo)
+      const response = await facturaService.getFacturasByTipo('SIN_FACTURA', 0, 100)
       const facturasData = response.content || []
       setFacturas(facturasData)
 
       // Calcular estadísticas
       const pagadas = facturasData.filter(f => f.estatus === 'PAGADA').length
       const pendientes = facturasData.filter(f => f.estatus === 'PENDIENTE').length
-      const vencidas = facturasData.filter(f => f.estatus === 'VENCIDA').length
       const totalMonto = facturasData.reduce((sum, f) => sum + (f.monto || 0), 0)
 
       setStats({
         total: response.totalElements || facturasData.length,
         pagadas,
         pendientes,
-        vencidas,
         totalMonto
       })
     } catch (error) {
-      console.error('Error loading facturas:', error)
-      toast.error('Error al cargar facturas')
+      console.error('Error loading facturas efectivo:', error)
+      toast.error('Error al cargar facturas en efectivo')
     }
   }
 
@@ -161,62 +160,56 @@ const FacturasPage = () => {
       <div className="mb-6 lg:mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Gestión de facturas</h1>
-            <p className="text-sm lg:text-base text-slate-600 mt-1 lg:mt-2">Administra las facturas y pagos</p>
+            <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 flex items-center gap-3">
+              <Banknote className="h-8 w-8 text-green-600" />
+              Liquidación en efectivo
+            </h1>
+            <p className="text-sm lg:text-base text-slate-600 mt-1 lg:mt-2">
+              Facturas pagadas en efectivo (Sin facturar)
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6 mb-6 lg:mb-8">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8">
         <StatCard
           title="Total facturas"
           value={stats.total}
           icon={FileText}
-          color="bg-blue-600"
-          description="Registradas en el sistema"
+          color="blue"
         />
         <StatCard
           title="Pagadas"
           value={stats.pagadas}
           icon={CheckCircle}
-          color="bg-emerald-600"
-          description="Facturas liquidadas"
+          color="green"
         />
         <StatCard
           title="Pendientes"
           value={stats.pendientes}
           icon={Clock}
-          color="bg-orange-600"
-          description="Por cobrar"
-        />
-        <StatCard
-          title="Vencidas"
-          value={stats.vencidas}
-          icon={XCircle}
-          color="bg-red-600"
-          description="Requieren atención"
+          color="orange"
         />
         <StatCard
           title="Monto total"
-          value={`$${stats.totalMonto.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={`$${stats.totalMonto.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`}
           icon={DollarSign}
-          color="bg-purple-600"
-          description="Suma de todas las facturas"
+          color="purple"
         />
       </div>
 
-      {/* Search and Filter */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 lg:p-6 mb-4 lg:mb-6">
+      {/* Filters */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 lg:p-6 mb-6">
         <div className="flex flex-col lg:flex-row gap-4">
-          <div className="relative flex-1">
+          <div className="flex-1 relative">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
             <input
               type="text"
-              placeholder="Buscar por número de factura u observaciones..."
+              placeholder="Buscar por número de factura o descripción..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-2.5 lg:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-700 placeholder-slate-400"
+              className="w-full pl-12 pr-4 py-2.5 lg:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 placeholder:text-slate-400"
             />
           </div>
           <div className="relative lg:w-64">
@@ -251,8 +244,8 @@ const FacturasPage = () => {
 
       {filteredFacturas.length === 0 && (
         <div className="text-center py-12">
-          <FileText className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-          <p className="text-slate-500">No se encontraron facturas</p>
+          <Banknote className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+          <p className="text-slate-500">No se encontraron facturas en efectivo</p>
         </div>
       )}
 
@@ -280,4 +273,4 @@ const FacturasPage = () => {
   )
 }
 
-export default FacturasPage
+export default LiquidacionEfectivoPage

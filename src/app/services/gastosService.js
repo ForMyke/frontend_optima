@@ -71,13 +71,12 @@ const gastosService = {
   },
 
   /**
-   * Obtener gastos generados
+   * Obtener gastos generados automáticamente por el sistema
+   * Devuelve los datos calculados de la semana actual
    */
-  async getGastosGenerados(page = 0, size = 15) {
+  async getGastosGenerados() {
     try {
-      const response = await apiClient.get('/api/gastos-semanales/generado', {
-        params: { page, size }
-      })
+      const response = await apiClient.get('/api/gastos-semanales/generado')
       return response.data
     } catch (error) {
       console.error('Error al obtener gastos generados:', error)

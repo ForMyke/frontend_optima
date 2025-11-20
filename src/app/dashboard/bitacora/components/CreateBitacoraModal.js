@@ -6,88 +6,83 @@ import {
   Package,
   User,
   Fuel,
-  AlertCircle
+  AlertCircle,
+  Calendar
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { authService } from '@/app/services/authService'
+import gastosService from '@/app/services/gastosService'
 
 const CreateBitacoraModal = ({ isOpen, onClose, onSave, viajes, operadores, clientes, unidades }) => {
   const [formData, setFormData] = useState({
-    viajeId: '',
-    folio: '',
-    clienteId: '',
-    origen: '',
-    destino: '',
-    fechaCarga: '',
-    fechaEntrega: '',
-    horaEntrega: '',
-    operadorId: '',
-    unidadId: '',
-    caja: '',
     casetas: '',
     dieselLitros: '',
-    precioDiesel: '', // Nuevo campo para precio por litro
     comisionOperador: '',
     gastosExtras: '',
-    costoTotal: '',
-    comentarios: '',
-    numeroFactura: ''
+    costoTotal: ''
   })
   const [errors, setErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
-  const [currentUser, setCurrentUser] = useState(null)
-  const [costoDiesel, setCostoDiesel] = useState(0) // Estado para mostrar el cálculo
+  const [loadingDatos, setLoadingDatos] = useState(false)
+  const [totalViajes, setTotalViajes] = useState(0)
 
-  // Obtener usuario autenticado al abrir el modal
+  // Cargar solo totalViajes de la API al abrir el modal
   useEffect(() => {
-    if (isOpen) {
-      const user = authService.getUser()
-      setCurrentUser(user)
-      // Limpiar errores al abrir el modal
-      setErrors({})
+    const loadTotalViajes = async () => {
+      if (isOpen) {
+        setLoadingDatos(true)
+        try {
+          // Cargar datos generados desde la API (solo para obtener totalViajes)
+          const datosGenerados = await gastosService.getGastosGenerados()
+          setTotalViajes(datosGenerados.totalViajes || 0)
+          setErrors({})
+        } catch (error) {
+          console.error('Error al cargar total de viajes:', error)
+          toast.error('Error al cargar total de viajes')
+          setTotalViajes(0)
+        } finally {
+          setLoadingDatos(false)
+        }
+      } else {
+        // Limpiar cuando se cierra
+        setFormData({
+          casetas: '',
+          dieselLitros: '',
+          comisionOperador: '',
+          gastosExtras: '',
+          costoTotal: ''
+        })
+        setTotalViajes(0)
+        setErrors({})
+      }
     }
+
+    loadTotalViajes()
   }, [isOpen])
 
-  // Calcular costo de diesel cuando cambien litros o precio
-  useEffect(() => {
-    const litros = parseFloat(formData.dieselLitros) || 0
-    const precio = parseFloat(formData.precioDiesel) || 0
-    const costo = litros * precio
-    setCostoDiesel(costo)
-  }, [formData.dieselLitros, formData.precioDiesel])
-
-  // Función de validación (solo para campos de costos visibles)
+  // Función de validación
   const validateForm = () => {
     const newErrors = {}
 
-    // Validar viaje
-    if (!formData.viajeId) {
-      newErrors.viajeId = 'Debes seleccionar un viaje'
+    // Validar costos
+    if (!formData.casetas || parseFloat(formData.casetas) < 0) {
+      newErrors.casetas = 'El valor de casetas es requerido y no puede ser negativo'
     }
 
-    // Validar gastos (opcionales pero deben ser valores válidos si se ingresan)
-    if (formData.casetas && parseFloat(formData.casetas) < 0) {
-      newErrors.casetas = 'El costo de casetas no puede ser negativo'
+    if (!formData.dieselLitros || parseFloat(formData.dieselLitros) < 0) {
+      newErrors.dieselLitros = 'Los litros de diesel son requeridos y no pueden ser negativos'
     }
 
-    if (formData.dieselLitros && parseFloat(formData.dieselLitros) < 0) {
-      newErrors.dieselLitros = 'Los litros de diesel no pueden ser negativos'
-    }
-
-    if (formData.precioDiesel && parseFloat(formData.precioDiesel) < 0) {
-      newErrors.precioDiesel = 'El precio del diesel no puede ser negativo'
-    }
-
-    if (formData.comisionOperador && parseFloat(formData.comisionOperador) < 0) {
-      newErrors.comisionOperador = 'La comisión del operador no puede ser negativa'
+    if (!formData.comisionOperador || parseFloat(formData.comisionOperador) < 0) {
+      newErrors.comisionOperador = 'La comisión del operador es requerida y no puede ser negativa'
     }
 
     if (formData.gastosExtras && parseFloat(formData.gastosExtras) < 0) {
       newErrors.gastosExtras = 'Los gastos extras no pueden ser negativos'
     }
 
-    if (!formData.costoTotal || parseFloat(formData.costoTotal) <= 0) {
-      newErrors.costoTotal = 'El costo total es obligatorio y debe ser mayor a 0'
+    if (!formData.costoTotal || parseFloat(formData.costoTotal) < 0) {
+      newErrors.costoTotal = 'El costo total es requerido y no puede ser negativo'
     }
 
     setErrors(newErrors)
@@ -103,361 +98,283 @@ const CreateBitacoraModal = ({ isOpen, onClose, onSave, viajes, operadores, clie
       return
     }
 
-    if (!currentUser?.id) {
-      toast.error('No se pudo obtener el usuario autenticado')
-      return
-    }
-
     setIsLoading(true)
     try {
-      // Calcular el costo total del diesel (litros × precio)
-      const litros = parseFloat(formData.dieselLitros) || 0
-      const precio = parseFloat(formData.precioDiesel) || 0
-      const costoDieselTotal = litros * precio
+      const user = authService.getUser()
+      const creadoPor = user?.id || 1
 
-      // Obtener valores por defecto para campos no visibles
-      const today = new Date().toISOString().split('T')[0]
-      const defaultCliente = clientes && clientes.length > 0 ? clientes[0].id : 1
-      const defaultOperador = operadores && operadores.length > 0 ? operadores[0].id : 1
-      const defaultUnidad = unidades && unidades.length > 0 ? unidades[0].id : 1
-
-      // Convertir strings a números y enviar costo de diesel calculado
+      // Crear el objeto con el formato correcto de costos
       const dataToSend = {
-        viajeId: parseInt(formData.viajeId),
-        folio: `BIT-${Date.now()}`,
-        clienteId: defaultCliente,
-        origen: 'N/A',
-        destino: 'N/A',
-        fechaCarga: today,
-        fechaEntrega: today,
-        horaEntrega: '12:00',
-        operadorId: defaultOperador,
-        unidadId: defaultUnidad,
-        caja: 'N/A',
-        casetas: parseFloat(formData.casetas) || 0,
-        dieselLitros: costoDieselTotal, // Enviar el costo total del diesel (litros × precio)
-        comisionOperador: parseFloat(formData.comisionOperador) || 0,
+        casetas: parseFloat(formData.casetas),
+        dieselLitros: parseFloat(formData.dieselLitros),
+        comisionOperador: parseFloat(formData.comisionOperador),
         gastosExtras: parseFloat(formData.gastosExtras) || 0,
-        costoTotal: parseFloat(formData.costoTotal) || 0,
-        comentarios: formData.comentarios || '',
-        numeroFactura: formData.numeroFactura || '',
-        creadoPor: currentUser.id // Usar el ID del usuario autenticado
+        costoTotal: parseFloat(formData.costoTotal),
+        creadoPor: creadoPor,
+        totalViajes: totalViajes
       }
+
       await onSave(dataToSend)
+      
+      // Limpiar formulario
       setFormData({
-        viajeId: '',
-        folio: '',
-        clienteId: '',
-        origen: '',
-        destino: '',
-        fechaCarga: '',
-        fechaEntrega: '',
-        horaEntrega: '',
-        operadorId: '',
-        unidadId: '',
-        caja: '',
         casetas: '',
         dieselLitros: '',
-        precioDiesel: '',
         comisionOperador: '',
         gastosExtras: '',
-        costoTotal: '',
-        comentarios: '',
-        numeroFactura: ''
+        costoTotal: ''
       })
-      setCostoDiesel(0)
-      setErrors({})
+      setTotalViajes(0)
       onClose()
     } catch (error) {
-      console.error('Error saving bitácora:', error)
+      console.error('Error en handleSubmit:', error)
+      toast.error(error.message || 'Error al guardar la bitácora')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+    
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }))
     }
   }
 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 backdrop-blur-xs bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full my-8">
+    <div className="fixed inset-0 backdrop-blur-xs bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        {/* Header */}
         <div className="p-6 border-b border-slate-200">
-          <h2 className="text-2xl font-bold text-slate-900">Registrar Costos de Viaje</h2>
-          <p className="text-sm text-slate-600 mt-1">Captura los costos y gastos asociados al viaje</p>
+          <h2 className="text-2xl font-bold text-slate-900">Nueva Bitácora</h2>
+          <p className="text-sm text-slate-600 mt-1">Registrar datos de la bitácora</p>
+          
+          {/* Mostrar total de viajes si está disponible */}
+          {totalViajes > 0 && (
+            <div className="mt-3 inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              Total de viajes: {totalViajes}
+            </div>
+          )}
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
-          <div className="space-y-6">
-            {/* Selección de Viaje */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Viaje * <span className="text-slate-500 font-normal">(selecciona el viaje al que pertenecen estos costos)</span>
-              </label>
-              <select
-                value={formData.viajeId}
-                onChange={(e) => {
-                  setFormData({ ...formData, viajeId: e.target.value })
-                  if (errors.viajeId) setErrors({ ...errors, viajeId: '' })
-                }}
-                className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${
-                  errors.viajeId
-                    ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                    : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
-                }`}
-              >
-                <option value="">Selecciona un viaje</option>
-                {viajes && viajes.map((viaje) => (
-                  <option key={viaje.id} value={viaje.id}>
-                    #{viaje.id} - {viaje.origen} → {viaje.destino}
-                  </option>
-                ))}
-              </select>
-              {errors.viajeId && (
-                <p className="mt-1 text-sm text-red-600 flex items-center">
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  {errors.viajeId}
-                </p>
-              )}
+        {/* Loading state */}
+        {loadingDatos && (
+          <div className="p-6">
+            <div className="flex items-center justify-center space-x-2 text-blue-600">
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
+              <span>Cargando datos automáticos...</span>
             </div>
+          </div>
+        )}
 
-            {/* Costos */}
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
-                <DollarSign className="h-5 w-5 mr-2" />
-                Costos y Gastos
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Casetas ($)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.casetas}
-                    onChange={(e) => {
-                      setFormData({ ...formData, casetas: e.target.value })
-                      if (errors.casetas) setErrors({ ...errors, casetas: '' })
-                    }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${errors.casetas
-                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                        : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
-                      }`}
-                    placeholder="850.50"
-                  />
-                  {errors.casetas && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {errors.casetas}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Diesel (Litros)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.dieselLitros}
-                    onChange={(e) => {
-                      setFormData({ ...formData, dieselLitros: e.target.value })
-                      if (errors.dieselLitros) setErrors({ ...errors, dieselLitros: '' })
-                    }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${errors.dieselLitros
-                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                        : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
-                      }`}
-                    placeholder="120.75"
-                  />
-                  {errors.dieselLitros && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {errors.dieselLitros}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Precio Diesel ($/Litro)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.precioDiesel}
-                    onChange={(e) => {
-                      setFormData({ ...formData, precioDiesel: e.target.value })
-                      if (errors.precioDiesel) setErrors({ ...errors, precioDiesel: '' })
-                    }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${errors.precioDiesel
-                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                        : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
-                      }`}
-                    placeholder="24.50"
-                  />
-                  {errors.precioDiesel && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {errors.precioDiesel}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Costo total diesel
-                  </label>
-                  <div className="w-full px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 font-semibold flex items-center">
-                    <Fuel className="h-4 w-4 mr-2 text-amber-600" />
-                    {new Intl.NumberFormat('es-MX', {
-                      style: 'currency',
-                      currency: 'MXN'
-                    }).format(costoDiesel)}
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Tarjeta de información de Total de Viajes */}
+          {totalViajes > 0 && (
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {formData.dieselLitros && formData.precioDiesel
-                      ? `${formData.dieselLitros} L × $${formData.precioDiesel} = $${costoDiesel.toFixed(2)}`
-                      : 'Ingresa litros y precio para calcular'}
-                  </p>
+                  <div>
+                    <p className="text-sm font-medium text-blue-600">Total de viajes registrados</p>
+                    <p className="text-3xl font-bold text-blue-900">{totalViajes}</p>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Comisión Operador ($)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.comisionOperador}
-                    onChange={(e) => {
-                      setFormData({ ...formData, comisionOperador: e.target.value })
-                      if (errors.comisionOperador) setErrors({ ...errors, comisionOperador: '' })
-                    }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${errors.comisionOperador
-                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                        : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
-                      }`}
-                    placeholder="1500.00"
-                  />
-                  {errors.comisionOperador && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {errors.comisionOperador}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Gastos Extras ($)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.gastosExtras}
-                    onChange={(e) => {
-                      setFormData({ ...formData, gastosExtras: e.target.value })
-                      if (errors.gastosExtras) setErrors({ ...errors, gastosExtras: '' })
-                    }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${errors.gastosExtras
-                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                        : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
-                      }`}
-                    placeholder="250.00"
-                  />
-                  {errors.gastosExtras && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {errors.gastosExtras}
-                    </p>
-                  )}
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Costo Total ($) *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.costoTotal}
-                    onChange={(e) => {
-                      setFormData({ ...formData, costoTotal: e.target.value })
-                      if (errors.costoTotal) setErrors({ ...errors, costoTotal: '' })
-                    }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${errors.costoTotal
-                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                        : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
-                      }`}
-                    placeholder="5800.00"
-                  />
-                  {errors.costoTotal && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {errors.costoTotal}
-                    </p>
-                  )}
+                <div className="text-right">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-600 text-white">
+                    Periodo actual
+                  </span>
                 </div>
               </div>
             </div>
+          )}
 
-            {/* Información Adicional */}
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
-                <Package className="h-5 w-5 mr-2" />
-                Información Adicional
-              </h3>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Número de Factura
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.numeroFactura}
-                      onChange={(e) => setFormData({ ...formData, numeroFactura: e.target.value })}
-                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-                      placeholder="FACT-2025-001"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Registrado por
-                    </label>
-                    <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-700">
-                      <div className="flex items-center">
-                        <User className="h-4 w-4 mr-2 text-slate-500" />
-                        <span className="font-medium">{currentUser?.nombre || 'Cargando...'}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Comentarios
-                  </label>
-                  <textarea
-                    value={formData.comentarios}
-                    onChange={(e) => setFormData({ ...formData, comentarios: e.target.value })}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-                    rows={3}
-                    placeholder="Observaciones o incidencias del viaje..."
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
+              <DollarSign className="h-5 w-5 mr-2 text-blue-600" />
+              Costos y Gastos del Viaje
+            </h3>
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Casetas */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Casetas <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <input
+                    type="number"
+                    name="casetas"
+                    value={formData.casetas}
+                    onChange={handleChange}
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    className={`w-full pl-9 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                      errors.casetas ? 'border-red-300' : 'border-slate-300'
+                    }`}
                   />
                 </div>
+                {errors.casetas && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>{errors.casetas}</span>
+                  </p>
+                )}
+              </div>
+
+              {/* Diesel Litros */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Diesel (Litros) <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Fuel className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <input
+                    type="number"
+                    name="dieselLitros"
+                    value={formData.dieselLitros}
+                    onChange={handleChange}
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    className={`w-full pl-9 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                      errors.dieselLitros ? 'border-red-300' : 'border-slate-300'
+                    }`}
+                  />
+                </div>
+                {errors.dieselLitros && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>{errors.dieselLitros}</span>
+                  </p>
+                )}
+              </div>
+
+              {/* Comisión Operador */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Comisión Operador <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <input
+                    type="number"
+                    name="comisionOperador"
+                    value={formData.comisionOperador}
+                    onChange={handleChange}
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    className={`w-full pl-9 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                      errors.comisionOperador ? 'border-red-300' : 'border-slate-300'
+                    }`}
+                  />
+                </div>
+                {errors.comisionOperador && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>{errors.comisionOperador}</span>
+                  </p>
+                )}
+              </div>
+
+              {/* Gastos Extras */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Gastos Extras
+                </label>
+                <div className="relative">
+                  <Package className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <input
+                    type="number"
+                    name="gastosExtras"
+                    value={formData.gastosExtras}
+                    onChange={handleChange}
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    className={`w-full pl-9 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                      errors.gastosExtras ? 'border-red-300' : 'border-slate-300'
+                    }`}
+                  />
+                </div>
+                {errors.gastosExtras && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>{errors.gastosExtras}</span>
+                  </p>
+                )}
+              </div>
+
+              {/* Costo Total */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Costo Total <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <input
+                    type="number"
+                    name="costoTotal"
+                    value={formData.costoTotal}
+                    onChange={handleChange}
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    className={`w-full pl-9 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                      errors.costoTotal ? 'border-red-300' : 'border-slate-300'
+                    }`}
+                  />
+                </div>
+                {errors.costoTotal && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>{errors.costoTotal}</span>
+                  </p>
+                )}
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-slate-200">
+          {/* Botones */}
+          <div className="flex justify-end space-x-3 pt-4 border-t border-slate-200">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 cursor-pointer py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+              disabled={isLoading}
+              className="px-6 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={isLoading || !currentUser}
-              className="px-6 cursor-pointer py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading || loadingDatos}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
-              {isLoading ? 'Guardando...' : 'Crear bitácora'}
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  <span>Guardando...</span>
+                </>
+              ) : (
+                <>
+                  <Package className="h-4 w-4" />
+                  <span>Guardar Bitácora</span>
+                </>
+              )}
             </button>
           </div>
         </form>
@@ -467,3 +384,4 @@ const CreateBitacoraModal = ({ isOpen, onClose, onSave, viajes, operadores, clie
 }
 
 export default CreateBitacoraModal
+                

@@ -13,7 +13,7 @@ import {
   XCircle
 } from 'lucide-react'
 
-const FacturaCard = ({ factura, clientes, onPagar, onViewDetails }) => {
+const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChange }) => {
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef(null)
 
@@ -102,24 +102,34 @@ const FacturaCard = ({ factura, clientes, onPagar, onViewDetails }) => {
                   <Eye className="h-4 w-4 mr-3 text-slate-400" />
                   Ver detalles
                 </button>
-                {factura.estatus !== 'PAGADA' && (
-                  <>
-                    <hr className="my-2 border-slate-100" />
-                    <button
-                      onClick={() => {
-                        onPagar(factura)
-                        setShowMenu(false)
-                      }}
-                      className="flex cursor-pointer items-center w-full px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-50 transition-colors"
-                    >
-                      <CheckCircle className="h-4 w-4 mr-3" />
-                      Marcar como pagada
-                    </button>
-                  </>
-                )}
               </div>
             )}
           </div>
+        </div>
+
+        {/* Select de estado */}
+        <div className="mb-4">
+          <label className="block text-xs font-medium text-slate-500 mb-2">
+            Estado de la factura
+          </label>
+          <select
+            value={factura.estatus}
+            onChange={(e) => {
+              const nuevoEstatus = e.target.value
+              if (nuevoEstatus !== factura.estatus) {
+                onEstatusChange(factura, nuevoEstatus)
+              }
+            }}
+            className={`w-full px-3 py-2 rounded-lg border-2 transition-all font-medium text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              factura.estatus === 'PENDIENTE' ? 'border-orange-200 bg-orange-50 text-orange-800' :
+              factura.estatus === 'PAGADA' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' :
+              'border-red-200 bg-red-50 text-red-800'
+            }`}
+          >
+            <option value="PENDIENTE">⏳ Pendiente</option>
+            <option value="PAGADA">✓ Pagada</option>
+            <option value="VENCIDA">✗ Vencida</option>
+          </select>
         </div>
 
         <div className="space-y-3">

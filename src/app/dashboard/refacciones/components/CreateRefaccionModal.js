@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Wrench, FileText, Package, DollarSign, Warehouse, AlertCircle } from 'lucide-react'
 
-const CreateRefaccionModal = ({ isOpen, onClose, onSave, almacenes }) => {
+const CreateRefaccionModal = ({ isOpen, onClose, onSave, almacenes, defaultAlmacenId }) => {
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: '',
@@ -12,6 +12,13 @@ const CreateRefaccionModal = ({ isOpen, onClose, onSave, almacenes }) => {
     stockActual: '',
     almacenId: ''
   })
+
+  // Cuando se abre el modal, si hay un almacenId por defecto, usarlo
+  useEffect(() => {
+    if (isOpen && defaultAlmacenId) {
+      setFormData(prev => ({ ...prev, almacenId: defaultAlmacenId.toString() }))
+    }
+  }, [isOpen, defaultAlmacenId])
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e) => {

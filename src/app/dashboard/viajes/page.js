@@ -458,9 +458,9 @@ const ViajesPage = () => {
     loadInitialData()
   }, [estadoFilter])
 
-  const handleCreateViaje = async (viajeData) => {
+  const handleCreateViaje = async (viajeData, archivo) => {
     try {
-      await viajesService.createViaje(viajeData)
+      await viajesService.createViaje(viajeData, archivo)
       toast.success('Viaje creado exitosamente')
       loadViajes()
     } catch (error) {

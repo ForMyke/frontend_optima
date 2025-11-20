@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Warehouse,
   MoreVertical,
@@ -12,6 +13,7 @@ import {
 } from 'lucide-react'
 
 const AlmacenCard = ({ almacen, usuarios, onEdit, onDelete, onViewDetails }) => {
+  const router = useRouter()
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef(null)
 
@@ -61,13 +63,13 @@ const AlmacenCard = ({ almacen, usuarios, onEdit, onDelete, onViewDetails }) => 
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-10">
                 <button
                   onClick={() => {
-                    onViewDetails(almacen)
+                    router.push(`/dashboard/almacen/${almacen.id}`)
                     setShowMenu(false)
                   }}
                   className="flex cursor-pointer items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                 >
                   <Eye className="h-4 w-4 mr-3 text-slate-400" />
-                  Ver detalles
+                  Ver almacén y refacciones
                 </button>
                 <button
                   onClick={() => {

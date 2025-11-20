@@ -17,30 +17,41 @@ export const viajesService = {
     }
   },
 
-  // Crear un nuevo viaje con el formato actualizado
-  async createViaje(viajeData) {
+  // Crear un nuevo viaje con FormData (dto + archivo)
+  async createViaje(viajeData, archivo = null) {
     try {
-      // Formato del body según la API actualizada
-      const body = {
+      // Crear FormData
+      const formData = new FormData()
+      
+      // Preparar el DTO como objeto JSON
+      const dto = {
         idUnidad: viajeData.idUnidad,
         idOperador: viajeData.idOperador,
         idCliente: viajeData.idCliente,
-        origen: viajeData.origen,
-        destino: viajeData.destino,
+        idRutaComisiones: viajeData.idRutaComisiones || null,
         fechaSalida: viajeData.fechaSalida,
         fechaEstimadaLlegada: viajeData.fechaEstimadaLlegada,
+        tipo: viajeData.tipo || 'NORMAL',
         estado: viajeData.estado || 'PENDIENTE',
         cargaDescripcion: viajeData.cargaDescripcion,
         observaciones: viajeData.observaciones || null,
-        tarifa: viajeData.tarifa,
-        distanciaKm: viajeData.distanciaKm,
-        tipo: viajeData.tipo || 'LOCAL',
         responsableLogistica: viajeData.responsableLogistica,
-        evidenciaUrl: viajeData.evidenciaUrl || null,
         creadoPor: viajeData.creadoPor
       }
       
-      const response = await apiClient.post('/api/viajes', body)
+      // Agregar el DTO como texto JSON
+      formData.append('dto', JSON.stringify(dto))
+      
+      // Agregar el archivo si existe
+      if (archivo) {
+        formData.append('archivo', archivo)
+      }
+      
+      const response = await apiClient.post('/api/viajes', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
       return response.data
     } catch (error) {
       console.error('Error al crear viaje:', error)

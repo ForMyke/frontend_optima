@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { MapPin, Calendar, User, Package, Truck, AlertCircle, Upload, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { authService } from '@/app/services/authService'
+import tarifasComisionesService from '@/app/services/tarifasComisionesService'
 import Image from 'next/image'
 
 const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unidades }) => {
@@ -11,23 +12,23 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
     idUnidad: '',
     idOperador: '',
     idCliente: '',
-    origen: '',
-    destino: '',
+    idRutaComisiones: '',
     fechaSalida: '',
     fechaEstimadaLlegada: '',
     estado: 'PENDIENTE',
     cargaDescripcion: '',
     observaciones: '',
-    tarifa: '',
-    distanciaKm: '',
-    tipo: 'LOCAL',
+    tipo: 'NORMAL',
     responsableLogistica: '',
-    evidenciaUrl: '',
     creadoPor: ''
   })
+  const [archivo, setArchivo] = useState(null)
   const [errors, setErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
+  const [rutasDisponibles, setRutasDisponibles] = useState([])
+  const [tarifaRuta, setTarifaRuta] = useState(null)
+  const [loadingRutas, setLoadingRutas] = useState(false)
 
   // Obtener usuario autenticado al abrir el modal
   useEffect(() => {
@@ -43,18 +44,59 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
       }
       // Limpiar errores al abrir el modal
       setErrors({})
+      setRutasDisponibles([])
+      setTarifaRuta(null)
     }
   }, [isOpen])
+
+  // Cargar rutas cuando se selecciona un cliente
+  useEffect(() => {
+    const loadRutasCliente = async () => {
+      if (!formData.idCliente) {
+        setRutasDisponibles([])
+        setTarifaRuta(null)
+        return
+      }
+
+      setLoadingRutas(true)
+      try {
+        const response = await tarifasComisionesService.getRutasComisionesByCliente(formData.idCliente, 0, 100)
+        setRutasDisponibles(response.content || [])
+      } catch (error) {
+        console.error('Error al cargar rutas del cliente:', error)
+        toast.error('Error al cargar las rutas del cliente')
+        setRutasDisponibles([])
+      } finally {
+        setLoadingRutas(false)
+      }
+    }
+
+    loadRutasCliente()
+  }, [formData.idCliente])
+
+  // Actualizar tarifa cuando se selecciona una ruta
+  useEffect(() => {
+    if (!formData.idRutaComisiones) {
+      setTarifaRuta(null)
+      return
+    }
+
+    // Buscar la ruta seleccionada en las rutas disponibles
+    const rutaSeleccionada = rutasDisponibles.find(
+      ruta => ruta.id === parseInt(formData.idRutaComisiones)
+    )
+    
+    if (rutaSeleccionada) {
+      setTarifaRuta(rutaSeleccionada)
+    } else {
+      setTarifaRuta(null)
+    }
+  }, [formData.idRutaComisiones, rutasDisponibles])
 
 
   // Función de validación
   const validateForm = () => {
     const newErrors = {}
-
-    // Validar tipo de viaje
-    if (!formData.tipo) {
-      newErrors.tipo = 'Debes seleccionar un tipo de viaje'
-    }
 
     // Validar asignaciones
     if (!formData.idOperador) {
@@ -67,22 +109,6 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
       newErrors.idUnidad = 'Debes seleccionar una unidad'
     }
 
-    // Validar origen (mínimo 5 caracteres)
-    if (!formData.origen || !formData.origen.trim()) {
-      newErrors.origen = 'El origen es obligatorio'
-    } else if (formData.origen.trim().length < 3) {
-      newErrors.origen = 'El origen debe tener al menos 3 caracteres'
-    }
-
-    // Validar destino (mínimo 5 caracteres)
-    if (!formData.destino || !formData.destino.trim()) {
-      newErrors.destino = 'El destino es obligatorio'
-    } else if (formData.destino.trim().length < 3 ) {
-      newErrors.destino = 'El destino debe tener al menos 3 caracteres'
-    } else if (formData.destino.toLowerCase() === formData.origen.toLowerCase()) {
-      newErrors.destino = 'El destino no puede ser igual al origen'
-    }
-
     // Validar fechas
     if (!formData.fechaSalida) {
       newErrors.fechaSalida = 'La fecha de salida es obligatoria'
@@ -92,7 +118,7 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
       newErrors.fechaEstimadaLlegada = 'La fecha estimada de llegada es obligatoria'
     }
 
-    // Validar que la fecha de llegada sea posterior o igual a la de salida (permite mismo día para viajes locales)
+    // Validar que la fecha de llegada sea posterior o igual a la de salida
     if (formData.fechaSalida && formData.fechaEstimadaLlegada) {
       const fechaSalida = new Date(formData.fechaSalida)
       const fechaLlegada = new Date(formData.fechaEstimadaLlegada)
@@ -100,24 +126,6 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
       if (fechaLlegada < fechaSalida) {
         newErrors.fechaEstimadaLlegada = 'La fecha de llegada no puede ser anterior a la fecha de salida'
       }
-    }
-
-    // Validar distancia
-    if (!formData.distanciaKm) {
-      newErrors.distanciaKm = 'La distancia es obligatoria'
-    } else if (parseFloat(formData.distanciaKm) <= 0) {
-      newErrors.distanciaKm = 'La distancia debe ser mayor a 0'
-    } else if (parseFloat(formData.distanciaKm) > 10000) {
-      newErrors.distanciaKm = 'La distancia no puede exceder 10,000 km'
-    }
-
-    // Validar tarifa (debe ser positiva)
-    if (!formData.tarifa) {
-      newErrors.tarifa = 'La tarifa es obligatoria'
-    } else if (parseFloat(formData.tarifa) < 0) {
-      newErrors.tarifa = 'La tarifa no puede ser negativa'
-    } else if (parseFloat(formData.tarifa) > 1000000) {
-      newErrors.tarifa = 'La tarifa no puede exceder $1,000,000'
     }
 
     // Validar descripción de carga
@@ -128,12 +136,6 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
     }
 
     setErrors(newErrors)
-    
-    // Debug: mostrar qué campos tienen errores
-    console.log('=== VALIDACIÓN DEL FORMULARIO ===')
-    console.log('Datos del formulario:', formData)
-    console.log('Errores encontrados:', newErrors)
-    console.log('Cantidad de errores:', Object.keys(newErrors).length)
     
     return Object.keys(newErrors).length === 0
   }
@@ -154,45 +156,43 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
 
     setIsLoading(true)
     try {
-      await onSave({
+      const viajeData = {
         idUnidad: parseInt(formData.idUnidad),
         idOperador: parseInt(formData.idOperador),
         idCliente: parseInt(formData.idCliente),
-        origen: formData.origen.trim(),
-        destino: formData.destino.trim(),
+        idRutaComisiones: formData.idRutaComisiones ? parseInt(formData.idRutaComisiones) : null,
         fechaSalida: formData.fechaSalida,
         fechaEstimadaLlegada: formData.fechaEstimadaLlegada,
+        tipo: formData.tipo,
         estado: formData.estado,
         cargaDescripcion: formData.cargaDescripcion.trim(),
         observaciones: formData.observaciones.trim() || null,
-        tarifa: parseFloat(formData.tarifa),
-        distanciaKm: parseFloat(formData.distanciaKm),
-        tipo: formData.tipo,
         responsableLogistica: parseInt(formData.responsableLogistica),
-        evidenciaUrl: formData.evidenciaUrl || null,
         creadoPor: currentUser.id
-      })
+      }
+      
+      // Pasar el archivo como segundo parámetro
+      await onSave(viajeData, archivo)
+      
       setFormData({
         idUnidad: '',
         idOperador: '',
         idCliente: '',
-        origen: '',
-        destino: '',
+        idRutaComisiones: '',
         fechaSalida: '',
         fechaEstimadaLlegada: '',
         estado: 'PENDIENTE',
         cargaDescripcion: '',
         observaciones: '',
-        tarifa: '',
-        distanciaKm: '',
-        tipo: 'LOCAL',
+        tipo: 'NORMAL',
         responsableLogistica: '',
-        evidenciaUrl: '',
         creadoPor: ''
       })
+      setArchivo(null)
       setErrors({})
       onClose()
     } catch (error) {
+      console.error('Error en handleSubmit:', error)
     } finally {
       setIsLoading(false)
     }
@@ -241,7 +241,13 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
                 </label>
                 <select
                   value={formData.idCliente}
-                  onChange={(e) => setFormData({ ...formData, idCliente: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ 
+                      ...formData, 
+                      idCliente: e.target.value,
+                      idRutaComisiones: '' // Resetear ruta al cambiar cliente
+                    })
+                  }}
                   className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
                   required
                 >
@@ -275,92 +281,13 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
             </div>
           </div>
 
-          {/* Sección: Ruta */}
+          {/* Sección: Tipo de viaje y Ruta comisiones */}
           <div>
             <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
               <MapPin className="h-5 w-5 mr-2 text-blue-600" />
-              Ruta del Viaje
+              Configuración del Viaje
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Origen *
-                </label>
-                <input
-                  type="text"
-                  value={formData.origen}
-                  onChange={(e) => {
-                    setFormData({ ...formData, origen: e.target.value })
-                    if (errors.origen) setErrors({ ...errors, origen: '' })
-                  }}
-                  className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${
-                    errors.origen 
-                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                      : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
-                  }`}
-                  placeholder="Ej: CDMX"
-                />
-                {errors.origen && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {errors.origen}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Destino *
-                </label>
-                <input
-                  type="text"
-                  value={formData.destino}
-                  onChange={(e) => {
-                    setFormData({ ...formData, destino: e.target.value })
-                    if (errors.destino) setErrors({ ...errors, destino: '' })
-                  }}
-                  className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${
-                    errors.destino 
-                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                      : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
-                  }`}
-                  placeholder="Ej: Guadalajara"
-                />
-                {errors.destino && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {errors.destino}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Distancia (km) *
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={formData.distanciaKm}
-                  onChange={(e) => {
-                    setFormData({ ...formData, distanciaKm: e.target.value })
-                    if (errors.distanciaKm) setErrors({ ...errors, distanciaKm: '' })
-                  }}
-                  className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${
-                    errors.distanciaKm 
-                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                      : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
-                  }`}
-                  placeholder="550.0"
-                />
-                {errors.distanciaKm && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {errors.distanciaKm}
-                  </p>
-                )}
-              </div>
-
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Tipo de viaje *
@@ -368,20 +295,87 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
                 <select
                   value={formData.tipo}
                   onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
-                  className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 ${
-                    errors.tipo ? 'border-red-500' : 'border-slate-200'
-                  }`}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
                   required
                 >
-                  <option value="LOCAL">Local</option>
-                  <option value="FORANEO">Foráneo</option>
-                  <option value="INTERNACIONAL">Internacional</option>
+                  <option value="NORMAL">Normal</option>
+                  <option value="ESPECIAL">Especial</option>
+                  <option value="URGENTE">Urgente</option>
                 </select>
-                {errors.tipo && (
-                  <p className="mt-1 text-sm text-red-600">{errors.tipo}</p>
-                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Ruta de comisiones (opcional)
+                </label>
+                <select
+                  value={formData.idRutaComisiones}
+                  onChange={(e) => setFormData({ ...formData, idRutaComisiones: e.target.value })}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                  disabled={!formData.idCliente || loadingRutas}
+                >
+                  <option value="">
+                    {!formData.idCliente 
+                      ? 'Primero selecciona un cliente' 
+                      : loadingRutas 
+                        ? 'Cargando rutas...' 
+                        : 'Selecciona una ruta'}
+                  </option>
+                  {rutasDisponibles.map((ruta) => (
+                    <option key={ruta.id} value={ruta.id}>
+                      {ruta.origen} → {ruta.destino} {ruta.kms ? `(${ruta.kms} km)` : ''}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-slate-500 mt-1">
+                  {rutasDisponibles.length > 0 
+                    ? `${rutasDisponibles.length} ruta(s) disponible(s)` 
+                    : formData.idCliente ? 'No hay rutas disponibles para este cliente' : 'Selecciona un cliente para ver rutas'}
+                </p>
               </div>
             </div>
+
+            {/* Mostrar información de tarifa si existe */}
+            {tarifaRuta && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="text-sm font-semibold text-blue-900 mb-2 flex items-center">
+                  <Package className="h-4 w-4 mr-2" />
+                  Información de la Ruta
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                  <div>
+                    <p className="text-blue-600 font-medium">Origen</p>
+                    <p className="text-blue-900">{tarifaRuta.origen || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-blue-600 font-medium">Destino</p>
+                    <p className="text-blue-900">{tarifaRuta.destino || 'N/A'}</p>
+                  </div>
+                  {tarifaRuta.kms && (
+                    <div>
+                      <p className="text-blue-600 font-medium">Distancia</p>
+                      <p className="text-blue-900">{tarifaRuta.kms} km</p>
+                    </div>
+                  )}
+                  {tarifaRuta.tarifa && (
+                    <div>
+                      <p className="text-blue-600 font-medium">Tarifa</p>
+                      <p className="text-blue-900 font-bold">
+                        ${parseFloat(tarifaRuta.tarifa).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  )}
+                  {tarifaRuta.comision && (
+                    <div>
+                      <p className="text-blue-600 font-medium">Comisión</p>
+                      <p className="text-blue-900">
+                        ${parseFloat(tarifaRuta.comision).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Sección: Fechas */}
@@ -543,16 +537,31 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  URL de evidencia (opcional)
+                <label className="flex items-center text-sm font-medium text-slate-700 mb-2">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Archivo adjunto (opcional)
                 </label>
-                <input
-                  type="url"
-                  value={formData.evidenciaUrl}
-                  onChange={(e) => setFormData({ ...formData, evidenciaUrl: e.target.value })}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-                  placeholder="https://ejemplo.com/evidencia.jpg"
-                />
+                <div className="relative">
+                  <input
+                    type="file"
+                    onChange={(e) => setArchivo(e.target.files[0])}
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    accept="image/*,.pdf,.doc,.docx"
+                  />
+                  {archivo && (
+                    <div className="mt-2 flex items-center justify-between text-sm text-slate-600 bg-blue-50 p-2 rounded-lg">
+                      <span className="truncate">{archivo.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => setArchivo(null)}
+                        className="ml-2 text-red-500 hover:text-red-700"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 mt-1">Formatos permitidos: imágenes, PDF, Word</p>
               </div>
 
               <div>

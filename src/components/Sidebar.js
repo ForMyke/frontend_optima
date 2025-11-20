@@ -40,9 +40,9 @@ const availablePages = [
     '/dashboard/monlo',
     '/dashboard/graficos',
     '/dashboard/almacen',
-    '/dashboard/refacciones',
     '/dashboard/facturas',
     '/dashboard/facturas/extra',
+    '/dashboard/liquidacion_efectivo',
     '/dashboard/tarifas-comisiones',
     '/dashboard/gastos',
     '/dashboard/almacen/mantenimiento',
@@ -70,13 +70,6 @@ const menuItems = [
         ]
     },
     {
-        title: 'Cartas porte',
-        icon: DollarSign,
-        children: [
-            { title: 'Cartas porte', href: '/dashboard/quotes' }
-        ]
-    },
-    {
         title: 'Ruta de viaje',
         icon: Truck,
         children: [
@@ -88,7 +81,6 @@ const menuItems = [
         title: 'Mantenimiento',
         icon: ToolCase,
         children: [
-            { title: 'Mantenimiento de refacciones', href: '/dashboard/refacciones' },
             { title: 'Renovación de seguros', href: '/dashboard/licenses' },
             { title: 'Mantenimiento proveedor', href: '/dashboard/maintenance' },
             { title: 'Mantenimiento unidad', href: '/dashboard/unidades' },
@@ -99,9 +91,9 @@ const menuItems = [
         title: 'Facturación',
         icon: Receipt,
         children: [
-            { title: 'Factura de viaje', href: '/dashboard/insurance' },
+            { title: 'Factura de viaje', href: '/dashboard/facturas' },
             { title: 'Factura extra', href: '/dashboard/facturas/extra' },
-            { title: 'Facturaciones', href: '/dashboard/facturas' }
+            { title: 'Liquidación en efectivo', href: '/dashboard/liquidacion_efectivo' }
         ]
     },
     {

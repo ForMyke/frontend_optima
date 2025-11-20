@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { X, Save, Calendar, DollarSign, AlertCircle } from 'lucide-react'
 import { authService } from '@/app/services/authService'
+import gastosService from '@/app/services/gastosService'
+import toast from 'react-hot-toast'
 
 const CreateGastoSemanalModal = ({ isOpen, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -24,28 +26,87 @@ const CreateGastoSemanalModal = ({ isOpen, onClose, onSubmit }) => {
   })
 
   const [errors, setErrors] = useState({})
+  const [totalViajes, setTotalViajes] = useState(0)
+  const [loadingDatos, setLoadingDatos] = useState(false)
 
   useEffect(() => {
-    if (!isOpen) {
-      setFormData({
-        semanaInicio: '',
-        semanaFin: '',
-        iave: '',
-        imss: '',
-        infonavit: '',
-        diesel: '',
-        nomina: '',
-        refacciones: '',
-        contador: '',
-        gps: '',
-        gastosExtras: '',
-        seguros: '',
-        creditos: '',
-        telefonia: '',
-        observaciones: ''
-      })
-      setErrors({})
+    const loadDatosGenerados = async () => {
+      if (isOpen) {
+        setLoadingDatos(true)
+        try {
+          // Cargar datos generados por la API
+          const datosGenerados = await gastosService.getGastosGenerados()
+          
+          setFormData({
+            semanaInicio: datosGenerados.fechaInicio || '',
+            semanaFin: datosGenerados.fechaFin || '',
+            iave: datosGenerados.iave || '',
+            imss: '',
+            infonavit: '',
+            diesel: datosGenerados.diesel || '',
+            nomina: datosGenerados.nomina || '',
+            refacciones: '',
+            contador: '',
+            gps: '',
+            gastosExtras: datosGenerados.gastosExtras || '',
+            seguros: '',
+            creditos: '',
+            telefonia: '',
+            observaciones: ''
+          })
+          
+          setTotalViajes(datosGenerados.totalViajes || 0)
+          setErrors({})
+        } catch (error) {
+          console.error('Error al cargar datos generados:', error)
+          toast.error('Error al cargar datos automáticos')
+          // Resetear a valores vacíos si falla
+          setFormData({
+            semanaInicio: '',
+            semanaFin: '',
+            iave: '',
+            imss: '',
+            infonavit: '',
+            diesel: '',
+            nomina: '',
+            refacciones: '',
+            contador: '',
+            gps: '',
+            gastosExtras: '',
+            seguros: '',
+            creditos: '',
+            telefonia: '',
+            observaciones: ''
+          })
+          setTotalViajes(0)
+        } finally {
+          setLoadingDatos(false)
+        }
+      } else {
+        // Limpiar cuando se cierra
+        setFormData({
+          semanaInicio: '',
+          semanaFin: '',
+          iave: '',
+          imss: '',
+          infonavit: '',
+          diesel: '',
+          nomina: '',
+          refacciones: '',
+          contador: '',
+          gps: '',
+          gastosExtras: '',
+          seguros: '',
+          creditos: '',
+          telefonia: '',
+          observaciones: ''
+        })
+        setTotalViajes(0)
+        setErrors({})
+      }
     }
+
+    loadDatosGenerados()
   }, [isOpen])
 
   const validate = () => {
@@ -113,7 +174,27 @@ const CreateGastoSemanalModal = ({ isOpen, onClose, onSubmit }) => {
         <div className="p-6 border-b border-slate-200">
           <h2 className="text-2xl font-bold text-slate-900">Nuevo Gasto Semanal</h2>
           <p className="text-sm text-slate-600 mt-1">Registrar gastos de la semana</p>
+          
+          {/* Mostrar total de viajes si está disponible */}
+          {totalViajes > 0 && (
+            <div className="mt-3 inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              Total de viajes: {totalViajes}
+            </div>
+          )}
         </div>
+
+        {/* Loading state */}
+        {loadingDatos && (
+          <div className="p-6">
+            <div className="flex items-center justify-center space-x-2 text-blue-600">
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
+              <span>Cargando datos automáticos...</span>
+            </div>
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
@@ -172,7 +253,9 @@ const CreateGastoSemanalModal = ({ isOpen, onClose, onSubmit }) => {
           <div className="grid grid-cols-3 gap-4">
             {/* IAVE */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">IAVE</label>
+              <label className="flex items-center text-sm font-medium text-slate-700 mb-2">
+                IAVE
+              </label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
@@ -183,7 +266,7 @@ const CreateGastoSemanalModal = ({ isOpen, onClose, onSubmit }) => {
                   placeholder="0.00"
                   step="0.01"
                   min="0"
-                  className="w-full pl-9 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  className="w-full pl-9 pr-4 py-2.5 border border-blue-300 bg-blue-50 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                 />
               </div>
             </div>
@@ -226,7 +309,9 @@ const CreateGastoSemanalModal = ({ isOpen, onClose, onSubmit }) => {
 
             {/* Diesel */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Diesel</label>
+              <label className="flex items-center text-sm font-medium text-slate-700 mb-2">
+                Diesel
+              </label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
@@ -237,14 +322,16 @@ const CreateGastoSemanalModal = ({ isOpen, onClose, onSubmit }) => {
                   placeholder="0.00"
                   step="0.01"
                   min="0"
-                  className="w-full pl-9 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  className="w-full pl-9 pr-4 py-2.5 border border-blue-300 bg-blue-50 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                 />
               </div>
             </div>
 
             {/* Nómina */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Nómina</label>
+              <label className="flex items-center text-sm font-medium text-slate-700 mb-2">
+                Nómina
+              </label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
@@ -255,7 +342,7 @@ const CreateGastoSemanalModal = ({ isOpen, onClose, onSubmit }) => {
                   placeholder="0.00"
                   step="0.01"
                   min="0"
-                  className="w-full pl-9 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  className="w-full pl-9 pr-4 py-2.5 border border-blue-300 bg-blue-50 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                 />
               </div>
             </div>
@@ -316,7 +403,9 @@ const CreateGastoSemanalModal = ({ isOpen, onClose, onSubmit }) => {
 
             {/* Gastos Extras */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Gastos Extras</label>
+              <label className="flex items-center text-sm font-medium text-slate-700 mb-2">
+                Gastos Extras
+              </label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
@@ -327,7 +416,7 @@ const CreateGastoSemanalModal = ({ isOpen, onClose, onSubmit }) => {
                   placeholder="0.00"
                   step="0.01"
                   min="0"
-                  className="w-full pl-9 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  className="w-full pl-9 pr-4 py-2.5 border border-blue-300 bg-blue-50 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                 />
               </div>
             </div>

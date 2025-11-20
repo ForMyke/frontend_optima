@@ -61,14 +61,35 @@ export const facturaService = {
   // Marcar factura como pagada (método helper)
   async marcarComoPagada(id, fechaPago, metodoPago) {
     try {
+      // Si es EFECTIVO, tipo = SIN_FACTURA, otros métodos = FACTURADO
+      const tipo = metodoPago === 'EFECTIVO' ? 'SIN_FACTURA' : 'FACTURADO'
+      
       const facturaData = {
         estatus: 'PAGADA',
         fechaPago,
-        metodoPago
+        metodoPago,
+        tipo
       }
       return await this.updateFacturaEstatus(id, facturaData)
     } catch (error) {
       console.error('Error al marcar factura como pagada:', error)
+      throw error
+    }
+  },
+
+  // Obtener facturas por tipo (SIN_FACTURA o FACTURADO)
+  async getFacturasByTipo(tipo, page = 0, size = 10) {
+    try {
+      const response = await apiClient.get('/api/facturas/tipo', {
+        params: {
+          tipo,
+          page,
+          size
+        }
+      })
+      return response.data
+    } catch (error) {
+      console.error('Error al obtener facturas por tipo:', error)
       throw error
     }
   },
