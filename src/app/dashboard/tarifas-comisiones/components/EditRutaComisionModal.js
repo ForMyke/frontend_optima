@@ -7,7 +7,8 @@ const EditRutaComisionModal = ({ isOpen, onClose, onSubmit, ruta, clientes }) =>
     origen: '',
     destino: '',
     comision: '',
-    rutaTarifaId: ''
+    tarifa: '',
+    kms: ''
   })
 
   const [errors, setErrors] = useState({})
@@ -15,11 +16,12 @@ const EditRutaComisionModal = ({ isOpen, onClose, onSubmit, ruta, clientes }) =>
   useEffect(() => {
     if (isOpen && ruta) {
       setFormData({
-        clienteId: ruta.clienteId || '',
+        clienteId: ruta.cliente?.id || '',
         origen: ruta.origen || '',
         destino: ruta.destino || '',
         comision: ruta.comision || '',
-        rutaTarifaId: ruta.rutaTarifaId || ''
+        tarifa: ruta.tarifa || '',
+        kms: ruta.kms || ''
       })
       setErrors({})
     }
@@ -46,8 +48,13 @@ const EditRutaComisionModal = ({ isOpen, onClose, onSubmit, ruta, clientes }) =>
       newErrors.comision = 'La comisión debe ser mayor o igual a 0'
     }
 
-    if (!formData.rutaTarifaId) {
-      newErrors.rutaTarifaId = 'El ID de ruta tarifa es requerido'
+    // Tarifa y kms son opcionales, pero si se proporcionan deben ser válidos
+    if (formData.tarifa && parseFloat(formData.tarifa) < 0) {
+      newErrors.tarifa = 'La tarifa debe ser mayor o igual a 0'
+    }
+
+    if (formData.kms && parseFloat(formData.kms) < 0) {
+      newErrors.kms = 'Los kilómetros deben ser mayor o igual a 0'
     }
 
     setErrors(newErrors)
@@ -72,10 +79,20 @@ const EditRutaComisionModal = ({ isOpen, onClose, onSubmit, ruta, clientes }) =>
     }
 
     const rutaData = {
-      ...formData,
       clienteId: parseInt(formData.clienteId),
-      comision: parseFloat(formData.comision),
-      rutaTarifaId: parseInt(formData.rutaTarifaId)
+      origen: formData.origen.trim(),
+      destino: formData.destino.trim(),
+      comision: parseFloat(formData.comision)
+    }
+
+    // Solo agregar tarifa si tiene valor
+    if (formData.tarifa && formData.tarifa !== '') {
+      rutaData.tarifa = parseFloat(formData.tarifa)
+    }
+
+    // Solo agregar kms si tiene valor
+    if (formData.kms && formData.kms !== '') {
+      rutaData.kms = parseFloat(formData.kms)
     }
 
     await onSubmit(ruta.id, rutaData)
@@ -180,59 +197,88 @@ const EditRutaComisionModal = ({ isOpen, onClose, onSubmit, ruta, clientes }) =>
             </div>
           </div>
 
-          {/* Comisión */}
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
-              Comisión <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-              <input
-                type="number"
-                name="comision"
-                value={formData.comision}
-                onChange={handleChange}
-                placeholder="1800.00"
-                step="0.01"
-                min="0"
-                className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
-                  errors.comision ? 'border-red-300' : 'border-slate-300'
-                }`}
-              />
+          {/* Tarifa, Comisión y Kilómetros */}
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Tarifa
+              </label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <input
+                  type="number"
+                  name="tarifa"
+                  value={formData.tarifa}
+                  onChange={handleChange}
+                  placeholder="20000.00"
+                  step="0.01"
+                  min="0"
+                  className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                    errors.tarifa ? 'border-red-300' : 'border-slate-300'
+                  }`}
+                />
+              </div>
+              {errors.tarifa && (
+                <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{errors.tarifa}</span>
+                </p>
+              )}
             </div>
-            {errors.comision && (
-              <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
-                <AlertCircle className="h-4 w-4" />
-                <span>{errors.comision}</span>
-              </p>
-            )}
-          </div>
 
-          {/* Ruta Tarifa ID */}
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
-              ID de Ruta Tarifa <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-              <input
-                type="number"
-                name="rutaTarifaId"
-                value={formData.rutaTarifaId}
-                onChange={handleChange}
-                placeholder="1"
-                min="1"
-                className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
-                  errors.rutaTarifaId ? 'border-red-300' : 'border-slate-300'
-                }`}
-              />
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Comisión <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <input
+                  type="number"
+                  name="comision"
+                  value={formData.comision}
+                  onChange={handleChange}
+                  placeholder="1600.00"
+                  step="0.01"
+                  min="0"
+                  className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                    errors.comision ? 'border-red-300' : 'border-slate-300'
+                  }`}
+                />
+              </div>
+              {errors.comision && (
+                <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{errors.comision}</span>
+                </p>
+              )}
             </div>
-            {errors.rutaTarifaId && (
-              <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
-                <AlertCircle className="h-4 w-4" />
-                <span>{errors.rutaTarifaId}</span>
-              </p>
-            )}
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Kilómetros
+              </label>
+              <div className="relative">
+                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <input
+                  type="number"
+                  name="kms"
+                  value={formData.kms}
+                  onChange={handleChange}
+                  placeholder="300"
+                  step="0.01"
+                  min="0"
+                  className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                    errors.kms ? 'border-red-300' : 'border-slate-300'
+                  }`}
+                />
+              </div>
+              {errors.kms && (
+                <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{errors.kms}</span>
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Actions */}

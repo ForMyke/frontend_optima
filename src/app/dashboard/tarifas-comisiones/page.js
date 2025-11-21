@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Search, Plus, DollarSign, MapPin, Users, TrendingUp } from 'lucide-react'
 import tarifasComisionesService from '@/app/services/tarifasComisionesService'
 import { clientsService } from '@/app/services/clientsService'
-import { toast } from 'sonner'
+import toast from 'react-hot-toast'
 import {
   StatCard,
   RutaComisionCard,

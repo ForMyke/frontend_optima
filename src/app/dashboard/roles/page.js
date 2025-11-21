@@ -182,7 +182,12 @@ const CreateRoleModal = ({ isOpen, onClose, onSave }) => {
 
     setIsLoading(true)
     try {
-      await onSave(formData)
+      // Limpiar espacios al inicio y final antes de enviar
+      const cleanedData = {
+        nombre: formData.nombre.trim(),
+        descripcion: formData.descripcion.trim()
+      }
+      await onSave(cleanedData)
       setFormData({
         nombre: '',
         descripcion: ''
@@ -303,7 +308,12 @@ const EditRoleModal = ({ isOpen, onClose, onSave, role }) => {
     e.preventDefault()
     setIsLoading(true)
     try {
-      await onSave(role.id, formData)
+      // Limpiar espacios al inicio y final antes de enviar
+      const cleanedData = {
+        nombre: formData.nombre.trim(),
+        descripcion: formData.descripcion.trim()
+      }
+      await onSave(role.id, cleanedData)
       onClose()
     } catch (error) {
       console.error('Error saving role:', error)

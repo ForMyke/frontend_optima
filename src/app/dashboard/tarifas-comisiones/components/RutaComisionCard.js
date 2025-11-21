@@ -16,9 +16,8 @@ const RutaComisionCard = ({ ruta, clientes, onEdit, onDelete, onViewDetails }) =
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Buscar el cliente por ID
-  const cliente = clientes.find(c => c.id === ruta.clienteId)
-  const clienteNombre = cliente?.nombre || 'Cliente no encontrado'
+  // El cliente ahora viene en el objeto ruta
+  const clienteNombre = ruta.cliente?.nombre || 'Cliente no encontrado'
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-all p-6">
@@ -94,18 +93,33 @@ const RutaComisionCard = ({ ruta, clientes, onEdit, onDelete, onViewDetails }) =
           </div>
         </div>
 
-        {/* Ruta Tarifa ID */}
-        {ruta.rutaTarifaId && (
-          <div className="flex items-center space-x-3 text-sm">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <MapPin className="h-4 w-4 text-blue-600" />
+        {/* Tarifa y Kilómetros */}
+        <div className="grid grid-cols-2 gap-3">
+          {ruta.tarifa && (
+            <div className="flex items-center space-x-3 text-sm">
+              <div className="p-2 bg-blue-50 rounded-lg">
+                <DollarSign className="h-4 w-4 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-slate-500">Tarifa</p>
+                <p className="font-semibold text-slate-900">
+                  ${parseFloat(ruta.tarifa).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                </p>
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="text-xs text-slate-500">Ruta Tarifa ID</p>
-              <p className="font-semibold text-slate-900">#{ruta.rutaTarifaId}</p>
+          )}
+          {ruta.kms && (
+            <div className="flex items-center space-x-3 text-sm">
+              <div className="p-2 bg-green-50 rounded-lg">
+                <MapPin className="h-4 w-4 text-green-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-slate-500">Kilómetros</p>
+                <p className="font-semibold text-slate-900">{parseFloat(ruta.kms).toFixed(2)} km</p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Comisión */}
         <div className="flex items-center justify-between pt-3 border-t border-slate-100">

@@ -12,11 +12,14 @@ import {
   Warehouse,
   ArrowLeft,
   MapPin,
-  User
+  User,
+  Edit2,
+  AlertCircle
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { refaccionesService } from '@/app/services/refaccionesService'
 import { almacenService } from '@/app/services/almacenService'
+import { usersService } from '@/app/services/usersService'
 import { 
   RefaccionCard, 
   StatCard, 
@@ -25,6 +28,7 @@ import {
   ViewRefaccionModal, 
   ConfirmDeleteModal 
 } from '@/app/dashboard/refacciones/components'
+import EditAlmacenModal from '@/app/dashboard/almacen/components/EditAlmacenModal'
 
 const AlmacenDetailPage = () => {
   const params = useParams()
@@ -33,12 +37,14 @@ const AlmacenDetailPage = () => {
   
   const [almacen, setAlmacen] = useState(null)
   const [refacciones, setRefacciones] = useState([])
+  const [usuarios, setUsuarios] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showViewModal, setShowViewModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showEditAlmacenModal, setShowEditAlmacenModal] = useState(false)
   const [selectedRefaccion, setSelectedRefaccion] = useState(null)
   const [refaccionToDelete, setRefaccionToDelete] = useState(null)
   const [stats, setStats] = useState({
@@ -86,11 +92,21 @@ const AlmacenDetailPage = () => {
     }
   }
 
+  const loadUsuarios = async () => {
+    try {
+      const response = await usersService.getUsers(0, 1000)
+      const usuariosData = response.content || []
+      setUsuarios(usuariosData)
+    } catch (error) {
+      console.error('Error loading usuarios:', error)
+    }
+  }
+
   useEffect(() => {
     const loadInitialData = async () => {
       try {
         setLoading(true)
-        await Promise.all([loadAlmacen(), loadRefacciones()])
+        await Promise.all([loadAlmacen(), loadRefacciones(), loadUsuarios()])
       } catch (error) {
         console.error('Error loading initial data:', error)
         toast.error('Error al cargar datos iniciales')
@@ -158,6 +174,22 @@ const AlmacenDetailPage = () => {
   const handleViewDetails = (refaccion) => {
     setSelectedRefaccion(refaccion)
     setShowViewModal(true)
+  }
+
+  const handleEditAlmacen = () => {
+    setShowEditAlmacenModal(true)
+  }
+
+  const handleUpdateAlmacen = async (almacenData) => {
+    try {
+      await almacenService.updateAlmacen(params.almacenId, almacenData)
+      toast.success('Almacén actualizado exitosamente')
+      setShowEditAlmacenModal(false)
+      await loadAlmacen()
+    } catch (error) {
+      toast.error(error.message || 'Error al actualizar almacén')
+      throw error
+    }
   }
 
   const filteredRefacciones = refacciones.filter(refaccion => {
@@ -235,6 +267,13 @@ const AlmacenDetailPage = () => {
                 </div>
               </div>
             </div>
+            <button
+              onClick={handleEditAlmacen}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
+            >
+              <Edit2 className="h-4 w-4" />
+              <span>Editar almacén</span>
+            </button>
           </div>
           {almacen.descripcion && (
             <p className="text-slate-600 mt-4 pt-4 border-t border-slate-100">{almacen.descripcion}</p>
@@ -374,6 +413,14 @@ const AlmacenDetailPage = () => {
         }}
         onConfirm={confirmDelete}
         refaccion={refaccionToDelete}
+      />
+
+      <EditAlmacenModal
+        isOpen={showEditAlmacenModal}
+        onClose={() => setShowEditAlmacenModal(false)}
+        onSave={handleUpdateAlmacen}
+        almacen={almacen}
+        usuarios={usuarios}
       />
     </div>
   )

@@ -3,11 +3,10 @@ import { X, User, MapPin, DollarSign, Hash } from 'lucide-react'
 const ViewRutaComisionModal = ({ isOpen, onClose, ruta, clientes }) => {
   if (!isOpen || !ruta) return null
 
-  // Buscar el cliente por ID
-  const cliente = clientes.find(c => c.id === ruta.clienteId)
-  const clienteNombre = cliente?.nombre || 'Cliente no encontrado'
-  const clienteTelefono = cliente?.telefono || 'Sin teléfono'
-  const clienteEmail = cliente?.email || 'Sin email'
+  // El cliente ahora viene en el objeto ruta
+  const clienteNombre = ruta.cliente?.nombre || 'Cliente no encontrado'
+  const clienteTelefono = ruta.cliente?.telefono || 'Sin teléfono'
+  const clienteEmail = ruta.cliente?.correo || 'Sin email'
 
   // Formatear monto
   const formatCurrency = (amount) => {
@@ -32,21 +31,11 @@ const ViewRutaComisionModal = ({ isOpen, onClose, ruta, clientes }) => {
           <div className="bg-slate-50 rounded-xl p-4 space-y-4">
             <h3 className="font-semibold text-slate-900 mb-3">Información de Ruta</h3>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-slate-500 mb-1">ID de Ruta</p>
-                <div className="flex items-center space-x-2">
-                  <Hash className="h-4 w-4 text-blue-600" />
-                  <p className="font-semibold text-slate-900">#{ruta.id}</p>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-xs text-slate-500 mb-1">ID Ruta Tarifa</p>
-                <div className="flex items-center space-x-2">
-                  <Hash className="h-4 w-4 text-purple-600" />
-                  <p className="font-semibold text-slate-900">#{ruta.rutaTarifaId}</p>
-                </div>
+            <div>
+              <p className="text-xs text-slate-500 mb-1">ID de Ruta</p>
+              <div className="flex items-center space-x-2">
+                <Hash className="h-4 w-4 text-blue-600" />
+                <p className="font-semibold text-slate-900">#{ruta.id}</p>
               </div>
             </div>
 
@@ -68,14 +57,38 @@ const ViewRutaComisionModal = ({ isOpen, onClose, ruta, clientes }) => {
               </div>
             </div>
 
-            <div>
-              <p className="text-xs text-slate-500 mb-1">Comisión</p>
-              <div className="flex items-center space-x-2">
-                <DollarSign className="h-4 w-4 text-green-600" />
-                <p className="font-semibold text-slate-900 text-xl">
-                  {formatCurrency(ruta.comision)}
-                </p>
+            <div className="grid grid-cols-3 gap-4">
+              {ruta.tarifa && (
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">Tarifa</p>
+                  <div className="flex items-center space-x-2">
+                    <DollarSign className="h-4 w-4 text-blue-600" />
+                    <p className="font-semibold text-slate-900">
+                      {formatCurrency(ruta.tarifa)}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Comisión</p>
+                <div className="flex items-center space-x-2">
+                  <DollarSign className="h-4 w-4 text-green-600" />
+                  <p className="font-semibold text-slate-900 text-xl">
+                    {formatCurrency(ruta.comision)}
+                  </p>
+                </div>
               </div>
+
+              {ruta.kms && (
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">Kilómetros</p>
+                  <div className="flex items-center space-x-2">
+                    <MapPin className="h-4 w-4 text-purple-600" />
+                    <p className="font-semibold text-slate-900">{parseFloat(ruta.kms).toFixed(2)} km</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -104,7 +117,7 @@ const ViewRutaComisionModal = ({ isOpen, onClose, ruta, clientes }) => {
 
             <div>
               <p className="text-xs text-slate-600 mb-1">ID del Cliente</p>
-              <p className="font-medium text-slate-900">#{ruta.clienteId}</p>
+              <p className="font-medium text-slate-900">#{ruta.cliente?.id}</p>
             </div>
           </div>
         </div>

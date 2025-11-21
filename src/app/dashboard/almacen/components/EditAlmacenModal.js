@@ -7,6 +7,7 @@ const EditAlmacenModal = ({ isOpen, onClose, onSave, almacen, usuarios }) => {
   const [formData, setFormData] = useState({
     nombre: '',
     ubicacion: '',
+    descripcion: '',
     encargadoId: ''
   })
   const [isLoading, setIsLoading] = useState(false)
@@ -16,6 +17,7 @@ const EditAlmacenModal = ({ isOpen, onClose, onSave, almacen, usuarios }) => {
       setFormData({
         nombre: almacen.nombre || '',
         ubicacion: almacen.ubicacion || '',
+        descripcion: almacen.descripcion || '',
         // El backend devuelve 'encargado' como objeto, extraemos el ID
         encargadoId: almacen.encargado?.id || ''
       })
@@ -27,17 +29,18 @@ const EditAlmacenModal = ({ isOpen, onClose, onSave, almacen, usuarios }) => {
     setIsLoading(true)
 
     try {
-      const dataToSend = {
-        nombre: formData.nombre,
-        ubicacion: formData.ubicacion
+      const cleanedData = {
+        nombre: formData.nombre.trim(),
+        ubicacion: formData.ubicacion.trim(),
+        descripcion: formData.descripcion.trim()
       }
       
       // Solo agregar encargadoId si tiene un valor válido
       if (formData.encargadoId && formData.encargadoId !== '') {
-        dataToSend.encargadoId = parseInt(formData.encargadoId)
+        cleanedData.encargadoId = parseInt(formData.encargadoId)
       }
       
-      await onSave(almacen.id, dataToSend)
+      await onSave(cleanedData)
       onClose()
     } catch (error) {
       console.error('Error updating almacen:', error)
@@ -95,6 +98,19 @@ const EditAlmacenModal = ({ isOpen, onClose, onSave, almacen, usuarios }) => {
                     />
                   </div>
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Descripción
+                  </label>
+                  <textarea
+                    value={formData.descripcion}
+                    onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                    placeholder="Descripción del almacén..."
+                    rows={3}
+                  />
+                </div>
               </div>
             </div>
 
@@ -102,7 +118,7 @@ const EditAlmacenModal = ({ isOpen, onClose, onSave, almacen, usuarios }) => {
             <div>
               <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
                 <User className="h-5 w-5 mr-2" />
-                Encargado (Opcional)
+                Encargado
               </h3>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -122,7 +138,7 @@ const EditAlmacenModal = ({ isOpen, onClose, onSave, almacen, usuarios }) => {
                 </select>
                 <p className="text-xs text-slate-500 mt-2 flex items-center">
                   <AlertCircle className="h-3 w-3 mr-1" />
-                  Puedes cambiar el encargado o dejarlo sin asignar
+                  Puedes asignar un encargado ahora o hacerlo después
                 </p>
               </div>
             </div>
@@ -141,7 +157,7 @@ const EditAlmacenModal = ({ isOpen, onClose, onSave, almacen, usuarios }) => {
               disabled={isLoading}
               className="px-6 cursor-pointer py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Guardando...' : 'Guardar cambios'}
+              {isLoading ? 'Guardando...' : 'Actualizar almacén'}
             </button>
           </div>
         </form>
