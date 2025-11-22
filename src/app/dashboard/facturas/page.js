@@ -88,16 +88,35 @@ const FacturasPage = () => {
     setShowPagarModal(true)
   }
 
-  const handleConfirmPago = async (factura, fechaPago, metodoPago) => {
+  const handleConfirmPago = async (factura, pagoData) => {
     try {
-      // Usar el método helper que incluye el campo tipo
-      await facturaService.marcarComoPagada(factura.id, fechaPago, metodoPago)
-      toast.success('Factura marcada como pagada')
+      // Validar que montoParcial no sea mayor que el monto total
+      const nuevoMontoParcial = parseFloat(pagoData.montoParcial) + (factura.montoParcial || 0)
+      if (nuevoMontoParcial > factura.monto) {
+        toast.error('El monto total a pagar no puede ser mayor que el monto de la factura')
+        return
+      }
+
+      // Registrar el pago (el backend actualiza el estatus automáticamente)
+      await facturaService.registrarPago(factura.id, {
+        montoParcial: nuevoMontoParcial,
+        metodoPago: pagoData.metodoPago,
+        fechaPago: pagoData.fechaPago,
+        observaciones: pagoData.observaciones
+      })
+
+      // Mensaje según el tipo de pago
+      if (nuevoMontoParcial === factura.monto) {
+        toast.success('¡Factura pagada completamente!')
+      } else {
+        toast.success(`Pago parcial registrado: $${parseFloat(pagoData.montoParcial).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`)
+      }
+
       setShowPagarModal(false)
       setSelectedFactura(null)
       loadFacturas()
     } catch (error) {
-      toast.error(error.message || 'Error al actualizar factura')
+      toast.error(error.message || 'Error al registrar pago')
       throw error
     }
   }
@@ -228,6 +247,7 @@ const FacturasPage = () => {
             >
               <option value="TODAS">Todas las facturas</option>
               <option value="PENDIENTE">Pendientes</option>
+              <option value="PAGO_PARCIAL">Pago parcial</option>
               <option value="PAGADA">Pagadas</option>
               <option value="VENCIDA">Vencidas</option>
             </select>

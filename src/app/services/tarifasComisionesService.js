@@ -90,7 +90,7 @@ const tarifasComisionesService = {
    */
   async getRutaComisionByRutaYCliente(rutaId, clienteId) {
     try {
-      const response = await apiClient.get(`/api/rutas-comisiones/rutaId/${rutaId}/cliente/${clienteId}/datos`)
+      const response = await apiClient.get(`/api/rutas-comisiones/${rutaId}/cliente/${clienteId}/datos`)
       return response.data
     } catch (error) {
       console.error('Error al obtener datos de ruta comisión:', error)

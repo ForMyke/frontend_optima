@@ -734,6 +734,9 @@ const ViajesPage = () => {
           setSelectedViaje(null)
         }}
         viaje={selectedViaje}
+        operadores={operadores}
+        clientes={clientes}
+        unidades={unidades}
       />
 
       <ConfirmDeleteModal

@@ -41,6 +41,7 @@ export const PERMISSIONS = {
       '/dashboard/vehicles',
       '/dashboard/monlo',
       '/dashboard/graficos',
+      '/dashboard/resumen-gastos',
       // El admin tiene acceso a TODO
       '*' // Wildcard: acceso completo
     ],
@@ -66,6 +67,7 @@ export const PERMISSIONS = {
       '/dashboard/gastos',
       '/dashboard/graficos',
       '/dashboard/operadores',
+      '/dashboard/resumen-gastos',
     ],
     displayName: 'Nomina'
   },
@@ -79,6 +81,7 @@ export const PERMISSIONS = {
       '/dashboard/monlo',
       '/dashboard/clientes',
       '/dashboard/bitacora',
+      '/dashboard/unidades',
     ],
     displayName: 'Logística de asignación de viajes'
   }
@@ -263,6 +266,9 @@ export const GRAFICOS_PERMISSIONS = {
       // Clientes
       'viajes-cliente',
       'ingresos-cliente',
+      // Gráficos de unidades
+      'unidades-estado',
+      'kilometraje-unidad',
     ]
   }
 }
@@ -338,7 +344,7 @@ export const STATCARDS_PERMISSIONS = {
 
   [ROLES.NOMINA]: {
     allowedStatCards: [
-  
+
       // Finanzas
       'gastos-totales',
       // Operadores
@@ -356,6 +362,8 @@ export const STATCARDS_PERMISSIONS = {
       'viajes-activos',
       // Clientes
       'total-clientes',
+      // Tarjetas de unidades
+      'unidades-activas',
     ]
   }
 }

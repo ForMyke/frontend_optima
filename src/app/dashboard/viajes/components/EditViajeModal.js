@@ -38,9 +38,9 @@ const EditViajeModal = ({ isOpen, onClose, onSave, viaje, operadores, clientes, 
   useEffect(() => {
     if (viaje) {
       setFormData({
-        idUnidad: viaje.idUnidad || viaje.unidadId || '',
-        idOperador: viaje.idOperador || viaje.operadorId || '',
-        idCliente: viaje.idCliente || viaje.clienteId || '',
+        idUnidad: viaje.idUnidad || viaje.unidad?.id || '',
+        idOperador: viaje.idOperador || viaje.operador?.id || '',
+        idCliente: viaje.idCliente || viaje.cliente?.id || '',
         origen: viaje.origen || '',
         destino: viaje.destino || '',
         fechaSalida: viaje.fechaSalida || '',
@@ -50,7 +50,7 @@ const EditViajeModal = ({ isOpen, onClose, onSave, viaje, operadores, clientes, 
         observaciones: viaje.observaciones || '',
         tarifa: viaje.tarifa || '',
         distanciaKm: viaje.distanciaKm || '',
-        tipo: viaje.tipo || viaje.tipoViaje || 'LOCAL',
+        tipo: viaje.tipo || 'NORMAL',
         responsableLogistica: viaje.responsableLogistica || '',
         evidenciaUrl: viaje.evidenciaUrl || '',
         creadoPor: viaje.creadoPor || ''

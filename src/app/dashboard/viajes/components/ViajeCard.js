@@ -59,31 +59,16 @@ const ViajeCard = ({ viaje, onEdit, onDelete, onViewDetails, operadores, cliente
   }, [showMenu])
 
   const estadoInfo = ESTADOS[viaje.estado] || ESTADOS.PENDIENTE
-  const tipoInfo = TIPOS_VIAJE[viaje.tipoViaje] || TIPOS_VIAJE.LOCAL
+  const tipoInfo = TIPOS_VIAJE[viaje.tipo] || TIPOS_VIAJE.LOCAL
 
-  // Buscar operador en el array si solo tenemos el ID
-  let operadorNombre = viaje.operador?.nombre
-  if (!operadorNombre && (viaje.idOperador || viaje.operadorId)) {
-    const operadorId = viaje.idOperador || viaje.operadorId
-    const operadorEncontrado = operadores?.find(op => op.id === operadorId)
-    operadorNombre = operadorEncontrado?.nombre
-  }
-
-  // Buscar cliente en el array si solo tenemos el ID
-  let clienteNombre = viaje.cliente?.nombre
-  if (!clienteNombre && (viaje.idCliente || viaje.clienteId)) {
-    const clienteId = viaje.idCliente || viaje.clienteId
-    const clienteEncontrado = clientes?.find(cl => cl.id === clienteId)
-    clienteNombre = clienteEncontrado?.nombre
-  }
-
-  // Buscar unidad en el array si solo tenemos el ID
-  let unidadNumero = viaje.unidad?.numeroEconomico
-  if (!unidadNumero && (viaje.idUnidad || viaje.unidadId)) {
-    const unidadId = viaje.idUnidad || viaje.unidadId
-    const unidadEncontrada = unidades?.find(un => un.id === unidadId)
-    unidadNumero = unidadEncontrada?.numeroEconomico || unidadEncontrada?.placas
-  }
+  // Obtener datos de objetos anidados
+  const operadorNombre = viaje.operador?.nombre || 'No asignado'
+  const clienteNombre = viaje.cliente?.nombre || 'No asignado'
+  const unidadPlacas = viaje.unidad?.placas || viaje.unidad?.numeroEconomico || 'No asignada'
+  
+  // Obtener origen y destino de la ruta si existe
+  const origen = viaje.ruta?.origen || viaje.origen || 'N/A'
+  const destino = viaje.ruta?.destino || viaje.destino || 'N/A'
 
   const handleEstadoChange = (e) => {
     const nuevoEstado = e.target.value
@@ -106,7 +91,7 @@ const ViajeCard = ({ viaje, onEdit, onDelete, onViewDetails, operadores, cliente
               </div>
               <div className="flex items-center text-sm text-slate-500 space-x-2">
                 <MapPin className="h-3.5 w-3.5" />
-                <span>{viaje.origen} → {viaje.destino}</span>
+                <span>{origen} → {destino}</span>
               </div>
             </div>
           </div>
@@ -208,7 +193,7 @@ const ViajeCard = ({ viaje, onEdit, onDelete, onViewDetails, operadores, cliente
               Unidad:
             </span>
             <span className="font-medium text-slate-900">
-              {unidadNumero || 'No asignada'}
+              {unidadPlacas}
             </span>
           </div>
         </div>

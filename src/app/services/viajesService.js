@@ -31,16 +31,25 @@ export const viajesService = {
         idRutaComisiones: viajeData.idRutaComisiones || null,
         fechaSalida: viajeData.fechaSalida,
         fechaEstimadaLlegada: viajeData.fechaEstimadaLlegada,
+        fechaRealLlegada: viajeData.fechaRealLlegada || null,
         tipo: viajeData.tipo || 'NORMAL',
         estado: viajeData.estado || 'PENDIENTE',
         cargaDescripcion: viajeData.cargaDescripcion,
         observaciones: viajeData.observaciones || null,
         responsableLogistica: viajeData.responsableLogistica,
-        creadoPor: viajeData.creadoPor
+        creadoPor: viajeData.creadoPor,
+        tarifa: viajeData.tarifa || null,
+        distanciaKm: viajeData.distanciaKm || null,
+        casetas: viajeData.casetas || null,
+        dieselLitros: viajeData.dieselLitros || null, // Contiene el costo total del diesel (litros × precio)
+        comisionOperador: viajeData.comisionOperador || null,
+        gastosExtras: viajeData.gastosExtras || null,
+        costoTotal: viajeData.costoTotal || null
       }
       
-      // Agregar el DTO como texto JSON
-      formData.append('dto', JSON.stringify(dto))
+      // Agregar el DTO como Blob con tipo application/json
+      const dtoBlob = new Blob([JSON.stringify(dto)], { type: 'application/json' })
+      formData.append('dto', dtoBlob)
       
       // Agregar el archivo si existe
       if (archivo) {

@@ -58,10 +58,35 @@ export const facturaService = {
     }
   },
 
-  // Marcar factura como pagada (método helper)
+  // Registrar pago de factura (con soporte para pagos parciales)
+  async registrarPago(id, pagoData) {
+    try {
+      // pagoData contiene: montoParcial, metodoPago, fechaPago, observaciones
+      // Si es EFECTIVO, tipo = SIN_FACTURA, otros métodos = FACTURADO
+      const tipo = pagoData.metodoPago === 'EFECTIVO' ? 'SIN_FACTURA' : 'FACTURADO'
+      
+      const facturaData = {
+        montoParcial: parseFloat(pagoData.montoParcial),
+        metodoPago: pagoData.metodoPago,
+        fechaPago: pagoData.fechaPago,
+        tipo
+      }
+
+      // Agregar observaciones si existen
+      if (pagoData.observaciones && pagoData.observaciones.trim()) {
+        facturaData.observaciones = pagoData.observaciones.trim()
+      }
+
+      return await this.updateFacturaEstatus(id, facturaData)
+    } catch (error) {
+      console.error('Error al registrar pago:', error)
+      throw error
+    }
+  },
+
+  // Método legacy - mantener compatibilidad
   async marcarComoPagada(id, fechaPago, metodoPago) {
     try {
-      // Si es EFECTIVO, tipo = SIN_FACTURA, otros métodos = FACTURADO
       const tipo = metodoPago === 'EFECTIVO' ? 'SIN_FACTURA' : 'FACTURADO'
       
       const facturaData = {

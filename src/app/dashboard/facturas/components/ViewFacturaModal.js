@@ -12,6 +12,8 @@ const ViewFacturaModal = ({ isOpen, onClose, factura, clientes = [] }) => {
     switch (estatus) {
       case 'PAGADA':
         return 'bg-emerald-100 text-emerald-700 border-emerald-200'
+      case 'PAGO_PARCIAL':
+        return 'bg-blue-100 text-blue-700 border-blue-200'
       case 'PENDIENTE':
         return 'bg-orange-100 text-orange-700 border-orange-200'
       case 'VENCIDA':
@@ -58,15 +60,41 @@ const ViewFacturaModal = ({ isOpen, onClose, factura, clientes = [] }) => {
                 <p className="text-sm text-slate-600 font-medium mb-1">Observaciones</p>
                 <p className="text-base text-slate-900">{factura.observaciones || 'Sin observaciones'}</p>
               </div>
-              <div>
-                <p className="text-sm text-slate-600 font-medium mb-1 flex items-center">
-                  <DollarSign className="h-4 w-4 mr-1" />
-                  Monto
-                </p>
-                <p className="text-2xl text-blue-600 font-bold">
-                  ${(factura.monto || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-slate-600 font-medium mb-1 flex items-center">
+                    <DollarSign className="h-4 w-4 mr-1" />
+                    Monto Total
+                  </p>
+                  <p className="text-2xl text-blue-600 font-bold">
+                    ${(factura.monto || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600 font-medium mb-1">Pagado</p>
+                  <p className="text-2xl text-emerald-600 font-bold">
+                    ${(factura.montoParcial || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
               </div>
+              {factura.montoParcial > 0 && factura.montoParcial < factura.monto && (
+                <div className="pt-3 border-t border-slate-200">
+                  <p className="text-sm text-slate-600 font-medium mb-2">Por pagar</p>
+                  <p className="text-xl text-orange-600 font-bold">
+                    ${((factura.monto || 0) - (factura.montoParcial || 0)).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                  </p>
+                  {/* Barra de progreso */}
+                  <div className="mt-3 w-full bg-slate-200 rounded-full h-3">
+                    <div
+                      className="bg-emerald-600 h-3 rounded-full transition-all"
+                      style={{ width: `${((factura.montoParcial || 0) / (factura.monto || 1)) * 100}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 text-center">
+                    {((factura.montoParcial || 0) / (factura.monto || 1) * 100).toFixed(1)}% pagado
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

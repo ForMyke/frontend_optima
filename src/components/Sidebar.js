@@ -46,6 +46,7 @@ const availablePages = [
     '/dashboard/tarifas-comisiones',
     '/dashboard/gastos',
     '/dashboard/almacen/mantenimiento',
+    '/dashboard/resumen-gastos',
 ]
 
 const menuItems = [
@@ -104,6 +105,11 @@ const menuItems = [
             { title: 'Gastos administrativos', href: '/dashboard/gastos' },
 
         ]
+    },
+    {
+        title: 'Resumen de gastos',
+        icon: DollarSign,
+        href: '/dashboard/resumen-gastos',
     },
     {
         title: 'Tarifas y comisiones',

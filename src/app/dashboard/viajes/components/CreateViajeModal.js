@@ -15,18 +15,29 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
     idRutaComisiones: '',
     fechaSalida: '',
     fechaEstimadaLlegada: '',
+    fechaRealLlegada: '',
     estado: 'PENDIENTE',
     cargaDescripcion: '',
     observaciones: '',
     tipo: 'NORMAL',
     responsableLogistica: '',
-    creadoPor: ''
+    creadoPor: '',
+    tarifa: '',
+    distanciaKm: '',
+    casetas: '',
+    dieselLitros: '',
+    dieselPrecioPorLitro: '', // Campo auxiliar para calcular
+    dieselCostoTotal: '', // Este es el que se envía al backend
+    comisionOperador: '',
+    gastosExtras: '',
+    costoTotal: ''
   })
   const [archivo, setArchivo] = useState(null)
   const [errors, setErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
   const [rutasDisponibles, setRutasDisponibles] = useState([])
+  const [rutaSeleccionada, setRutaSeleccionada] = useState(null)
   const [tarifaRuta, setTarifaRuta] = useState(null)
   const [loadingRutas, setLoadingRutas] = useState(false)
 
@@ -45,6 +56,7 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
       // Limpiar errores al abrir el modal
       setErrors({})
       setRutasDisponibles([])
+      setRutaSeleccionada(null)
       setTarifaRuta(null)
     }
   }, [isOpen])
@@ -54,6 +66,7 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
     const loadRutasCliente = async () => {
       if (!formData.idCliente) {
         setRutasDisponibles([])
+        setRutaSeleccionada(null)
         setTarifaRuta(null)
         return
       }
@@ -61,7 +74,13 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
       setLoadingRutas(true)
       try {
         const response = await tarifasComisionesService.getRutasComisionesByCliente(formData.idCliente, 0, 100)
-        setRutasDisponibles(response.content || [])
+        const rutas = response.content || response || []
+        setRutasDisponibles(rutas)
+        
+        // Mostrar mensaje si no hay rutas
+        if (rutas.length === 0) {
+          toast.info('Este cliente no tiene rutas configuradas')
+        }
       } catch (error) {
         console.error('Error al cargar rutas del cliente:', error)
         toast.error('Error al cargar las rutas del cliente')
@@ -74,24 +93,74 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
     loadRutasCliente()
   }, [formData.idCliente])
 
-  // Actualizar tarifa cuando se selecciona una ruta
+  // Actualizar ruta seleccionada cuando cambia la selección
   useEffect(() => {
     if (!formData.idRutaComisiones) {
+      setRutaSeleccionada(null)
       setTarifaRuta(null)
       return
     }
 
     // Buscar la ruta seleccionada en las rutas disponibles
-    const rutaSeleccionada = rutasDisponibles.find(
-      ruta => ruta.id === parseInt(formData.idRutaComisiones)
-    )
-    
-    if (rutaSeleccionada) {
-      setTarifaRuta(rutaSeleccionada)
-    } else {
-      setTarifaRuta(null)
-    }
+    const ruta = rutasDisponibles.find(r => r.id === parseInt(formData.idRutaComisiones))
+    setRutaSeleccionada(ruta || null)
   }, [formData.idRutaComisiones, rutasDisponibles])
+
+  // Cargar tarifa y comisión cuando se selecciona una ruta
+  useEffect(() => {
+    const loadTarifaRuta = async () => {
+      if (!formData.idRutaComisiones || !formData.idCliente) {
+        setTarifaRuta(null)
+        return
+      }
+
+      try {
+        // Llamar al endpoint específico para obtener tarifa y comisión
+        const datos = await tarifasComisionesService.getRutaComisionByRutaYCliente(
+          formData.idRutaComisiones,
+          formData.idCliente
+        )
+        setTarifaRuta(datos)
+      } catch (error) {
+        console.error('Error al cargar tarifa de la ruta:', error)
+        toast.error('Error al cargar la tarifa de la ruta')
+        setTarifaRuta(null)
+      }
+    }
+
+    loadTarifaRuta()
+  }, [formData.idRutaComisiones, formData.idCliente])
+
+  // Actualizar campos automáticamente cuando se carga tarifaRuta y rutaSeleccionada
+  useEffect(() => {
+    if (tarifaRuta && rutaSeleccionada) {
+      setFormData(prev => ({
+        ...prev,
+        tarifa: tarifaRuta.tarifa ? tarifaRuta.tarifa.toString() : '',
+        distanciaKm: rutaSeleccionada.kms ? rutaSeleccionada.kms.toString() : '',
+        comisionOperador: tarifaRuta.comision ? tarifaRuta.comision.toString() : ''
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        tarifa: '',
+        distanciaKm: '',
+        comisionOperador: ''
+      }))
+    }
+  }, [tarifaRuta, rutaSeleccionada])
+
+  // Calcular costo total del diesel automáticamente
+  useEffect(() => {
+    const litros = parseFloat(formData.dieselLitros) || 0
+    const precioPorLitro = parseFloat(formData.dieselPrecioPorLitro) || 0
+    const costoTotal = litros * precioPorLitro
+    
+    setFormData(prev => ({
+      ...prev,
+      dieselCostoTotal: costoTotal > 0 ? costoTotal.toFixed(2) : ''
+    }))
+  }, [formData.dieselLitros, formData.dieselPrecioPorLitro])
 
 
   // Función de validación
@@ -163,12 +232,20 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
         idRutaComisiones: formData.idRutaComisiones ? parseInt(formData.idRutaComisiones) : null,
         fechaSalida: formData.fechaSalida,
         fechaEstimadaLlegada: formData.fechaEstimadaLlegada,
+        fechaRealLlegada: formData.fechaRealLlegada || null,
         tipo: formData.tipo,
         estado: formData.estado,
         cargaDescripcion: formData.cargaDescripcion.trim(),
         observaciones: formData.observaciones.trim() || null,
         responsableLogistica: parseInt(formData.responsableLogistica),
-        creadoPor: currentUser.id
+        creadoPor: currentUser.id,
+        tarifa: formData.tarifa ? parseFloat(formData.tarifa) : null,
+        distanciaKm: formData.distanciaKm ? parseFloat(formData.distanciaKm) : null,
+        casetas: formData.casetas ? parseFloat(formData.casetas) : null,
+        dieselLitros: formData.dieselCostoTotal ? parseFloat(formData.dieselCostoTotal) : null, // Se envía el costo total
+        comisionOperador: formData.comisionOperador ? parseFloat(formData.comisionOperador) : null,
+        gastosExtras: formData.gastosExtras ? parseFloat(formData.gastosExtras) : null,
+        costoTotal: formData.costoTotal ? parseFloat(formData.costoTotal) : null
       }
       
       // Pasar el archivo como segundo parámetro
@@ -181,12 +258,22 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
         idRutaComisiones: '',
         fechaSalida: '',
         fechaEstimadaLlegada: '',
+        fechaRealLlegada: '',
         estado: 'PENDIENTE',
         cargaDescripcion: '',
         observaciones: '',
         tipo: 'NORMAL',
         responsableLogistica: '',
-        creadoPor: ''
+        creadoPor: '',
+        tarifa: '',
+        distanciaKm: '',
+        casetas: '',
+        dieselLitros: '',
+        dieselPrecioPorLitro: '',
+        dieselCostoTotal: '',
+        comisionOperador: '',
+        gastosExtras: '',
+        costoTotal: ''
       })
       setArchivo(null)
       setErrors({})
@@ -306,7 +393,7 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Ruta de comisiones (opcional)
+                  Ruta de comisiones
                 </label>
                 <select
                   value={formData.idRutaComisiones}
@@ -336,7 +423,7 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
             </div>
 
             {/* Mostrar información de tarifa si existe */}
-            {tarifaRuta && (
+            {rutaSeleccionada && (
               <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <h4 className="text-sm font-semibold text-blue-900 mb-2 flex items-center">
                   <Package className="h-4 w-4 mr-2" />
@@ -345,19 +432,19 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                   <div>
                     <p className="text-blue-600 font-medium">Origen</p>
-                    <p className="text-blue-900">{tarifaRuta.origen || 'N/A'}</p>
+                    <p className="text-blue-900">{rutaSeleccionada.origen || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-blue-600 font-medium">Destino</p>
-                    <p className="text-blue-900">{tarifaRuta.destino || 'N/A'}</p>
+                    <p className="text-blue-900">{rutaSeleccionada.destino || 'N/A'}</p>
                   </div>
-                  {tarifaRuta.kms && (
+                  {rutaSeleccionada.kms && (
                     <div>
                       <p className="text-blue-600 font-medium">Distancia</p>
-                      <p className="text-blue-900">{tarifaRuta.kms} km</p>
+                      <p className="text-blue-900">{rutaSeleccionada.kms} km</p>
                     </div>
                   )}
-                  {tarifaRuta.tarifa && (
+                  {tarifaRuta?.tarifa && (
                     <div>
                       <p className="text-blue-600 font-medium">Tarifa</p>
                       <p className="text-blue-900 font-bold">
@@ -365,7 +452,7 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
                       </p>
                     </div>
                   )}
-                  {tarifaRuta.comision && (
+                  {tarifaRuta?.comision && (
                     <div>
                       <p className="text-blue-600 font-medium">Comisión</p>
                       <p className="text-blue-900">
@@ -374,6 +461,11 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
                     </div>
                   )}
                 </div>
+                {!tarifaRuta && (
+                  <p className="text-xs text-blue-600 mt-2 italic">
+                    Cargando tarifa y comisión...
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -434,6 +526,21 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
                   </p>
                 )}
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Fecha real de llegada
+                </label>
+                <input
+                  type="date"
+                  value={formData.fechaRealLlegada}
+                  onChange={(e) => setFormData({ ...formData, fechaRealLlegada: e.target.value })}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Opcional - Se completa al finalizar el viaje
+                </p>
+              </div>
             </div>
           </div>
 
@@ -472,29 +579,56 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Tarifa ($) *
+                  Tarifa ($)
                 </label>
                 <input
                   type="number"
                   step="0.01"
                   value={formData.tarifa}
-                  onChange={(e) => {
-                    setFormData({ ...formData, tarifa: e.target.value })
-                    if (errors.tarifa) setErrors({ ...errors, tarifa: '' })
-                  }}
-                  className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 transition-all text-slate-900 ${
-                    errors.tarifa 
-                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                      : 'border-slate-200 focus:ring-blue-500 focus:border-transparent'
-                  }`}
-                  placeholder="4500.50"
+                  onChange={(e) => setFormData({ ...formData, tarifa: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                  placeholder="Se llena automáticamente"
+                  readOnly
                 />
-                {errors.tarifa && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {errors.tarifa}
-                  </p>
-                )}
+                <p className="mt-1 text-xs text-slate-500">
+                  Se calcula automáticamente desde la ruta
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Distancia (km)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.distanciaKm}
+                  onChange={(e) => setFormData({ ...formData, distanciaKm: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                  placeholder="Se llena automáticamente"
+                  readOnly
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Se calcula automáticamente desde la ruta
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Comisión Operador ($)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.comisionOperador}
+                  onChange={(e) => setFormData({ ...formData, comisionOperador: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                  placeholder="Se llena automáticamente"
+                  readOnly
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Se calcula automáticamente desde la ruta
+                </p>
               </div>
 
               <div>
@@ -512,6 +646,104 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
                   <option value="COMPLETADO">Completado</option>
                   <option value="CANCELADO">Cancelado</option>
                 </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Sección: Costos Operativos */}
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
+              <Package className="h-5 w-5 mr-2 text-blue-600" />
+              Costos Operativos
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Casetas ($)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.casetas}
+                  onChange={(e) => setFormData({ ...formData, casetas: e.target.value })}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Diesel - Litros
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.dieselLitros}
+                  onChange={(e) => setFormData({ ...formData, dieselLitros: e.target.value })}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                  placeholder="Ej: 150.5"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Diesel - Precio por Litro ($)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.dieselPrecioPorLitro}
+                  onChange={(e) => setFormData({ ...formData, dieselPrecioPorLitro: e.target.value })}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                  placeholder="Ej: 24.50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Diesel - Costo Total ($)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.dieselCostoTotal}
+                  readOnly
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none text-slate-900 font-semibold"
+                  placeholder="Se calcula automáticamente"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  {formData.dieselLitros && formData.dieselPrecioPorLitro 
+                    ? `${formData.dieselLitros} L × $${formData.dieselPrecioPorLitro} = $${formData.dieselCostoTotal}`
+                    : 'Ingresa litros y precio para calcular'}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Gastos Extras ($)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.gastosExtras}
+                  onChange={(e) => setFormData({ ...formData, gastosExtras: e.target.value })}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Costo Total ($)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.costoTotal}
+                  onChange={(e) => setFormData({ ...formData, costoTotal: e.target.value })}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                  placeholder="0.00"
+                />
               </div>
             </div>
           </div>

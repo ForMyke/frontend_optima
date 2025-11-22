@@ -87,16 +87,35 @@ const LiquidacionEfectivoPage = () => {
     setShowPagarModal(true)
   }
 
-  const handleConfirmPago = async (factura, fechaPago, metodoPago) => {
+  const handleConfirmPago = async (factura, pagoData) => {
     try {
-      // Usar el método helper que incluye el campo tipo
-      await facturaService.marcarComoPagada(factura.id, fechaPago, metodoPago)
-      toast.success('Factura marcada como pagada')
+      // Validar que montoParcial no sea mayor que el monto total
+      const nuevoMontoParcial = parseFloat(pagoData.montoParcial) + (factura.montoParcial || 0)
+      if (nuevoMontoParcial > factura.monto) {
+        toast.error('El monto total a pagar no puede ser mayor que el monto de la factura')
+        return
+      }
+
+      // Registrar el pago (el backend actualiza el estatus automáticamente)
+      await facturaService.registrarPago(factura.id, {
+        montoParcial: nuevoMontoParcial,
+        metodoPago: pagoData.metodoPago,
+        fechaPago: pagoData.fechaPago,
+        observaciones: pagoData.observaciones
+      })
+
+      // Mensaje según el tipo de pago
+      if (nuevoMontoParcial === factura.monto) {
+        toast.success('¡Factura pagada completamente!')
+      } else {
+        toast.success(`Pago parcial registrado: $${parseFloat(pagoData.montoParcial).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`)
+      }
+
       setShowPagarModal(false)
       setSelectedFactura(null)
       loadFacturas()
     } catch (error) {
-      toast.error(error.message || 'Error al actualizar factura')
+      toast.error(error.message || 'Error al registrar pago')
       throw error
     }
   }
@@ -161,7 +180,6 @@ const LiquidacionEfectivoPage = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 flex items-center gap-3">
-              <Banknote className="h-8 w-8 text-green-600" />
               Liquidación en efectivo
             </h1>
             <p className="text-sm lg:text-base text-slate-600 mt-1 lg:mt-2">

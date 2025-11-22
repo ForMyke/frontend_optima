@@ -1,9 +1,16 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { MapPin, Calendar, User, Package, Truck, Camera, Eye, Clock, CheckCircle, XCircle, Navigation } from 'lucide-react'
 import Image from 'next/image'
+import tarifasComisionesService from '@/app/services/tarifasComisionesService'
+import { usersService } from '@/app/services/usersService'
 
-const ViewViajeModal = ({ isOpen, onClose, viaje }) => {
+const ViewViajeModal = ({ isOpen, onClose, viaje, operadores = [], clientes = [], unidades = [] }) => {
+  const [rutaComision, setRutaComision] = useState(null)
+  const [responsableLogistica, setResponsableLogistica] = useState(null)
+  const [creadoPorUsuario, setCreadoPorUsuario] = useState(null)
+  const [loadingData, setLoadingData] = useState(false)
 
   const ESTADOS = {
     PENDIENTE: { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
@@ -13,29 +20,105 @@ const ViewViajeModal = ({ isOpen, onClose, viaje }) => {
   }
 
   const TIPOS_VIAJE = {
-    LOCAL: { label: 'Local', color: 'bg-purple-100 text-purple-800' },
-    FORANEO: { label: 'Foráneo', color: 'bg-indigo-100 text-indigo-800' },
-    INTERNACIONAL: { label: 'Internacional', color: 'bg-pink-100 text-pink-800' }
+    NORMAL: { label: 'Normal', color: 'bg-blue-100 text-blue-800' },
+    URGENTE: { label: 'Urgente', color: 'bg-red-100 text-red-800' },
+    PROGRAMADO: { label: 'Programado', color: 'bg-green-100 text-green-800' }
   }
+
+  // Cargar datos adicionales cuando se abre el modal
+  useEffect(() => {
+    const loadAdditionalData = async () => {
+      if (!isOpen || !viaje) return
+
+      setLoadingData(true)
+      try {
+        // Cargar ruta-comisión si existe
+        if (viaje.idRutaComisiones) {
+          try {
+            const rutaData = await tarifasComisionesService.getRutaComisionById(viaje.idRutaComisiones)
+            setRutaComision(rutaData)
+          } catch (error) {
+            console.error('Error al cargar ruta-comisión:', error)
+            setRutaComision(null)
+          }
+        }
+
+        // Cargar responsable de logística si existe
+        if (viaje.responsableLogistica) {
+          try {
+            const usuarios = await usersService.getUsers(0, 1000)
+            const responsable = usuarios.content?.find(u => u.id === viaje.responsableLogistica)
+            setResponsableLogistica(responsable)
+          } catch (error) {
+            console.error('Error al cargar responsable logística:', error)
+            setResponsableLogistica(null)
+          }
+        }
+
+        // Cargar usuario que creó el viaje
+        if (viaje.creadoPor) {
+          try {
+            const usuarios = await usersService.getUsers(0, 1000)
+            const creador = usuarios.content?.find(u => u.id === viaje.creadoPor)
+            setCreadoPorUsuario(creador)
+          } catch (error) {
+            console.error('Error al cargar usuario creador:', error)
+            setCreadoPorUsuario(null)
+          }
+        }
+      } catch (error) {
+        console.error('Error al cargar datos adicionales:', error)
+      } finally {
+        setLoadingData(false)
+      }
+    }
+
+    loadAdditionalData()
+  }, [isOpen, viaje])
+
   if (!isOpen || !viaje) return null
 
-
-
   const estadoInfo = ESTADOS[viaje.estado] || ESTADOS.PENDIENTE
-  const tipoInfo = TIPOS_VIAJE[viaje.tipo || viaje.tipoViaje] || TIPOS_VIAJE.LOCAL
+  const tipoInfo = TIPOS_VIAJE[viaje.tipo] || TIPOS_VIAJE.NORMAL
   const EstadoIcon = estadoInfo.icon
 
-  // Obtener información de operador - SIEMPRE mostrar el nombre
-  const operadorNombre = viaje.operador?.nombre || 'No disponible'
-  const operadorLicencia = viaje.operador?.licenciaNumero || viaje.operador?.licencia
+  // Buscar datos usando IDs o usar objetos anidados si existen
+  let operadorNombre = 'No disponible'
+  let operadorLicencia = null
+  if (viaje.operador?.nombre) {
+    operadorNombre = viaje.operador.nombre
+    operadorLicencia = viaje.operador.licenciaNumero
+  } else if (viaje.idOperador) {
+    const operador = operadores.find(op => op.id === viaje.idOperador)
+    operadorNombre = operador?.nombre || 'No disponible'
+    operadorLicencia = operador?.licenciaNumero
+  }
 
-  // Obtener información de cliente - SIEMPRE mostrar el nombre
-  const clienteNombre = viaje.cliente?.nombre || 'No disponible'
-  const clienteRfc = viaje.cliente?.rfc
+  let clienteNombre = 'No disponible'
+  let clienteRfc = null
+  if (viaje.cliente?.nombre) {
+    clienteNombre = viaje.cliente.nombre
+    clienteRfc = viaje.cliente.rfc
+  } else if (viaje.idCliente) {
+    const cliente = clientes.find(cl => cl.id === viaje.idCliente)
+    clienteNombre = cliente?.nombre || 'No disponible'
+    clienteRfc = cliente?.rfc
+  }
 
-  // Obtener información de unidad - SIEMPRE mostrar el número económico
-  const unidadNumero = viaje.unidad?.modelo || 'No disponible'
-  const unidadPlacas = viaje.unidad?.placas
+  let unidadModelo = 'No disponible'
+  let unidadPlacas = null
+  if (viaje.unidad?.modelo) {
+    unidadModelo = viaje.unidad.modelo
+    unidadPlacas = viaje.unidad.placas
+  } else if (viaje.idUnidad) {
+    const unidad = unidades.find(un => un.id === viaje.idUnidad)
+    unidadModelo = unidad?.modelo || 'No disponible'
+    unidadPlacas = unidad?.placas
+  }
+  
+  // Los campos de ruta, tarifa y distancia vienen directamente en el viaje
+  const distanciaKm = viaje.distanciaKm || 'N/A'
+  const tarifa = viaje.tarifa || 'N/A'
 
 
 
@@ -66,40 +149,31 @@ const ViewViajeModal = ({ isOpen, onClose, viaje }) => {
             </span>
           </div>
 
-          {/* Ruta */}
-          <div>
-            <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center">
-              <MapPin className="h-4 w-4 mr-2" />
-              Información de ruta
-            </h3>
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-              <div className="flex items-center space-x-4">
-                <div className="flex-1">
-                  <label className="text-xs font-medium text-slate-500">Origen</label>
-                  <p className="text-base font-semibold text-slate-900 mt-1">{viaje.origen}</p>
-                </div>
-                <div className="flex-shrink-0">
-                  <Navigation className="h-6 w-6 text-blue-600" />
-                </div>
-                <div className="flex-1 text-right">
-                  <label className="text-xs font-medium text-slate-500">Destino</label>
-                  <p className="text-base font-semibold text-slate-900 mt-1">{viaje.destino}</p>
-                </div>
-              </div>
-              <div className="mt-4 pt-4 border-t border-slate-200">
+          {/* Información de Tarifa y Distancia */}
+          {(viaje.tarifa || viaje.distanciaKm) && (
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center">
+                <MapPin className="h-4 w-4 mr-2" />
+                Información de ruta
+              </h3>
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs font-medium text-slate-500">Distancia</label>
-                    <p className="text-sm font-semibold text-slate-900 mt-1">{viaje.distanciaKm} km</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-slate-500">Tarifa</label>
-                    <p className="text-sm font-semibold text-slate-900 mt-1">${viaje.tarifa}</p>
-                  </div>
+                  {viaje.distanciaKm && (
+                    <div>
+                      <label className="text-xs font-medium text-slate-500">Distancia</label>
+                      <p className="text-sm font-semibold text-slate-900 mt-1">{distanciaKm} km</p>
+                    </div>
+                  )}
+                  {viaje.tarifa && (
+                    <div>
+                      <label className="text-xs font-medium text-slate-500">Tarifa</label>
+                      <p className="text-sm font-semibold text-slate-900 mt-1">${tarifa}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Asignaciones */}
           <div>
@@ -140,7 +214,7 @@ const ViewViajeModal = ({ isOpen, onClose, viaje }) => {
                   <label className="text-xs font-medium text-purple-700">Unidad</label>
                 </div>
                 <p className="text-sm font-semibold text-slate-900">
-                  {unidadNumero}
+                  {unidadModelo}
                 </p>
                 {unidadPlacas && (
                   <p className="text-xs text-slate-600 mt-1">Placas: {unidadPlacas}</p>
@@ -191,6 +265,107 @@ const ViewViajeModal = ({ isOpen, onClose, viaje }) => {
                   <span className="ml-2 font-semibold text-slate-900">{viaje.fechaRealLlegada}</span>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Información Adicional del Viaje */}
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center">
+              <Package className="h-4 w-4 mr-2" />
+              Información adicional
+            </h3>
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-slate-500">Ruta-Comisión</label>
+                  {loadingData ? (
+                    <p className="text-sm text-slate-500 mt-1">Cargando...</p>
+                  ) : rutaComision ? (
+                    <p className="text-sm font-semibold text-slate-900 mt-1">
+                      {rutaComision.origen} → {rutaComision.destino}
+                      {rutaComision.kms && <span className="text-xs text-slate-600"> ({rutaComision.kms} km)</span>}
+                    </p>
+                  ) : (
+                    <p className="text-sm font-semibold text-slate-900 mt-1">
+                      {viaje.idRutaComisiones ? `ID: ${viaje.idRutaComisiones}` : 'No asignada'}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500">Responsable Logística</label>
+                  {loadingData ? (
+                    <p className="text-sm text-slate-500 mt-1">Cargando...</p>
+                  ) : responsableLogistica ? (
+                    <p className="text-sm font-semibold text-slate-900 mt-1">
+                      {responsableLogistica.nombre}
+                      {responsableLogistica.email && <span className="text-xs text-slate-600 block">{responsableLogistica.email}</span>}
+                    </p>
+                  ) : (
+                    <p className="text-sm font-semibold text-slate-900 mt-1">
+                      {viaje.responsableLogistica ? `ID: ${viaje.responsableLogistica}` : 'No asignado'}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500">Creado por</label>
+                  {loadingData ? (
+                    <p className="text-sm text-slate-500 mt-1">Cargando...</p>
+                  ) : creadoPorUsuario ? (
+                    <p className="text-sm font-semibold text-slate-900 mt-1">
+                      {creadoPorUsuario.nombre}
+                      {creadoPorUsuario.email && <span className="text-xs text-slate-600 block">{creadoPorUsuario.email}</span>}
+                    </p>
+                  ) : (
+                    <p className="text-sm font-semibold text-slate-900 mt-1">
+                      {viaje.creadoPor ? `ID: ${viaje.creadoPor}` : 'N/A'}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500">Comisión Operador</label>
+                  <p className="text-sm font-semibold text-slate-900 mt-1">
+                    {viaje.comisionOperador ? `$${viaje.comisionOperador}` : 'No especificada'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Costos y Gastos */}
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center">
+              <Package className="h-4 w-4 mr-2" />
+              Costos y gastos
+            </h3>
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-slate-500">Casetas</label>
+                  <p className="text-sm font-semibold text-slate-900 mt-1">
+                    {viaje.casetas ? `$${viaje.casetas}` : 'No especificado'}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500">Diesel (litros)</label>
+                  <p className="text-sm font-semibold text-slate-900 mt-1">
+                    {viaje.dieselLitros ? `${viaje.dieselLitros} L` : 'No especificado'}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500">Gastos Extras</label>
+                  <p className="text-sm font-semibold text-slate-900 mt-1">
+                    {viaje.gastosExtras ? `$${viaje.gastosExtras}` : 'No especificado'}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-slate-200">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-semibold text-slate-700">Costo Total</label>
+                  <p className="text-lg font-bold text-blue-600">
+                    {viaje.costoTotal ? `$${viaje.costoTotal}` : 'No calculado'}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 

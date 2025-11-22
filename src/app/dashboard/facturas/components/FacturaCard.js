@@ -40,6 +40,8 @@ const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChang
     switch (estatus) {
       case 'PAGADA':
         return 'bg-emerald-100 text-emerald-700'
+      case 'PAGO_PARCIAL':
+        return 'bg-blue-100 text-blue-700'
       case 'PENDIENTE':
         return 'bg-orange-100 text-orange-700'
       case 'VENCIDA':
@@ -123,12 +125,14 @@ const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChang
             className={`w-full px-3 py-2 rounded-lg border-2 transition-all font-medium text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               factura.estatus === 'PENDIENTE' ? 'border-orange-200 bg-orange-50 text-orange-800' :
               factura.estatus === 'PAGADA' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' :
+              factura.estatus === 'PAGO_PARCIAL' ? 'border-blue-200 bg-blue-50 text-blue-800' :
               'border-red-200 bg-red-50 text-red-800'
             }`}
           >
-            <option value="PENDIENTE">⏳ Pendiente</option>
-            <option value="PAGADA">✓ Pagada</option>
-            <option value="VENCIDA">✗ Vencida</option>
+            <option value="PENDIENTE">Pendiente</option>
+            <option value="PAGO_PARCIAL">Pago parcial</option>
+            <option value="PAGADA">Pagada</option>
+            <option value="VENCIDA">Vencida</option>
           </select>
         </div>
 
@@ -137,7 +141,7 @@ const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChang
             <div>
               <span className="text-xs text-slate-500 flex items-center">
                 <DollarSign className="h-3 w-3 mr-1" />
-                Monto:
+                Monto Total:
               </span>
               <span className="text-sm font-bold text-slate-900">
                 ${(factura.monto || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -153,6 +157,31 @@ const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChang
               </span>
             </div>
           </div>
+
+          {/* Información de pago parcial */}
+          {factura.montoParcial > 0 && (
+            <div className="pt-3 border-t border-slate-100 bg-blue-50 rounded-lg p-3 -mx-3">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs text-blue-600 font-medium">Pagado:</span>
+                <span className="text-sm font-bold text-blue-700">
+                  ${(factura.montoParcial || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-orange-600 font-medium">Por pagar:</span>
+                <span className="text-sm font-bold text-orange-700">
+                  ${((factura.monto || 0) - (factura.montoParcial || 0)).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              {/* Barra de progreso */}
+              <div className="mt-2 w-full bg-slate-200 rounded-full h-2">
+                <div
+                  className="bg-blue-600 h-2 rounded-full transition-all"
+                  style={{ width: `${((factura.montoParcial || 0) / (factura.monto || 1)) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
 
           {factura.observaciones && (
             <div className="pt-3 border-t border-slate-100">
