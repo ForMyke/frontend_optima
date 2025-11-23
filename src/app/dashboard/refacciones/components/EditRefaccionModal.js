@@ -10,7 +10,8 @@ const EditRefaccionModal = ({ isOpen, onClose, onSave, refaccion, almacenes }) =
     unidadMedida: 'pieza',
     costoUnitario: '',
     stockActual: '',
-    almacenId: ''
+    almacenId: '',
+    nombreVendedor: ''
   })
   const [isLoading, setIsLoading] = useState(false)
 
@@ -22,7 +23,8 @@ const EditRefaccionModal = ({ isOpen, onClose, onSave, refaccion, almacenes }) =
         unidadMedida: refaccion.unidadMedida || 'pieza',
         costoUnitario: refaccion.costoUnitario || '',
         stockActual: refaccion.stockActual || '',
-        almacenId: refaccion.almacen?.id || ''
+        almacenId: refaccion.almacen?.id || '',
+        nombreVendedor: refaccion.nombreVendedor || ''
       })
     }
   }, [refaccion])
@@ -38,7 +40,8 @@ const EditRefaccionModal = ({ isOpen, onClose, onSave, refaccion, almacenes }) =
         unidadMedida: formData.unidadMedida,
         costoUnitario: parseFloat(formData.costoUnitario),
         stockActual: parseInt(formData.stockActual),
-        almacenId: parseInt(formData.almacenId)
+        almacenId: parseInt(formData.almacenId),
+        nombreVendedor: formData.nombreVendedor || null
       }
       
       await onSave(refaccion.id, dataToSend)
@@ -93,6 +96,19 @@ const EditRefaccionModal = ({ isOpen, onClose, onSave, refaccion, almacenes }) =
                     className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 resize-none"
                     placeholder="Ej: Filtro Cummins ISX15"
                     rows="3"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Nombre del vendedor
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.nombreVendedor}
+                    onChange={(e) => setFormData({ ...formData, nombreVendedor: e.target.value })}
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                    placeholder="Ej: AutoPartes México"
                   />
                 </div>
 

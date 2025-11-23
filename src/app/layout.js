@@ -27,7 +27,7 @@ export default function RootLayout({ children }) {
         <Toaster 
           position="top-right"
           toastOptions={{
-            duration: 2000,
+            duration: 1500,
             style: {
               background: '#363636',
               color: '#fff',
@@ -40,7 +40,7 @@ export default function RootLayout({ children }) {
               },
             },
             error: {
-              duration: 2500,
+              duration: 2000,
               iconTheme: {
                 primary: '#ef4444',
                 secondary: '#fff',

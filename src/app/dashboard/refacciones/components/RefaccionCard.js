@@ -10,7 +10,9 @@ import {
   Package,
   DollarSign,
   Warehouse,
-  AlertCircle
+  AlertCircle,
+  User,
+  Calendar
 } from 'lucide-react'
 
 const RefaccionCard = ({ refaccion, almacenes, onEdit, onDelete, onViewDetails }) => {
@@ -129,6 +131,34 @@ const RefaccionCard = ({ refaccion, almacenes, onEdit, onDelete, onViewDetails }
               {almacenNombre}
             </span>
           </div>
+
+          {refaccion.nombreVendedor && (
+            <div className="flex items-center justify-between text-sm pt-2">
+              <span className="text-slate-500 flex items-center">
+                <User className="h-3.5 w-3.5 mr-1.5" />
+                Vendedor:
+              </span>
+              <span className="font-medium text-slate-900">
+                {refaccion.nombreVendedor}
+              </span>
+            </div>
+          )}
+
+          {refaccion.fechaCreacion && (
+            <div className="flex items-center justify-between text-xs pt-2 text-slate-400">
+              <span className="flex items-center">
+                <Calendar className="h-3 w-3 mr-1" />
+                Creado:
+              </span>
+              <span>
+                {new Date(refaccion.fechaCreacion).toLocaleDateString('es-MX', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric'
+                })}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>

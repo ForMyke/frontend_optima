@@ -29,7 +29,8 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
     dieselCostoTotal: '', // Este es el que se envía al backend
     comisionOperador: '',
     gastosExtras: '',
-    costoTotal: ''
+    costoTotal: '',
+    folio: ''
   })
   const [archivo, setArchivo] = useState(null)
   const [errors, setErrors] = useState({})
@@ -252,7 +253,8 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
         dieselLitros: formData.dieselCostoTotal ? parseFloat(formData.dieselCostoTotal) : null, // Se envía el costo total
         comisionOperador: formData.comisionOperador ? parseFloat(formData.comisionOperador) : null,
         gastosExtras: formData.gastosExtras ? parseFloat(formData.gastosExtras) : null,
-        costoTotal: formData.costoTotal ? parseFloat(formData.costoTotal) : null
+        costoTotal: formData.costoTotal ? parseFloat(formData.costoTotal) : null,
+        folio: formData.folio || null
       }
       
       // Pasar el archivo como segundo parámetro
@@ -279,7 +281,8 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
         dieselCostoTotal: '',
         comisionOperador: '',
         gastosExtras: '',
-        costoTotal: ''
+        costoTotal: '',
+        folio: ''
       })
       setArchivo(null)
       setErrors({})
@@ -380,7 +383,7 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
               <MapPin className="h-5 w-5 mr-2 text-blue-600" />
               Configuración del Viaje
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Tipo de viaje *
@@ -395,6 +398,19 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
                   <option value="ESPECIAL">Especial</option>
                   <option value="URGENTE">Urgente</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Folio
+                </label>
+                <input
+                  type="text"
+                  value={formData.folio}
+                  onChange={(e) => setFormData({ ...formData, folio: e.target.value })}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                  placeholder="FOL001"
+                />
               </div>
 
               <div>

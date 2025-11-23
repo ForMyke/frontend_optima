@@ -453,3 +453,56 @@ export const exportFacturasExtraPDF = (facturas, stats) => {
   addFooter(doc)
   doc.save(`facturas_extra_${Date.now()}.pdf`)
 }
+
+// Exportar Histórico de Movimientos
+export const exportHistoricoPDF = (movimientos, stats) => {
+  const doc = new jsPDF(commonConfig)
+  
+  addHeader(doc, 'Histórico de Movimientos de Almacén', `Total de movimientos: ${stats.total}`)
+  
+  // Estadísticas
+  doc.setFontSize(10)
+  doc.setTextColor(51, 65, 85)
+  doc.text(`Entradas: ${stats.entradas} | Salidas: ${stats.salidas} | Transferencias: ${stats.transferencias}`, 15, 40)
+  
+  // Tabla de movimientos
+  const tableData = movimientos.map(mov => [
+    mov.id,
+    mov.tipo || 'N/A',
+    mov.refaccion?.nombre || 'N/A',
+    mov.cantidad > 0 ? `+${mov.cantidad}` : mov.cantidad,
+    mov.almacenOrigen?.nombre || '-',
+    mov.almacenDestino?.nombre || '-',
+    mov.usuario?.nombre || 'N/A',
+    new Date(mov.fechaMovimiento).toLocaleDateString('es-MX', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }),
+    mov.observaciones || '-'
+  ])
+  
+  autoTable(doc, {
+    head: [['ID', 'Tipo', 'Refacción', 'Cantidad', 'Origen', 'Destino', 'Usuario', 'Fecha', 'Observaciones']],
+    body: tableData,
+    startY: 45,
+    styles: { fontSize: 7, cellPadding: 2 },
+    headStyles: { fillColor: [30, 58, 138], textColor: 255 },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: 15, right: 15 },
+    columnStyles: {
+      0: { cellWidth: 12 },
+      1: { cellWidth: 22 },
+      2: { cellWidth: 35 },
+      3: { cellWidth: 18 },
+      4: { cellWidth: 30 },
+      5: { cellWidth: 30 },
+      6: { cellWidth: 30 },
+      7: { cellWidth: 22 },
+      8: { cellWidth: 40 }
+    }
+  })
+  
+  addFooter(doc)
+  doc.save(`historico_movimientos_${Date.now()}.pdf`)
+}

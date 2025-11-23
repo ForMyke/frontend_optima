@@ -10,18 +10,19 @@ const CreateGastoSemanalModal = ({ isOpen, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
     semanaInicio: '',
     semanaFin: '',
-    iave: '',
-    imss: '',
-    infonavit: '',
-    diesel: '',
-    nomina: '',
-    refacciones: '',
-    contador: '',
-    gps: '',
-    gastosExtras: '',
-    seguros: '',
-    creditos: '',
-    telefonia: '',
+    iave: '0',
+    imss: '0',
+    infonavit: '0',
+    diesel: '0',
+    nomina: '0',
+    refacciones: '0',
+    contador: '0',
+    gps: '0',
+    gastosExtras: '0',
+    seguros: '0',
+    creditos: '0',
+    telefonia: '0',
+    gastoExtrahordinario: '0',
     observaciones: ''
   })
 
@@ -40,18 +41,19 @@ const CreateGastoSemanalModal = ({ isOpen, onClose, onSubmit }) => {
           setFormData({
             semanaInicio: datosGenerados.fechaInicio || '',
             semanaFin: datosGenerados.fechaFin || '',
-            iave: datosGenerados.iave || '',
-            imss: '',
-            infonavit: '',
-            diesel: datosGenerados.diesel || '',
-            nomina: datosGenerados.nomina || '',
-            refacciones: '',
-            contador: '',
-            gps: '',
-            gastosExtras: datosGenerados.gastosExtras || '',
-            seguros: '',
-            creditos: '',
-            telefonia: '',
+            iave: datosGenerados.iave || '0',
+            imss: '0',
+            infonavit: '0',
+            diesel: datosGenerados.diesel || '0',
+            nomina: datosGenerados.nomina || '0',
+            refacciones: '0',
+            contador: '0',
+            gps: '0',
+            gastosExtras: datosGenerados.gastosExtras || '0',
+            seguros: '0',
+            creditos: '0',
+            telefonia: '0',
+            gastoExtrahordinario: '0',
             observaciones: ''
           })
           
@@ -60,22 +62,23 @@ const CreateGastoSemanalModal = ({ isOpen, onClose, onSubmit }) => {
         } catch (error) {
           console.error('Error al cargar datos generados:', error)
           toast.error('Error al cargar datos automáticos')
-          // Resetear a valores vacíos si falla
+          // Resetear a valores en 0 si falla
           setFormData({
             semanaInicio: '',
             semanaFin: '',
-            iave: '',
-            imss: '',
-            infonavit: '',
-            diesel: '',
-            nomina: '',
-            refacciones: '',
-            contador: '',
-            gps: '',
-            gastosExtras: '',
-            seguros: '',
-            creditos: '',
-            telefonia: '',
+            iave: '0',
+            imss: '0',
+            infonavit: '0',
+            diesel: '0',
+            nomina: '0',
+            refacciones: '0',
+            contador: '0',
+            gps: '0',
+            gastosExtras: '0',
+            seguros: '0',
+            creditos: '0',
+            telefonia: '0',
+            gastoExtrahordinario: '0',
             observaciones: ''
           })
           setTotalViajes(0)
@@ -98,6 +101,7 @@ const CreateGastoSemanalModal = ({ isOpen, onClose, onSubmit }) => {
           gastosExtras: '',
           seguros: '',
           creditos: '',
+          gastoExtrahordinario: '',
           telefonia: '',
           observaciones: ''
         })
@@ -159,6 +163,7 @@ const CreateGastoSemanalModal = ({ isOpen, onClose, onSubmit }) => {
       seguros: parseFloat(formData.seguros || 0),
       creditos: parseFloat(formData.creditos || 0),
       telefonia: parseFloat(formData.telefonia || 0),
+      gastoExtrahordinario: parseFloat(formData.gastoExtrahordinario || 0),
       creadoPor
     }
 
@@ -479,6 +484,24 @@ const CreateGastoSemanalModal = ({ isOpen, onClose, onSubmit }) => {
                   type="number"
                   name="telefonia"
                   value={formData.telefonia}
+                  onChange={handleChange}
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0"
+                  className="w-full pl-9 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Gasto Extraordinario */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Gasto Extraordinario</label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  type="number"
+                  name="gastoExtrahordinario"
+                  value={formData.gastoExtrahordinario}
                   onChange={handleChange}
                   placeholder="0.00"
                   step="0.01"

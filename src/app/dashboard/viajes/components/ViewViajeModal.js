@@ -130,6 +130,12 @@ const ViewViajeModal = ({ isOpen, onClose, viaje, operadores = [], clientes = []
             <div>
               <h2 className="text-2xl font-bold text-slate-900">Viaje #{viaje.id}</h2>
               <p className="text-sm text-slate-600 mt-1">Información completa del viaje</p>
+              {viaje.folio && (
+                <p className="text-sm text-blue-600 mt-1 flex items-center">
+                  <FileText className="h-3.5 w-3.5 mr-1" />
+                  Folio: <span className="font-semibold ml-1">{viaje.folio}</span>
+                </p>
+              )}
             </div>
             <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-linear-to-br from-blue-600 to-blue-700">
               <Truck className="h-7 w-7 text-white" />

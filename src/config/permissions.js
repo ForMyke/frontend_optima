@@ -42,6 +42,7 @@ export const PERMISSIONS = {
       '/dashboard/monlo',
       '/dashboard/graficos',
       '/dashboard/resumen-gastos',
+      '/dashboard/historico',
       // El admin tiene acceso a TODO
       '*' // Wildcard: acceso completo
     ],
@@ -53,6 +54,7 @@ export const PERMISSIONS = {
       '/dashboard',
       '/dashboard/graficos',
       '/dashboard/almacen',
+      '/dashboard/historico',
       '/dashboard/almacen/*', // Permite todas las subrutas de almacen
     ],
     displayName: 'Almacen'

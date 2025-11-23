@@ -89,6 +89,11 @@ const ViajeCard = ({ viaje, onEdit, onDelete, onViewDetails, operadores, cliente
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-1">
                 <h3 className="text-lg font-semibold text-slate-900">Viaje #{viaje.id}</h3>
+                {viaje.folio && (
+                  <span className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded-md font-medium">
+                    {viaje.folio}
+                  </span>
+                )}
               </div>
               <div className="flex items-center text-sm text-slate-500 space-x-2">
                 <MapPin className="h-3.5 w-3.5" />

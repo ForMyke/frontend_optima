@@ -31,7 +31,8 @@ const ViewGastoSemanalModal = ({ isOpen, onClose, gasto, calcularTotal }) => {
     { label: 'Gastos Extras', value: gasto.gastosExtras, color: 'pink' },
     { label: 'Seguros', value: gasto.seguros, color: 'cyan' },
     { label: 'Créditos', value: gasto.creditos, color: 'lime' },
-    { label: 'Telefonía', value: gasto.telefonia, color: 'amber' }
+    { label: 'Telefonía', value: gasto.telefonia, color: 'amber' },
+    { label: 'Gasto Extraordinario', value: gasto.gastoExtrahordinario, color: 'rose' }
   ]
 
   const total = calcularTotal(gasto)

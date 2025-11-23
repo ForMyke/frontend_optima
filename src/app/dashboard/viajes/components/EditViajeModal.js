@@ -22,7 +22,8 @@ const EditViajeModal = ({ isOpen, onClose, onSave, viaje, operadores, clientes, 
     tipo: 'LOCAL',
     responsableLogistica: '',
     evidenciaUrl: '',
-    creadoPor: ''
+    creadoPor: '',
+    folio: ''
   })
   const [isLoading, setIsLoading] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
@@ -53,7 +54,8 @@ const EditViajeModal = ({ isOpen, onClose, onSave, viaje, operadores, clientes, 
         tipo: viaje.tipo || 'NORMAL',
         responsableLogistica: viaje.responsableLogistica || '',
         evidenciaUrl: viaje.evidenciaUrl || '',
-        creadoPor: viaje.creadoPor || ''
+        creadoPor: viaje.creadoPor || '',
+        folio: viaje.folio || ''
       })
     }
   }, [viaje])
@@ -84,7 +86,8 @@ const EditViajeModal = ({ isOpen, onClose, onSave, viaje, operadores, clientes, 
         tipo: formData.tipo,
         responsableLogistica: parseInt(formData.responsableLogistica),
         evidenciaUrl: formData.evidenciaUrl || null,
-        creadoPor: currentUser.id
+        creadoPor: currentUser.id,
+        folio: formData.folio || null
       })
       onClose()
     } catch (error) {
@@ -231,6 +234,19 @@ const EditViajeModal = ({ isOpen, onClose, onSave, viaje, operadores, clientes, 
                   <option value="FORANEO">Foráneo</option>
                   <option value="INTERNACIONAL">Internacional</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Folio
+                </label>
+                <input
+                  type="text"
+                  value={formData.folio}
+                  onChange={(e) => setFormData({ ...formData, folio: e.target.value })}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                  placeholder="FOL001"
+                />
               </div>
             </div>
           </div>

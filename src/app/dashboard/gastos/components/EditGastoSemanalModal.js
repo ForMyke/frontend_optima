@@ -17,6 +17,7 @@ const EditGastoSemanalModal = ({ isOpen, onClose, onSubmit, gasto }) => {
     seguros: '',
     creditos: '',
     telefonia: '',
+    gastoExtrahordinario: '',
     observaciones: ''
   })
 
@@ -39,6 +40,7 @@ const EditGastoSemanalModal = ({ isOpen, onClose, onSubmit, gasto }) => {
         seguros: gasto.seguros || '',
         creditos: gasto.creditos || '',
         telefonia: gasto.telefonia || '',
+        gastoExtrahordinario: gasto.gastoExtrahordinario || '',
         observaciones: gasto.observaciones || ''
       })
       setErrors({})
@@ -97,6 +99,7 @@ const EditGastoSemanalModal = ({ isOpen, onClose, onSubmit, gasto }) => {
       seguros: parseFloat(formData.seguros || 0),
       creditos: parseFloat(formData.creditos || 0),
       telefonia: parseFloat(formData.telefonia || 0),
+      gastoExtrahordinario: parseFloat(formData.gastoExtrahordinario || 0),
       creadoPor: creadoPorId
     }
 
@@ -181,7 +184,8 @@ const EditGastoSemanalModal = ({ isOpen, onClose, onSubmit, gasto }) => {
               { name: 'gastosExtras', label: 'Gastos Extras' },
               { name: 'seguros', label: 'Seguros' },
               { name: 'creditos', label: 'Créditos' },
-              { name: 'telefonia', label: 'Telefonía' }
+              { name: 'telefonia', label: 'Telefonía' },
+              { name: 'gastoExtrahordinario', label: 'Gasto Extraordinario' }
             ].map((field) => (
               <div key={field.name}>
                 <label className="block text-sm font-medium text-slate-700 mb-2">{field.label}</label>

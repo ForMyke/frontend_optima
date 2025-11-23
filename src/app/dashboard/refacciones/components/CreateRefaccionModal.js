@@ -10,7 +10,8 @@ const CreateRefaccionModal = ({ isOpen, onClose, onSave, almacenes, defaultAlmac
     unidadMedida: 'pieza',
     costoUnitario: '',
     stockActual: '',
-    almacenId: ''
+    almacenId: '',
+    nombreVendedor: ''
   })
 
   // Cuando se abre el modal, si hay un almacenId por defecto, usarlo
@@ -32,7 +33,8 @@ const CreateRefaccionModal = ({ isOpen, onClose, onSave, almacenes, defaultAlmac
         unidadMedida: formData.unidadMedida,
         costoUnitario: parseFloat(formData.costoUnitario),
         stockActual: parseInt(formData.stockActual),
-        almacenId: parseInt(formData.almacenId)
+        almacenId: parseInt(formData.almacenId),
+        nombreVendedor: formData.nombreVendedor || null
       }
 
       await onSave(dataToSend)
@@ -42,7 +44,8 @@ const CreateRefaccionModal = ({ isOpen, onClose, onSave, almacenes, defaultAlmac
         unidadMedida: 'pieza',
         costoUnitario: '',
         stockActual: '',
-        almacenId: ''
+        almacenId: '',
+        nombreVendedor: ''
       })
       onClose()
     } catch (error) {
@@ -95,6 +98,19 @@ const CreateRefaccionModal = ({ isOpen, onClose, onSave, almacenes, defaultAlmac
                     className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 resize-none"
                     placeholder="Ej: Filtro Cummins ISX15"
                     rows="3"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Nombre del vendedor
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.nombreVendedor}
+                    onChange={(e) => setFormData({ ...formData, nombreVendedor: e.target.value })}
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                    placeholder="Ej: AutoPartes México"
                   />
                 </div>
 

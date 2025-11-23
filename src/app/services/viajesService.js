@@ -44,7 +44,8 @@ export const viajesService = {
         dieselLitros: viajeData.dieselLitros || null, // Contiene el costo total del diesel (litros × precio)
         comisionOperador: viajeData.comisionOperador || null,
         gastosExtras: viajeData.gastosExtras || null,
-        costoTotal: viajeData.costoTotal || null
+        costoTotal: viajeData.costoTotal || null,
+        folio: viajeData.folio || null
       }
       
       // Agregar el DTO como Blob con tipo application/json
@@ -88,7 +89,8 @@ export const viajesService = {
         tipo: viajeData.tipo,
         responsableLogistica: viajeData.responsableLogistica,
         evidenciaUrl: viajeData.evidenciaUrl || null,
-        creadoPor: viajeData.creadoPor
+        creadoPor: viajeData.creadoPor,
+        folio: viajeData.folio || null
       }
       
       const response = await apiClient.put(`/api/viajes/${id}`, body)

@@ -102,8 +102,28 @@ export default function GraficosPage() {
   const [facturas, setFacturas] = useState([])
   const [refacciones, setRefacciones] = useState([])
   const [isLoading, setIsLoading] = useState(true)
-  const [selectedPeriod, setSelectedPeriod] = useState('6m') // 1m, 3m, 6m, 1a
+  const [selectedPeriod, setSelectedPeriod] = useState('6m') // diario, semanal, 1m, 3m, 6m, 1a
   const [userRole, setUserRole] = useState(null)
+
+  // Función para obtener la cantidad de datos a mostrar según el período
+  const getDataLimit = () => {
+    switch (selectedPeriod) {
+      case 'diario':
+        return 7 // Últimos 7 días
+      case 'semanal':
+        return 4 // Últimas 4 semanas
+      case '1m':
+        return 1 // Último mes
+      case '3m':
+        return 3 // Últimos 3 meses
+      case '6m':
+        return 6 // Últimos 6 meses
+      case '1a':
+        return 12 // Últimos 12 meses
+      default:
+        return 6
+    }
+  }
 
   useEffect(() => {
     // Obtener el rol del usuario
@@ -149,27 +169,42 @@ export default function GraficosPage() {
   const getViajesPorMes = () => {
     if (!Array.isArray(viajes) || viajes.length === 0) return []
     
-    const meses = {}
+    const periodos = {}
     viajes.forEach(viaje => {
       if (viaje.fechaSalida) {
         const fecha = new Date(viaje.fechaSalida)
-        // Crear clave con formato YYYY-MM para ordenar correctamente
-        const anio = fecha.getFullYear()
-        const mes = fecha.getMonth()
-        const clave = `${anio}-${String(mes + 1).padStart(2, '0')}`
-        const nombreMes = fecha.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' })
+        let clave, nombrePeriodo
         
-        if (!meses[clave]) {
-          meses[clave] = { mes: nombreMes, cantidad: 0, orden: fecha.getTime() }
+        if (selectedPeriod === 'diario') {
+          // Agrupar por día
+          clave = fecha.toISOString().split('T')[0]
+          nombrePeriodo = fecha.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
+        } else if (selectedPeriod === 'semanal') {
+          // Agrupar por semana
+          const inicioSemana = new Date(fecha)
+          inicioSemana.setDate(fecha.getDate() - fecha.getDay())
+          clave = inicioSemana.toISOString().split('T')[0]
+          nombrePeriodo = `Sem ${inicioSemana.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}`
+        } else {
+          // Agrupar por mes (comportamiento original)
+          const anio = fecha.getFullYear()
+          const mes = fecha.getMonth()
+          clave = `${anio}-${String(mes + 1).padStart(2, '0')}`
+          nombrePeriodo = fecha.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' })
         }
-        meses[clave].cantidad++
+        
+        if (!periodos[clave]) {
+          periodos[clave] = { mes: nombrePeriodo, cantidad: 0, orden: fecha.getTime() }
+        }
+        periodos[clave].cantidad++
       }
     })
     
-    // Ordenar por fecha y tomar los últimos 6 meses
-    return Object.values(meses)
+    // Ordenar por fecha y tomar según el período seleccionado
+    const limit = getDataLimit()
+    return Object.values(periodos)
       .sort((a, b) => a.orden - b.orden)
-      .slice(-6)
+      .slice(-limit)
       .map(({ mes, cantidad }) => ({ mes, cantidad }))
   }
 
@@ -188,15 +223,26 @@ export default function GraficosPage() {
   const getGastosPorMes = () => {
     if (!Array.isArray(bitacoras) || bitacoras.length === 0) return []
     
-    const meses = {}
+    const periodos = {}
     bitacoras.forEach(bitacora => {
       if (bitacora.fechaCarga || bitacora.fechaHoraInicio) {
         const fecha = new Date(bitacora.fechaCarga || bitacora.fechaHoraInicio)
-        // Crear clave con formato YYYY-MM para ordenar correctamente
-        const anio = fecha.getFullYear()
-        const mes = fecha.getMonth()
-        const clave = `${anio}-${String(mes + 1).padStart(2, '0')}`
-        const nombreMes = fecha.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' })
+        let clave, nombrePeriodo
+        
+        if (selectedPeriod === 'diario') {
+          clave = fecha.toISOString().split('T')[0]
+          nombrePeriodo = fecha.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
+        } else if (selectedPeriod === 'semanal') {
+          const inicioSemana = new Date(fecha)
+          inicioSemana.setDate(fecha.getDate() - fecha.getDay())
+          clave = inicioSemana.toISOString().split('T')[0]
+          nombrePeriodo = `Sem ${inicioSemana.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}`
+        } else {
+          const anio = fecha.getFullYear()
+          const mes = fecha.getMonth()
+          clave = `${anio}-${String(mes + 1).padStart(2, '0')}`
+          nombrePeriodo = fecha.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' })
+        }
         
         // Sumar los gastos desglosados (no usar costoTotal)
         const gastoTotal = (
@@ -206,17 +252,18 @@ export default function GraficosPage() {
           parseFloat(bitacora.comisionOperador || 0)
         )
         
-        if (!meses[clave]) {
-          meses[clave] = { mes: nombreMes, total: 0, orden: fecha.getTime() }
+        if (!periodos[clave]) {
+          periodos[clave] = { mes: nombrePeriodo, total: 0, orden: fecha.getTime() }
         }
-        meses[clave].total += gastoTotal
+        periodos[clave].total += gastoTotal
       }
     })
     
-    // Ordenar por fecha y tomar los últimos 6 meses
-    return Object.values(meses)
+    // Ordenar por fecha y tomar según el período seleccionado
+    const limit = getDataLimit()
+    return Object.values(periodos)
       .sort((a, b) => a.orden - b.orden)
-      .slice(-6)
+      .slice(-limit)
       .map(({ mes, total }) => ({ mes, total: Math.round(total) }))
   }
 
@@ -247,21 +294,32 @@ export default function GraficosPage() {
   const getIngresoVsGasto = () => {
     if ((!Array.isArray(viajes) || viajes.length === 0) && (!Array.isArray(bitacoras) || bitacoras.length === 0)) return []
     
-    const meses = {}
+    const periodos = {}
     
     // Ingresos de viajes (tarifa)
     if (Array.isArray(viajes)) {
       viajes.forEach(viaje => {
         if (viaje.fechaSalida && viaje.tarifa) {
           const fecha = new Date(viaje.fechaSalida)
-          // Crear clave con formato YYYY-MM para ordenar correctamente
-          const anio = fecha.getFullYear()
-          const mes = fecha.getMonth()
-          const clave = `${anio}-${String(mes + 1).padStart(2, '0')}`
-          const nombreMes = fecha.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' })
+          let clave, nombrePeriodo
           
-          if (!meses[clave]) meses[clave] = { mes: nombreMes, ingresos: 0, gastos: 0, orden: fecha.getTime() }
-          meses[clave].ingresos += parseFloat(viaje.tarifa)
+          if (selectedPeriod === 'diario') {
+            clave = fecha.toISOString().split('T')[0]
+            nombrePeriodo = fecha.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
+          } else if (selectedPeriod === 'semanal') {
+            const inicioSemana = new Date(fecha)
+            inicioSemana.setDate(fecha.getDate() - fecha.getDay())
+            clave = inicioSemana.toISOString().split('T')[0]
+            nombrePeriodo = `Sem ${inicioSemana.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}`
+          } else {
+            const anio = fecha.getFullYear()
+            const mes = fecha.getMonth()
+            clave = `${anio}-${String(mes + 1).padStart(2, '0')}`
+            nombrePeriodo = fecha.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' })
+          }
+          
+          if (!periodos[clave]) periodos[clave] = { mes: nombrePeriodo, ingresos: 0, gastos: 0, orden: fecha.getTime() }
+          periodos[clave].ingresos += parseFloat(viaje.tarifa)
         }
       })
     }
@@ -271,13 +329,24 @@ export default function GraficosPage() {
       bitacoras.forEach(bitacora => {
         if (bitacora.fechaCarga || bitacora.fechaHoraInicio) {
           const fecha = new Date(bitacora.fechaCarga || bitacora.fechaHoraInicio)
-          // Crear clave con formato YYYY-MM para ordenar correctamente
-          const anio = fecha.getFullYear()
-          const mes = fecha.getMonth()
-          const clave = `${anio}-${String(mes + 1).padStart(2, '0')}`
-          const nombreMes = fecha.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' })
+          let clave, nombrePeriodo
           
-          if (!meses[clave]) meses[clave] = { mes: nombreMes, ingresos: 0, gastos: 0, orden: fecha.getTime() }
+          if (selectedPeriod === 'diario') {
+            clave = fecha.toISOString().split('T')[0]
+            nombrePeriodo = fecha.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
+          } else if (selectedPeriod === 'semanal') {
+            const inicioSemana = new Date(fecha)
+            inicioSemana.setDate(fecha.getDate() - fecha.getDay())
+            clave = inicioSemana.toISOString().split('T')[0]
+            nombrePeriodo = `Sem ${inicioSemana.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}`
+          } else {
+            const anio = fecha.getFullYear()
+            const mes = fecha.getMonth()
+            clave = `${anio}-${String(mes + 1).padStart(2, '0')}`
+            nombrePeriodo = fecha.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' })
+          }
+          
+          if (!periodos[clave]) periodos[clave] = { mes: nombrePeriodo, ingresos: 0, gastos: 0, orden: fecha.getTime() }
           
           // Sumar los gastos desglosados (no usar costoTotal)
           const gastoTotal = (
@@ -286,15 +355,16 @@ export default function GraficosPage() {
             parseFloat(bitacora.gastosExtras || 0) +
             parseFloat(bitacora.comisionOperador || 0)
           )
-          meses[clave].gastos += gastoTotal
+          periodos[clave].gastos += gastoTotal
         }
       })
     }
 
-    // Ordenar por fecha y tomar los últimos 6 meses
-    return Object.values(meses)
+    // Ordenar por fecha y tomar según el período seleccionado
+    const limit = getDataLimit()
+    return Object.values(periodos)
       .sort((a, b) => a.orden - b.orden)
-      .slice(-6)
+      .slice(-limit)
       .map(item => ({
         mes: item.mes,
         ingresos: Math.round(item.ingresos),
@@ -547,10 +617,12 @@ export default function GraficosPage() {
                 onChange={(e) => setSelectedPeriod(e.target.value)}
                 className="px-4 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 cursor-pointer"
               >
+                <option value="diario">Últimos 7 días</option>
+                <option value="semanal">Últimas 4 semanas</option>
                 <option value="1m">Último mes</option>
                 <option value="3m">Últimos 3 meses</option>
                 <option value="6m">Últimos 6 meses</option>
-                <option value="1a">Últ  imo año</option>
+                <option value="1a">Último año</option>
               </select>
             </div>
           </div>

@@ -47,6 +47,7 @@ const availablePages = [
     '/dashboard/gastos',
     '/dashboard/almacen/mantenimiento',
     '/dashboard/resumen-gastos',
+    '/dashboard/historico',
 ]
 
 const menuItems = [
@@ -110,6 +111,11 @@ const menuItems = [
         title: 'Resumen de gastos',
         icon: DollarSign,
         href: '/dashboard/resumen-gastos',
+    },
+       {
+        title: 'Histórico',
+        icon: BarChart,
+        href: '/dashboard/historico',
     },
     {
         title: 'Tarifas y comisiones',

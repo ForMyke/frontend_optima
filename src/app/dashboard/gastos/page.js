@@ -109,7 +109,8 @@ export default function GastosSemanalesPage() {
       parseFloat(gasto.gastosExtras || 0) +
       parseFloat(gasto.seguros || 0) +
       parseFloat(gasto.creditos || 0) +
-      parseFloat(gasto.telefonia || 0)
+      parseFloat(gasto.telefonia || 0) +
+      parseFloat(gasto.gastoExtrahordinario || 0)
     )
   }
 
