@@ -15,7 +15,8 @@ import {
   Package,
   Fuel,
   AlertCircle,
-  Receipt
+  Receipt,
+  FileDown
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { bitacoraService } from '@/app/services/bitacoraService'
@@ -23,6 +24,7 @@ import { viajesService } from '@/app/services/viajesService'
 import { operadoresService } from '@/app/services/operadoresService'
 import { clientsService } from '@/app/services/clientsService'
 import { unidadesService } from '@/app/services/unidadesService'
+import { exportBitacoraPDF } from '@/utils/pdfExport'
 import { authService } from '@/app/services/authService'
 import { usersService } from '@/app/services/usersService'
 import { StatCard, BitacoraCard, ConfirmDeleteModal, EditBitacoraModal, CreateBitacoraModal, ViewBitacoraModal } from './components'
@@ -213,13 +215,22 @@ export default function BitacoraPage() {
             </h1>
             <p className="text-slate-600 mt-1">Gestiona y monitorea todos los viajes registrados</p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl cursor-pointer font-medium"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Nueva bitácora
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => exportBitacoraPDF(filteredBitacoras)}
+              className="inline-flex items-center px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-lg hover:shadow-xl cursor-pointer font-medium"
+            >
+              <FileDown className="h-5 w-5 mr-2" />
+              Exportar PDF
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center px-6 py-3 bg-linear-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl cursor-pointer font-medium"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Nueva bitácora
+            </button>
+          </div>
         </div>
 
         {/* Stats */}

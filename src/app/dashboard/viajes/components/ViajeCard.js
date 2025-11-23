@@ -22,7 +22,8 @@ const ESTADOS = {
   PENDIENTE: { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
   EN_CURSO: { label: 'En curso', color: 'bg-blue-100 text-blue-800', icon: Navigation },
   COMPLETADO: { label: 'Completado', color: 'bg-green-100 text-green-800', icon: CheckCircle },
-  CANCELADO: { label: 'Cancelado', color: 'bg-red-100 text-red-800', icon: XCircle }
+  CANCELADO: { label: 'Cancelado', color: 'bg-red-100 text-red-800', icon: XCircle },
+  RECHAZADO: { label: 'Rechazado', color: 'bg-orange-100 text-orange-800', icon: XCircle }
 }
 
 const TIPOS_VIAJE = {
@@ -82,7 +83,7 @@ const ViajeCard = ({ viaje, onEdit, onDelete, onViewDetails, operadores, cliente
       <div className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center space-x-4 flex-1">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-blue-600 to-blue-700">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-linear-to-br from-blue-600 to-blue-700">
               <Truck className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1">
@@ -158,12 +159,14 @@ const ViajeCard = ({ viaje, onEdit, onDelete, onViewDetails, operadores, cliente
               viaje.estado === 'PENDIENTE' ? 'border-yellow-200 bg-yellow-50 text-yellow-800' :
               viaje.estado === 'EN_CURSO' ? 'border-blue-200 bg-blue-50 text-blue-800' :
               viaje.estado === 'COMPLETADO' ? 'border-green-200 bg-green-50 text-green-800' :
+              viaje.estado === 'RECHAZADO' ? 'border-orange-200 bg-orange-50 text-orange-800' :
               'border-red-200 bg-red-50 text-red-800'
             }`}
           >
             <option value="PENDIENTE">Pendiente</option>
             <option value="EN_CURSO">En curso</option>
             <option value="COMPLETADO">Completado</option>
+            <option value="RECHAZADO">Rechazado</option>
             <option value="CANCELADO">Cancelado</option>
           </select>
         </div>

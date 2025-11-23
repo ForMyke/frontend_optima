@@ -10,10 +10,11 @@ import {
   User,
   CheckCircle,
   Clock,
-  XCircle
+  XCircle,
+  Plus
 } from 'lucide-react'
 
-const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChange }) => {
+const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChange, onRegistrarPagoParcial }) => {
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef(null)
 
@@ -159,27 +160,35 @@ const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChang
           </div>
 
           {/* Información de pago parcial */}
-          {factura.montoParcial > 0 && (
-            <div className="pt-3 border-t border-slate-100 bg-blue-50 rounded-lg p-3 -mx-3">
+          {factura.estatus === 'PAGO_PARCIAL' && factura.montoParcial > 0 && (
+            <div className="pt-3 border-t border-slate-100 bg-linear-to-br from-orange-50 to-orange-100 rounded-lg p-3 -mx-3">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-xs text-blue-600 font-medium">Pagado:</span>
-                <span className="text-sm font-bold text-blue-700">
+                <span className="text-xs text-orange-600 font-medium">Pagado:</span>
+                <span className="text-sm font-bold text-orange-700">
                   ${(factura.montoParcial || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-xs text-orange-600 font-medium">Por pagar:</span>
-                <span className="text-sm font-bold text-orange-700">
+                <span className="text-xs text-orange-700 font-medium">Por pagar:</span>
+                <span className="text-sm font-bold text-orange-800">
                   ${((factura.monto || 0) - (factura.montoParcial || 0)).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                 </span>
               </div>
               {/* Barra de progreso */}
-              <div className="mt-2 w-full bg-slate-200 rounded-full h-2">
+              <div className="mt-3 w-full bg-orange-200 rounded-full h-2">
                 <div
-                  className="bg-blue-600 h-2 rounded-full transition-all"
+                  className="bg-orange-600 h-2 rounded-full transition-all"
                   style={{ width: `${((factura.montoParcial || 0) / (factura.monto || 1)) * 100}%` }}
                 />
               </div>
+              {/* Botón Registrar Pago */}
+              <button
+                onClick={() => onRegistrarPagoParcial && onRegistrarPagoParcial(factura)}
+                className="mt-3 w-full bg-orange-400 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+              >
+                <Plus className="h-4 w-4" />
+                Registrar Pago
+              </button>
             </div>
           )}
 

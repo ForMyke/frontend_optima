@@ -128,14 +128,24 @@ export default function TarifasComisionesPage() {
       : 0
   }
 
-  // Filtrar rutas
+  // Filtrar rutas con búsqueda global
   const filteredRutas = rutasComisiones.filter(ruta => {
+    // Obtener el nombre del cliente desde el objeto o buscar en la lista
+    const clienteNombre = ruta.cliente?.nombre || 
+                         clientes.find(c => c.id === ruta.clienteId)?.nombre || 
+                         ''
+    
+    // Búsqueda global: origen, destino, ID, cliente, tarifa, comisión
     const matchesSearch = searchTerm === '' || 
       ruta.origen?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ruta.destino?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ruta.id?.toString().includes(searchTerm)
+      ruta.id?.toString().includes(searchTerm) ||
+      clienteNombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ruta.tarifa?.toString().includes(searchTerm) ||
+      ruta.comision?.toString().includes(searchTerm) ||
+      ruta.kms?.toString().includes(searchTerm)
 
-    // Corregir filtro: ruta.cliente es un objeto, no un ID
+    // Filtro de cliente: comparar con el ID del cliente
     const rutaClienteId = ruta.cliente?.id || ruta.clienteId
     const matchesCliente = clienteFilter === '' || rutaClienteId?.toString() === clienteFilter
 
@@ -207,7 +217,7 @@ export default function TarifasComisionesPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
             <input
               type="text"
-              placeholder="Buscar por origen, destino o ID..."
+              placeholder="Buscar por origen, destino, cliente, tarifa, kms..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"

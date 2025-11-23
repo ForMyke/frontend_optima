@@ -14,12 +14,14 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
-  Package
+  Package,
+  FileDown
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { almacenService } from '@/app/services/almacenService'
 import { unidadesService } from '@/app/services/unidadesService'
 import { refaccionesService } from '@/app/services/refaccionesService'
+import { exportMantenimientoPDF } from '@/utils/pdfExport'
 import { 
   StatCard, 
   MantenimientoCard, 
@@ -192,13 +194,22 @@ const MantenimientoPage = () => {
             <h1 className="text-3xl font-bold text-slate-900">Gestión de Mantenimientos</h1>
             <p className="text-slate-600 mt-2">Administra los mantenimientos de las unidades</p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex cursor-pointer items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
-          >
-            <Plus className="h-5 w-5" />
-            <span>Nuevo mantenimiento</span>
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => exportMantenimientoPDF(filteredMantenimientos, 'Almacén')}
+              className="flex cursor-pointer items-center space-x-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium shadow-sm"
+            >
+              <FileDown className="h-5 w-5" />
+              <span>Exportar PDF</span>
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex cursor-pointer items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
+            >
+              <Plus className="h-5 w-5" />
+              <span>Nuevo mantenimiento</span>
+            </button>
+          </div>
         </div>
       </div>
 

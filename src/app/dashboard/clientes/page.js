@@ -15,11 +15,13 @@ import {
   Calendar,
   MapPin,
   FileText,
-  Eye
+  Eye,
+  FileDown
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { clientsService } from '@/app/services/clientsService'
 import { ClientCard, StatCard, CreateClientModal, EditClientModal, ViewClientModal, ConfirmDeleteModal } from './components'
+import { exportClientesPDF } from '@/utils/pdfExport'
 
 
 const ClientesPage = () => {
@@ -160,13 +162,22 @@ const ClientesPage = () => {
             <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Gestión de clientes</h1>
             <p className="text-sm lg:text-base text-slate-600 mt-1 lg:mt-2">Administra la cartera de clientes</p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex cursor-pointer items-center justify-center space-x-2 px-4 lg:px-6 py-2.5 lg:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
-          >
-            <UserPlus className="h-5 w-5" />
-            <span>Nuevo cliente</span>
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => exportClientesPDF(filteredClients, stats)}
+              className="flex cursor-pointer items-center justify-center space-x-2 px-4 lg:px-6 py-2.5 lg:py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium shadow-sm"
+            >
+              <FileDown className="h-5 w-5" />
+              <span>Exportar PDF</span>
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex cursor-pointer items-center justify-center space-x-2 px-4 lg:px-6 py-2.5 lg:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
+            >
+              <UserPlus className="h-5 w-5" />
+              <span>Nuevo cliente</span>
+            </button>
+          </div>
         </div>
       </div>
 

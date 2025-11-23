@@ -8,12 +8,14 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  Filter
+  Filter,
+  FileDown
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { facturaService } from '@/app/services/facturaService'
 import { clientsService } from '@/app/services/clientsService'
-import { FacturaCard, StatCard, PagarFacturaModal, ViewFacturaModal } from './components'
+import { FacturaCard, StatCard, PagarFacturaModal, PagoParcialModal, ViewFacturaModal } from './components'
+import { exportFacturasPDF } from '@/utils/pdfExport'
 
 const FacturasPage = () => {
   const [facturas, setFacturas] = useState([])
@@ -22,6 +24,7 @@ const FacturasPage = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterEstatus, setFilterEstatus] = useState('TODAS')
   const [showPagarModal, setShowPagarModal] = useState(false)
+  const [showPagoParcialModal, setShowPagoParcialModal] = useState(false)
   const [showViewModal, setShowViewModal] = useState(false)
   const [selectedFactura, setSelectedFactura] = useState(null)
   const [stats, setStats] = useState({
@@ -121,9 +124,56 @@ const FacturasPage = () => {
     }
   }
 
+  const handleConfirmPagoParcial = async (factura, pagoData) => {
+    try {
+      // Validar que el monto parcial no sea mayor que lo pendiente
+      const montoPendiente = (factura.monto || 0) - (factura.montoParcial || 0)
+      const montoAbonar = parseFloat(pagoData.montoParcial)
+      
+      if (montoAbonar > montoPendiente) {
+        toast.error('El monto no puede ser mayor que el saldo pendiente')
+        return
+      }
+
+      // Calcular nuevo monto parcial total
+      const nuevoMontoParcial = (factura.montoParcial || 0) + montoAbonar
+
+      // Registrar el pago parcial
+      await facturaService.registrarPago(factura.id, {
+        montoParcial: nuevoMontoParcial,
+        metodoPago: pagoData.metodoPago,
+        fechaPago: pagoData.fechaPago,
+        observaciones: pagoData.observaciones
+      })
+
+      // Mensaje según si completó el pago o fue parcial
+      if (nuevoMontoParcial >= factura.monto) {
+        toast.success('¡Factura pagada completamente!')
+      } else {
+        toast.success(`Pago parcial registrado: $${montoAbonar.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`)
+      }
+
+      setShowPagoParcialModal(false)
+      setSelectedFactura(null)
+      loadFacturas()
+    } catch (error) {
+      toast.error(error.message || 'Error al registrar pago parcial')
+      throw error
+    }
+  }
+
+  const handleRegistrarPagoParcial = (factura) => {
+    setSelectedFactura(factura)
+    setShowPagoParcialModal(true)
+  }
+
   const handleEstatusChange = (factura, nuevoEstatus) => {
-    if (nuevoEstatus === 'PAGADA') {
-      // Si cambia a PAGADA, abrir modal para ingresar método de pago y fecha
+    // Si cambia a PAGO_PARCIAL o ya está en PAGO_PARCIAL, abrir modal de pago parcial
+    if (nuevoEstatus === 'PAGO_PARCIAL' || factura.estatus === 'PAGO_PARCIAL') {
+      setSelectedFactura(factura)
+      setShowPagoParcialModal(true)
+    } else if (nuevoEstatus === 'PAGADA') {
+      // Si cambia a PAGADA, abrir modal para pago completo
       handlePagarFactura(factura)
     } else {
       // Para otros estados, actualizar directamente
@@ -183,6 +233,13 @@ const FacturasPage = () => {
             <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Gestión de facturas</h1>
             <p className="text-sm lg:text-base text-slate-600 mt-1 lg:mt-2">Administra las facturas y pagos</p>
           </div>
+          <button
+            onClick={() => exportFacturasPDF(filteredFacturas, stats)}
+            className="flex cursor-pointer items-center justify-center space-x-2 px-4 lg:px-6 py-2.5 lg:py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium shadow-sm"
+          >
+            <FileDown className="h-5 w-5" />
+            <span>Exportar PDF</span>
+          </button>
         </div>
       </div>
 
@@ -265,6 +322,7 @@ const FacturasPage = () => {
             onPagar={handlePagarFactura}
             onViewDetails={handleViewDetails}
             onEstatusChange={handleEstatusChange}
+            onRegistrarPagoParcial={handleRegistrarPagoParcial}
           />
         ))}
       </div>
@@ -284,6 +342,16 @@ const FacturasPage = () => {
           setSelectedFactura(null)
         }}
         onConfirm={handleConfirmPago}
+        factura={selectedFactura}
+      />
+
+      <PagoParcialModal
+        isOpen={showPagoParcialModal}
+        onClose={() => {
+          setShowPagoParcialModal(false)
+          setSelectedFactura(null)
+        }}
+        onConfirm={handleConfirmPagoParcial}
         factura={selectedFactura}
       />
 

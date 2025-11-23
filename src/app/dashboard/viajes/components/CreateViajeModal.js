@@ -15,7 +15,6 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
     idRutaComisiones: '',
     fechaSalida: '',
     fechaEstimadaLlegada: '',
-    fechaRealLlegada: '',
     estado: 'PENDIENTE',
     cargaDescripcion: '',
     observaciones: '',
@@ -132,20 +131,14 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
   }, [formData.idRutaComisiones, formData.idCliente])
 
   // Actualizar campos automáticamente cuando se carga tarifaRuta y rutaSeleccionada
+  // Solo llena los campos si hay datos, pero no los limpia si no hay (permite entrada manual)
   useEffect(() => {
     if (tarifaRuta && rutaSeleccionada) {
       setFormData(prev => ({
         ...prev,
-        tarifa: tarifaRuta.tarifa ? tarifaRuta.tarifa.toString() : '',
-        distanciaKm: rutaSeleccionada.kms ? rutaSeleccionada.kms.toString() : '',
-        comisionOperador: tarifaRuta.comision ? tarifaRuta.comision.toString() : ''
-      }))
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        tarifa: '',
-        distanciaKm: '',
-        comisionOperador: ''
+        tarifa: tarifaRuta.tarifa ? tarifaRuta.tarifa.toString() : prev.tarifa,
+        distanciaKm: rutaSeleccionada.kms ? rutaSeleccionada.kms.toString() : prev.distanciaKm,
+        comisionOperador: tarifaRuta.comision ? tarifaRuta.comision.toString() : prev.comisionOperador
       }))
     }
   }, [tarifaRuta, rutaSeleccionada])
@@ -161,6 +154,21 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
       dieselCostoTotal: costoTotal > 0 ? costoTotal.toFixed(2) : ''
     }))
   }, [formData.dieselLitros, formData.dieselPrecioPorLitro])
+
+  // Calcular costo total automáticamente (casetas + diesel + comisión + gastos extras)
+  useEffect(() => {
+    const casetas = parseFloat(formData.casetas) || 0
+    const dieselCostoTotal = parseFloat(formData.dieselCostoTotal) || 0
+    const comisionOperador = parseFloat(formData.comisionOperador) || 0
+    const gastosExtras = parseFloat(formData.gastosExtras) || 0
+    
+    const total = casetas + dieselCostoTotal + comisionOperador + gastosExtras
+    
+    setFormData(prev => ({
+      ...prev,
+      costoTotal: total > 0 ? total.toFixed(2) : ''
+    }))
+  }, [formData.casetas, formData.dieselCostoTotal, formData.comisionOperador, formData.gastosExtras])
 
 
   // Función de validación
@@ -232,7 +240,6 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
         idRutaComisiones: formData.idRutaComisiones ? parseInt(formData.idRutaComisiones) : null,
         fechaSalida: formData.fechaSalida,
         fechaEstimadaLlegada: formData.fechaEstimadaLlegada,
-        fechaRealLlegada: formData.fechaRealLlegada || null,
         tipo: formData.tipo,
         estado: formData.estado,
         cargaDescripcion: formData.cargaDescripcion.trim(),
@@ -258,7 +265,6 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
         idRutaComisiones: '',
         fechaSalida: '',
         fechaEstimadaLlegada: '',
-        fechaRealLlegada: '',
         estado: 'PENDIENTE',
         cargaDescripcion: '',
         observaciones: '',
@@ -526,21 +532,6 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
                   </p>
                 )}
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Fecha real de llegada
-                </label>
-                <input
-                  type="date"
-                  value={formData.fechaRealLlegada}
-                  onChange={(e) => setFormData({ ...formData, fechaRealLlegada: e.target.value })}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-                />
-                <p className="mt-1 text-xs text-slate-500">
-                  Opcional - Se completa al finalizar el viaje
-                </p>
-              </div>
             </div>
           </div>
 
@@ -586,12 +577,11 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
                   step="0.01"
                   value={formData.tarifa}
                   onChange={(e) => setFormData({ ...formData, tarifa: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-                  placeholder="Se llena automáticamente"
-                  readOnly
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                  placeholder="0.00"
                 />
                 <p className="mt-1 text-xs text-slate-500">
-                  Se calcula automáticamente desde la ruta
+                  {tarifaRuta ? 'Valor cargado automáticamente (editable)' : 'Ingresa manualmente o selecciona una ruta'}
                 </p>
               </div>
 
@@ -604,12 +594,11 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
                   step="0.01"
                   value={formData.distanciaKm}
                   onChange={(e) => setFormData({ ...formData, distanciaKm: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-                  placeholder="Se llena automáticamente"
-                  readOnly
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                  placeholder="0.00"
                 />
                 <p className="mt-1 text-xs text-slate-500">
-                  Se calcula automáticamente desde la ruta
+                  {rutaSeleccionada ? 'Valor cargado automáticamente (editable)' : 'Ingresa manualmente o selecciona una ruta'}
                 </p>
               </div>
 
@@ -622,12 +611,11 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
                   step="0.01"
                   value={formData.comisionOperador}
                   onChange={(e) => setFormData({ ...formData, comisionOperador: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-                  placeholder="Se llena automáticamente"
-                  readOnly
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                  placeholder="0.00"
                 />
                 <p className="mt-1 text-xs text-slate-500">
-                  Se calcula automáticamente desde la ruta
+                  {tarifaRuta ? 'Valor cargado automáticamente (editable)' : 'Ingresa manualmente o selecciona una ruta'}
                 </p>
               </div>
 
@@ -734,16 +722,18 @@ const CreateViajeModal = ({ isOpen, onClose, onSave, operadores, clientes, unida
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Costo Total ($)
+                  Costo Total ($) <span className="text-xs text-emerald-600">(Calculado automáticamente)</span>
                 </label>
                 <input
                   type="number"
                   step="0.01"
                   value={formData.costoTotal}
-                  onChange={(e) => setFormData({ ...formData, costoTotal: e.target.value })}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                  readOnly
+                  disabled
+                  className="w-full px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-lg text-slate-900 font-semibold cursor-not-allowed"
                   placeholder="0.00"
                 />
+                
               </div>
             </div>
           </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   User,
   Phone,
@@ -8,8 +8,10 @@ import {
   CreditCard,
   Shield
 } from 'lucide-react'
+import { authService } from '@/app/services/authService'
 
 const CreateOperadorModal = ({ isOpen, onClose, onSave, users }) => {
+  const [currentUser, setCurrentUser] = useState(null)
   const [formData, setFormData] = useState({
     nombre: '',
     telefono: '',
@@ -28,6 +30,16 @@ const CreateOperadorModal = ({ isOpen, onClose, onSave, users }) => {
     activo: true
   })
   const [isLoading, setIsLoading] = useState(false)
+
+  // Obtener el usuario actual al abrir el modal
+  useEffect(() => {
+    if (isOpen) {
+      const user = authService.getUser()
+      setCurrentUser(user)
+      // Establecer automáticamente el ID del usuario actual
+      setFormData(prev => ({ ...prev, usuarioId: user?.id || '' }))
+    }
+  }, [isOpen])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -130,20 +142,17 @@ const CreateOperadorModal = ({ isOpen, onClose, onSave, users }) => {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Usuario asociado
+                Creado por
               </label>
-              <select
-                value={formData.usuarioId}
-                onChange={(e) => setFormData({ ...formData, usuarioId: e.target.value })}
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-              >
-                <option value="">Sin usuario asociado</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.nombre} - {user.email}
-                  </option>
-                ))}
-              </select>
+              <input
+                type="text"
+                value={currentUser ? `${currentUser.nombre} (${currentUser.email})` : 'Cargando...'}
+                disabled
+                className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-lg text-slate-600 cursor-not-allowed"
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                El operador será asociado automáticamente a tu usuario
+              </p>
             </div>
 
             {/* Dirección */}

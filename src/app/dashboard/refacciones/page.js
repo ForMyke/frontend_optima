@@ -8,12 +8,14 @@ import {
   Package,
   DollarSign,
   TrendingUp,
-  Warehouse
+  Warehouse,
+  FileDown
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { refaccionesService } from '@/app/services/refaccionesService'
 import { almacenService } from '@/app/services/almacenService'
 import { RefaccionCard, StatCard, CreateRefaccionModal, EditRefaccionModal, ViewRefaccionModal, ConfirmDeleteModal } from './components'
+import { exportRefaccionesPDF } from '@/utils/pdfExport'
 
 const RefaccionesPage = () => {
   const [refacciones, setRefacciones] = useState([])
@@ -168,13 +170,22 @@ const RefaccionesPage = () => {
             <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Gestión de refacciones</h1>
             <p className="text-sm lg:text-base text-slate-600 mt-1 lg:mt-2">Administra el inventario de refacciones</p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex cursor-pointer items-center justify-center space-x-2 px-4 lg:px-6 py-2.5 lg:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
-          >
-            <Plus className="h-5 w-5" />
-            <span>Nueva refacción</span>
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => exportRefaccionesPDF(filteredRefacciones, stats)}
+              className="flex cursor-pointer items-center justify-center space-x-2 px-4 lg:px-6 py-2.5 lg:py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium shadow-sm"
+            >
+              <FileDown className="h-5 w-5" />
+              <span>Exportar PDF</span>
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex cursor-pointer items-center justify-center space-x-2 px-4 lg:px-6 py-2.5 lg:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
+            >
+              <Plus className="h-5 w-5" />
+              <span>Nueva refacción</span>
+            </button>
+          </div>
         </div>
       </div>
 

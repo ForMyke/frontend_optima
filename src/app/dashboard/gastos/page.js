@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Plus, DollarSign, Calendar, TrendingUp, TrendingDown } from 'lucide-react'
+import { Search, Plus, DollarSign, Calendar, TrendingUp, TrendingDown, FileDown } from 'lucide-react'
 import gastosService from '@/app/services/gastosService'
 import toast from 'react-hot-toast'
 import {
@@ -12,6 +12,7 @@ import {
   ViewGastoSemanalModal,
   ConfirmDeleteModal
 } from './components'
+import { exportGastosPDF } from '@/utils/pdfExport'
 
 export default function GastosSemanalesPage() {
   const [gastos, setGastos] = useState([])
@@ -152,13 +153,22 @@ export default function GastosSemanalesPage() {
           <h1 className="text-3xl font-bold text-slate-900">Gastos Semanales</h1>
           <p className="text-slate-600 mt-1">Registro y control de gastos por semana</p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 font-medium"
-        >
-          <Plus className="h-5 w-5" />
-          <span>Nuevo Gasto Semanal</span>
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => exportGastosPDF(filteredGastos, stats)}
+            className="px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center space-x-2 font-medium"
+          >
+            <FileDown className="h-5 w-5" />
+            <span>Exportar PDF</span>
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 font-medium"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Nuevo Gasto Semanal</span>
+          </button>
+        </div>
       </div>
 
       {/* Stats */}

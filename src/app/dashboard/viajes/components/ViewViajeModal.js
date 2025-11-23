@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { MapPin, Calendar, User, Package, Truck, Camera, Eye, Clock, CheckCircle, XCircle, Navigation } from 'lucide-react'
+import { MapPin, Calendar, User, Package, Truck, Camera, Eye, Clock, CheckCircle, XCircle, Navigation, FileText, Download } from 'lucide-react'
 import Image from 'next/image'
 import tarifasComisionesService from '@/app/services/tarifasComisionesService'
 import { usersService } from '@/app/services/usersService'
@@ -131,7 +131,7 @@ const ViewViajeModal = ({ isOpen, onClose, viaje, operadores = [], clientes = []
               <h2 className="text-2xl font-bold text-slate-900">Viaje #{viaje.id}</h2>
               <p className="text-sm text-slate-600 mt-1">Información completa del viaje</p>
             </div>
-            <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-blue-600 to-blue-700">
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-linear-to-br from-blue-600 to-blue-700">
               <Truck className="h-7 w-7 text-white" />
             </div>
           </div>
@@ -369,32 +369,71 @@ const ViewViajeModal = ({ isOpen, onClose, viaje, operadores = [], clientes = []
             </div>
           </div>
 
-          {/* Evidencia fotográfica */}
+          {/* Evidencia (archivo o imagen) */}
           {viaje.evidenciaUrl && (
             <div>
               <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center">
                 <Camera className="h-4 w-4 mr-2" />
-                Evidencia fotográfica
+                Evidencia del viaje
               </h3>
               <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-                <div className="relative w-full h-64 mb-3">
-                  <Image
-                    src={viaje.evidenciaUrl}
-                    alt={`Evidencia del viaje #${viaje.id}`}
-                    fill
-                    className="rounded-lg object-cover"
-                    unoptimized
-                  />
-                </div>
-                <a
-                  href={viaje.evidenciaUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                >
-                  <Eye className="h-4 w-4" />
-                  <span>Ver imagen completa</span>
-                </a>
+                {/* Verificar si es imagen o documento */}
+                {viaje.evidenciaUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                  // Mostrar imagen
+                  <>
+                    <div className="relative w-full h-64 mb-3">
+                      <Image
+                        src={viaje.evidenciaUrl}
+                        alt={`Evidencia del viaje #${viaje.id}`}
+                        fill
+                        className="rounded-lg object-cover"
+                        unoptimized
+                      />
+                    </div>
+                    <a
+                      href={viaje.evidenciaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                    >
+                      <Eye className="h-4 w-4" />
+                      <span>Ver imagen completa</span>
+                    </a>
+                  </>
+                ) : (
+                  // Mostrar documento
+                  <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                    <FileText className="h-16 w-16 text-slate-400" />
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-slate-900 mb-1">Documento adjunto</p>
+                      <p className="text-xs text-slate-500">
+                        {viaje.evidenciaUrl.match(/\.pdf$/i) && 'Documento PDF'}
+                        {viaje.evidenciaUrl.match(/\.(doc|docx)$/i) && 'Documento Word'}
+                        {viaje.evidenciaUrl.match(/\.(xls|xlsx)$/i) && 'Hoja de cálculo Excel'}
+                        {viaje.evidenciaUrl.match(/\.(txt|csv)$/i) && 'Archivo de texto'}
+                      </p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <a
+                        href={viaje.evidenciaUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                      >
+                        <Eye className="h-4 w-4" />
+                        <span>Ver archivo</span>
+                      </a>
+                      <a
+                        href={viaje.evidenciaUrl}
+                        download
+                        className="flex items-center justify-center space-x-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors text-sm font-medium"
+                      >
+                        <Download className="h-4 w-4" />
+                        <span>Descargar</span>
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

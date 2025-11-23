@@ -117,6 +117,7 @@ const CreateRefaccionModal = ({ isOpen, onClose, onSave, almacenes, defaultAlmac
                     <option value="paquete">Paquete</option>
                     <option value="cubeta">Cubeta</option>
                     <option value="barril">Barril</option>
+                    <option value="totem">Totem</option>
                   </select>
                 </div>
               </div>

@@ -19,12 +19,14 @@ import {
   CheckCircle,
   XCircle,
   Eye,
-  AlertCircle
+  AlertCircle,
+  FileDown
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { operadoresService } from '@/app/services/operadoresService'
 import { usersService } from '@/app/services/usersService'
 import { StatCard, OperadorCard, CreateOperadorModal, EditOperadorModal, ViewOperadorModal, ConfirmDeleteModal } from './components'
+import { exportOperadoresPDF } from '@/utils/pdfExport'
 
 const OperadoresPage = () => {
   const [operadores, setOperadores] = useState([])
@@ -197,13 +199,22 @@ const OperadoresPage = () => {
             <h1 className="text-3xl font-bold text-slate-900">Gestión de operadores</h1>
             <p className="text-slate-600 mt-2">Administra los operadores y sus licencias</p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex cursor-pointer items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
-          >
-            <UserPlus className="h-5 w-5" />
-            <span>Nuevo operador</span>
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => exportOperadoresPDF(filteredOperadores, stats)}
+              className="flex cursor-pointer items-center space-x-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium shadow-sm"
+            >
+              <FileDown className="h-5 w-5" />
+              <span>Exportar PDF</span>
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex cursor-pointer items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
+            >
+              <UserPlus className="h-5 w-5" />
+              <span>Nuevo operador</span>
+            </button>
+          </div>
         </div>
       </div>
 

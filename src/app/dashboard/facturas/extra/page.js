@@ -12,11 +12,13 @@ import {
   Clock,
   XCircle,
   AlertTriangle,
-  Filter
+  Filter,
+  FileDown
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { facturaService } from '@/app/services/facturaService'
 import { clientsService } from '@/app/services/clientsService'
+import { exportFacturasExtraPDF } from '@/utils/pdfExport'
 import {
   StatCard,
   FacturaExtraCard,
@@ -238,13 +240,22 @@ const FacturasExtraPage = () => {
             <h1 className="text-3xl font-bold text-slate-900">Facturas Extra</h1>
             <p className="text-slate-600 mt-2">Gestiona facturas adicionales y servicios extra</p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex cursor-pointer items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
-          >
-            <Plus className="h-5 w-5" />
-            <span>Nueva factura extra</span>
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => exportFacturasExtraPDF(filteredFacturas, stats)}
+              className="flex cursor-pointer items-center space-x-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium shadow-sm"
+            >
+              <FileDown className="h-5 w-5" />
+              <span>Exportar PDF</span>
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex cursor-pointer items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
+            >
+              <Plus className="h-5 w-5" />
+              <span>Nueva factura extra</span>
+            </button>
+          </div>
         </div>
       </div>
 

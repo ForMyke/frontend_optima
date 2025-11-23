@@ -15,11 +15,13 @@ import {
   CheckCircle,
   Settings,
   Wrench,
-  User
+  User,
+  FileDown
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { unidadesService } from '@/app/services/unidadesService'
 import { StatCard, UnidadCard, CreateUnidadModal, EditUnidadModal, ViewUnidadModal, ConfirmDeleteModal } from './components'
+import { exportUnidadesPDF } from '@/utils/pdfExport'
 
 const UnidadesPage = () => {
   const [unidades, setUnidades] = useState([])
@@ -146,13 +148,22 @@ const UnidadesPage = () => {
             </h1>
             <p className="text-slate-600 mt-1">Administra el inventario de vehículos y su estado</p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl cursor-pointer font-medium"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Nueva unidad
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => exportUnidadesPDF(filteredUnidades, stats)}
+              className="inline-flex items-center px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-lg hover:shadow-xl cursor-pointer font-medium"
+            >
+              <FileDown className="h-5 w-5 mr-2" />
+              Exportar PDF
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center px-6 py-3 bg-linear-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl cursor-pointer font-medium"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Nueva unidad
+            </button>
+          </div>
         </div>
 
         {/* Stats */}

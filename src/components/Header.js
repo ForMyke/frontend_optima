@@ -58,10 +58,13 @@ export function Header({ onMenuClick }) {
 
 
         <div className="flex items-center space-x-2 lg:space-x-4 ml-auto lg:ml-6">
-          <button className="relative p-2 lg:p-3 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1 right-1 lg:top-2 lg:right-2 h-2 w-2 bg-red-500 rounded-full animate-pulse"></span>
-          </button>
+          {/* Mostrar notificaciones solo para ADMIN y NOMINA */}
+          {user?.rol && (user.rol === 'ADMIN' || user.rol === 'NOMINA') && (
+            <button className="relative p-2 lg:p-3 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all">
+              <Bell className="h-5 w-5" />
+              <span className="absolute top-1 right-1 lg:top-2 lg:right-2 h-2 w-2 bg-red-500 rounded-full animate-pulse"></span>
+            </button>
+          )}
 
           <div className="relative" ref={userMenuRef}>
             <button

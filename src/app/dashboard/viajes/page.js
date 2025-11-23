@@ -22,12 +22,15 @@ import {
   Filter,
   Camera,
   Upload,
-  X
+  X,
+  FileDown,
+  FileText
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { viajesService } from '@/app/services/viajesService'
 import { operadoresService } from '@/app/services/operadoresService'
 import { clientsService } from '@/app/services/clientsService'
+import { exportViajesPDF } from '@/utils/pdfExport'
 import { unidadesService } from '@/app/services/unidadesService'
 import { authService } from '@/app/services/authService'
 import { StatCard, ViajeCard, CreateViajeModal, EditViajeModal, ViewViajeModal, ConfirmDeleteModal } from './components'
@@ -53,6 +56,7 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
   const [previewUrl, setPreviewUrl] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [comentarios, setComentarios] = useState('')
+  const [fechaRealLlegada, setFechaRealLlegada] = useState('')
   const fileInputRef = useRef(null)
 
   useEffect(() => {
@@ -67,21 +71,34 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
   const handleFileSelect = (e) => {
     const file = e.target.files[0]
     if (file) {
-      // Validar que sea una imagen
-      if (!file.type.startsWith('image/')) {
-        toast.error('Por favor selecciona una imagen válida (JPG, PNG, JPEG)')
+      // Validar tipos de archivo permitidos (imágenes y documentos)
+      const allowedTypes = [
+        'image/jpeg',
+        'image/jpg', 
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'application/pdf',
+        'application/msword', // .doc
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+        'application/vnd.ms-excel', // .xls
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+        'text/plain', // .txt
+        'text/csv'
+      ]
+      
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Formato no permitido. Puedes subir imágenes (JPG, PNG, GIF, WEBP), PDF, Word (DOC, DOCX), Excel (XLS, XLSX), TXT o CSV')
         return
       }
 
-      // Validar tamaño (máximo 1MB para evitar errores 403)
+      // Validar tamaño (máximo 1MB)
       const maxSize = 1 * 1024 * 1024 // 1MB
       const sizeMB = (file.size / 1024 / 1024).toFixed(2)
       
-  
-      
       if (file.size > maxSize) {
         toast.error(
-          `Imagen muy pesada (${sizeMB}MB)\n\nEl tamaño máximo permitido es 1MB.\nPor favor reduce el tamaño de la imagen antes de subirla.`,
+          `Archivo muy pesado (${sizeMB}MB)\n\nEl tamaño máximo permitido es 1MB.\nPor favor reduce el tamaño del archivo antes de subirlo.`,
           { duration: 5000 }
         )
         // Limpiar el input
@@ -91,15 +108,19 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
         return
       }
 
-
       setSelectedFile(file)
 
-      // Crear preview
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setPreviewUrl(reader.result)
+      // Crear preview solo para imágenes
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setPreviewUrl(reader.result)
+        }
+        reader.readAsDataURL(file)
+      } else {
+        // Para documentos, no crear preview de imagen
+        setPreviewUrl(null)
       }
-      reader.readAsDataURL(file)
     }
   }
 
@@ -109,9 +130,15 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
     const sizeMB = selectedFile ? (selectedFile.size / 1024 / 1024).toFixed(2) : 'N/A'
 
 
-    // Si el estado es COMPLETADO, requiere evidencia
-    if (nuevoEstado === 'COMPLETADO' && !selectedFile) {
-      toast.error('⚠️ Se requiere evidencia fotográfica para completar el viaje')
+    // Si el estado es COMPLETADO o RECHAZADO, requiere evidencia
+    if ((nuevoEstado === 'COMPLETADO' || nuevoEstado === 'RECHAZADO') && !selectedFile) {
+      toast.error('⚠️ Se requiere archivo de evidencia para completar o rechazar el viaje')
+      return
+    }
+
+    // Si el estado es RECHAZADO, requiere fecha real de llegada
+    if (nuevoEstado === 'RECHAZADO' && !fechaRealLlegada) {
+      toast.error('⚠️ Se requiere la fecha real de llegada para rechazar el viaje')
       return
     }
 
@@ -120,7 +147,7 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
       const maxSize = 1 * 1024 * 1024 // 1MB
       if (selectedFile.size > maxSize) {
         toast.error(
-          `La imagen (${sizeMB}MB) supera el límite de 1MB.\n\nPor favor reduce el tamaño de la imagen antes de continuar.`,
+          `El archivo (${sizeMB}MB) supera el límite de 1MB.\n\nPor favor reduce el tamaño del archivo antes de continuar.`,
           { duration: 5000 }
         )
         return
@@ -128,18 +155,19 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
     }
 
     setUploading(true)
-    const loadingToast = toast.loading('Subiendo imagen y cambiando estado...')
+    const loadingToast = toast.loading('Subiendo archivo y cambiando estado...')
     
     try {
       
-      await viajesService.cambiarEstado(viaje.id, nuevoEstado, selectedFile)
+      await viajesService.cambiarEstado(viaje.id, nuevoEstado, selectedFile, fechaRealLlegada || null)
       
       const estadoTexto = {
         'PENDIENTE': 'pendiente',
         'EN_CURSO': 'en curso',
         'EN_PROCESO': 'en proceso',
         'COMPLETADO': 'completado',
-        'CANCELADO': 'cancelado'
+        'CANCELADO': 'cancelado',
+        'RECHAZADO': 'rechazado'
       }[nuevoEstado] || nuevoEstado.toLowerCase()
       
       toast.dismiss(loadingToast)
@@ -167,13 +195,13 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
       let errorMessage = 'Error al cambiar el estado del viaje'
       
       if (error.response?.status === 403) {
-        errorMessage = '🚫 Acceso denegado. La imagen supera el límite permitido por el servidor (1MB máximo).'
+        errorMessage = '🚫 Acceso denegado. El archivo supera el límite permitido por el servidor (1MB máximo).'
       } else if (error.response?.status === 413) {
-        errorMessage = '🚫 La imagen es demasiado grande. El servidor solo acepta imágenes de hasta 1MB.'
+        errorMessage = '🚫 El archivo es demasiado grande. El servidor solo acepta archivos de hasta 1MB.'
       } else if (error.message?.includes('size') || error.message?.includes('tamaño') || error.message?.includes('large') || error.message?.includes('pesada')) {
-        errorMessage = `⚠️ ${error.message}\n\nPor favor comprime la imagen antes de subirla.`
+        errorMessage = `⚠️ ${error.message}\n\nPor favor reduce el tamaño del archivo antes de subirlo.`
       } else if (error.message?.includes('timeout')) {
-        errorMessage = '⏱️ La carga tardó demasiado. Intenta con una imagen más pequeña.'
+        errorMessage = '⏱️ La carga tardó demasiado. Intenta con un archivo más pequeño.'
       } else if (error.message) {
         errorMessage = error.message
       }
@@ -188,6 +216,7 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
     setSelectedFile(null)
     setPreviewUrl(null)
     setComentarios('')
+    setFechaRealLlegada('')
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -198,7 +227,7 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
 
   const estadoInfo = ESTADOS[nuevoEstado] || ESTADOS.PENDIENTE
   const EstadoIcon = estadoInfo.icon
-  const requiereEvidencia = nuevoEstado === 'COMPLETADO'
+  const requiereEvidencia = nuevoEstado === 'COMPLETADO' || nuevoEstado === 'RECHAZADO'
 
   return (
     <div className="fixed inset-0 backdrop-blur-xs bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -207,7 +236,7 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-slate-900">
-                {requiereEvidencia ? 'Subir evidencia fotográfica' : 'Cambiar estado del viaje'}
+                {requiereEvidencia ? 'Subir archivo de evidencia' : 'Cambiar estado del viaje'}
               </h2>
               <p className="text-sm text-slate-600 mt-1">
                 Viaje #{viaje?.id} - Cambio a estado:
@@ -230,34 +259,52 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
           {/* Área de carga de imagen */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-3">
-              Fotografía de evidencia {requiereEvidencia && '*'}
+              Archivo de evidencia {requiereEvidencia && '*'}
               {!requiereEvidencia && <span className="text-slate-500 text-xs ml-1">(opcional)</span>}
             </label>
 
-            {!previewUrl ? (
+            {!selectedFile ? (
               <div
                 onClick={() => fileInputRef.current?.click()}
                 className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer"
               >
                 <Camera className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                <p className="text-slate-600 font-medium mb-1">Click para seleccionar una imagen</p>
-                <p className="text-sm text-slate-500">PNG, JPG o JPEG (máx. 1MB)</p>
+                <p className="text-slate-600 font-medium mb-1">Click para seleccionar un archivo</p>
+                <p className="text-sm text-slate-500">Imágenes, PDF, Word, Excel, TXT o CSV (máx. 1MB)</p>
                 <p className="text-xs text-amber-600 mt-2">Archivos mayores a 1MB serán rechazados</p>
               </div>
             ) : (
               <div className="relative">
-                <Image
-                  height={64}
-                  width={64}
-                  src={previewUrl}
-                  alt="Preview"
-                  className="w-full h-64 object-cover rounded-xl border-2 border-slate-200"
-                />
+                {/* Preview para imágenes */}
+                {previewUrl ? (
+                  <Image
+                    height={64}
+                    width={64}
+                    src={previewUrl}
+                    alt="Preview"
+                    className="w-full h-64 object-cover rounded-xl border-2 border-slate-200"
+                  />
+                ) : (
+                  /* Mostrar icono de documento para archivos no-imagen */
+                  <div className="w-full h-64 flex items-center justify-center bg-slate-100 rounded-xl border-2 border-slate-200">
+                    <div className="text-center">
+                      <FileText className="h-20 w-20 text-slate-400 mx-auto mb-3" />
+                      <p className="text-slate-600 font-medium">{selectedFile.name}</p>
+                      <p className="text-sm text-slate-500 mt-1">
+                        {selectedFile.type === 'application/pdf' && 'Documento PDF'}
+                        {selectedFile.type.includes('word') && 'Documento Word'}
+                        {selectedFile.type.includes('excel') && 'Hoja de cálculo Excel'}
+                        {selectedFile.type.includes('text') && 'Archivo de texto'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
                 {/* Información del archivo */}
                 <div className="absolute top-2 left-2 bg-black bg-opacity-75 text-white px-3 py-1.5 rounded-lg text-xs font-medium">
                   {selectedFile && (
                     <>
-                      <span className="block">{selectedFile.name}</span>
+                      <span className="block truncate max-w-xs">{selectedFile.name}</span>
                       <span className="block text-green-400">
                         {(selectedFile.size / 1024 / 1024).toFixed(2)}MB / 1MB
                       </span>
@@ -283,7 +330,7 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
                   className="absolute bottom-2 right-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
                 >
                   <Upload className="h-4 w-4" />
-                  <span>Cambiar imagen</span>
+                  <span>Cambiar archivo</span>
                 </button>
               </div>
             )}
@@ -291,12 +338,30 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
               onChange={handleFileSelect}
               className="hidden"
             />
           </div>
 
+          {/* Campo de Fecha Real de Llegada (solo para RECHAZADO) */}
+          {nuevoEstado === 'RECHAZADO' && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Fecha Real de Llegada *
+              </label>
+              <input
+                type="date"
+                value={fechaRealLlegada}
+                onChange={(e) => setFechaRealLlegada(e.target.value)}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                Indica la fecha real de llegada del viaje (requerido para viajes rechazados)
+              </p>
+            </div>
+          )}
 
           {/* Información del viaje */}
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
@@ -549,10 +614,37 @@ const ViajesPage = () => {
     }
   }
 
-  const handleEstadoChange = (viaje, nuevoEstado) => {
-    setSelectedViaje(viaje)
-    setNuevoEstado(nuevoEstado)
-    setShowEvidenciaModal(true)
+  const handleEstadoChange = async (viaje, nuevoEstado) => {
+    // Solo abrir modal de evidencia para COMPLETADO y RECHAZADO
+    if (nuevoEstado === 'COMPLETADO' || nuevoEstado === 'RECHAZADO') {
+      setSelectedViaje(viaje)
+      setNuevoEstado(nuevoEstado)
+      setShowEvidenciaModal(true)
+    } else {
+      // Para otros estados, cambiar directamente sin modal
+      try {
+        await viajesService.cambiarEstado(viaje.id, nuevoEstado, null)
+        
+        const estadoTexto = {
+          'PENDIENTE': 'pendiente',
+          'EN_CURSO': 'en curso',
+          'CANCELADO': 'cancelado'
+        }[nuevoEstado] || nuevoEstado.toLowerCase()
+        
+        toast.success(`Viaje cambiado a ${estadoTexto} exitosamente`)
+        
+        // Actualizar estado localmente
+        setViajes(prevViajes => 
+          prevViajes.map(v => 
+            v.id === viaje.id 
+              ? { ...v, estado: nuevoEstado }
+              : v
+          )
+        )
+      } catch (error) {
+        toast.error(error.message || 'Error al cambiar el estado del viaje')
+      }
+    }
   }
 
   const handleSaveEvidencia = async () => {
@@ -599,13 +691,22 @@ const ViajesPage = () => {
             <h1 className="text-3xl font-bold text-slate-900">Gestión de viajes</h1>
             <p className="text-slate-600 mt-2">Administra los viajes y rutas de transporte</p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex cursor-pointer items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
-          >
-            <Plus className="h-5 w-5" />
-            <span>Nuevo viaje</span>
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => exportViajesPDF(filteredViajes, stats)}
+              className="flex cursor-pointer items-center space-x-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium shadow-sm"
+            >
+              <FileDown className="h-5 w-5" />
+              <span>Exportar PDF</span>
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex cursor-pointer items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
+            >
+              <Plus className="h-5 w-5" />
+              <span>Nuevo viaje</span>
+            </button>
+          </div>
         </div>
       </div>
 
