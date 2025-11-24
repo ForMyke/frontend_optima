@@ -2,9 +2,14 @@ import { apiClient } from './authService'
 
 export const historicoService = {
   // Obtener todos los movimientos de almacenes con paginación y ordenamiento
-  async getMovimientos() {
+  async getMovimientos(page = 0, size = 10, sort = 'fecha,desc') {
     try {
       const response = await apiClient.get('/api/movimientos-almacenes', {
+        params: {
+          page,
+          size,
+          sort
+        }
       })
       return response.data
     } catch (error) {

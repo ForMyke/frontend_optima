@@ -19,8 +19,8 @@ const ViewMantenimientoModal = ({ isOpen, onClose, mantenimiento }) => {
 
   const tipoConfig = getTipoConfig(mantenimiento.tipo)
 
-  // Calcular costo total
-  const costoTotal = (mantenimiento.gastos || []).reduce((sum, g) => sum + (parseFloat(g.monto) || 0), 0)
+  // Usar el costoTotal que viene del backend
+  const costoTotal = parseFloat(mantenimiento.costoTotal) || 0
 
   // Formatear fecha
   const fechaFormateada = mantenimiento.fecha 
@@ -32,7 +32,7 @@ const ViewMantenimientoModal = ({ isOpen, onClose, mantenimiento }) => {
     : 'Sin fecha'
 
   const unidadInfo = mantenimiento.unidad 
-    ? `${mantenimiento.unidad.numeroEconomico} - ${mantenimiento.unidad.marca} ${mantenimiento.unidad.modelo}`
+    ? `${mantenimiento.unidad.numeroEconomico || mantenimiento.unidad.placas} - ${mantenimiento.unidad.marca} ${mantenimiento.unidad.modelo}`
     : 'Sin unidad'
 
   return (
@@ -118,74 +118,20 @@ const ViewMantenimientoModal = ({ isOpen, onClose, mantenimiento }) => {
             </p>
           </div>
 
-          {/* Gastos */}
-          {mantenimiento.gastos && mantenimiento.gastos.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center space-x-2">
-                <DollarSign className="h-5 w-5" />
-                <span>Gastos del mantenimiento</span>
-              </h3>
-              
-              <div className="space-y-3">
-                {mantenimiento.gastos.map((gasto, index) => (
-                  <div key={index} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-semibold rounded">
-                            {gasto.categoria?.replace('_', ' ') || 'N/A'}
-                          </span>
-                        </div>
-                        <p className="font-semibold text-slate-900">{gasto.descripcion}</p>
-                      </div>
-                      <span className="text-xl font-bold text-slate-900">
-                        ${parseFloat(gasto.monto).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-
-                    {/* Detalles de refacción */}
-                    {gasto.refaccion && (
-                      <div className="flex items-center space-x-2 mt-3 pt-3 border-t border-slate-200">
-                        <Package className="h-4 w-4 text-slate-400" />
-                        <div className="flex-1">
-                          <p className="text-sm text-slate-600">
-                            Refacción: <span className="font-medium">{gasto.refaccion.nombre}</span>
-                          </p>
-                          {gasto.cantidad && gasto.costoUnitario && (
-                            <p className="text-xs text-slate-500">
-                              {gasto.cantidad} unidades × ${parseFloat(gasto.costoUnitario).toFixed(2)} c/u
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Solo cantidad y costo si no hay refacción */}
-                    {!gasto.refaccion && gasto.cantidad && gasto.costoUnitario && (
-                      <p className="text-sm text-slate-500 mt-2">
-                        {gasto.cantidad} unidades × ${parseFloat(gasto.costoUnitario).toFixed(2)} c/u
-                      </p>
-                    )}
-                  </div>
-                ))}
-
-                {/* Total */}
-                <div className="bg-slate-900 text-white rounded-lg p-4 flex items-center justify-between">
-                  <span className="text-lg font-semibold">Total del mantenimiento</span>
-                  <span className="text-2xl font-bold">
-                    ${costoTotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-              </div>
+          {/* Costo Total */}
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center space-x-2">
+              <DollarSign className="h-5 w-5" />
+              <span>Costo del mantenimiento</span>
+            </h3>
+            
+            <div className="bg-slate-900 text-white rounded-lg p-6 flex items-center justify-between">
+              <span className="text-lg font-semibold">Costo total</span>
+              <span className="text-3xl font-bold">
+                ${costoTotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+              </span>
             </div>
-          )}
-
-          {(!mantenimiento.gastos || mantenimiento.gastos.length === 0) && (
-            <div className="text-center py-8 bg-slate-50 rounded-lg">
-              <DollarSign className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-500">No hay gastos registrados para este mantenimiento</p>
-            </div>
-          )}
+          </div>
         </div>
 
         <div className="p-6 border-t border-slate-200 bg-slate-50">

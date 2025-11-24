@@ -120,37 +120,34 @@ const ViewRefaccionModal = ({ isOpen, onClose, refaccion }) => {
               Información adicional
             </h3>
             <div className="bg-slate-50 rounded-lg p-4 space-y-3">
-              {refaccion.nombreVendedor && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600 flex items-center">
-                    <User className="h-4 w-4 mr-2" />
-                    Vendedor
-                  </span>
-                  <span className="text-base text-slate-900 font-medium">
-                    {refaccion.nombreVendedor}
-                  </span>
-                </div>
-              )}
-              {refaccion.fechaCreacion && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600 flex items-center">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Fecha de creación
-                  </span>
-                  <span className="text-base text-slate-900 font-medium">
-                    {new Date(refaccion.fechaCreacion).toLocaleDateString('es-MX', {
+              <div className="flex items-center justify-between py-2 border-b border-slate-200">
+                <span className="text-sm text-slate-600 flex items-center">
+                  <User className="h-4 w-4 mr-2" />
+                  Vendedor
+                </span>
+                <span className="text-base text-slate-900 font-medium">
+                  {refaccion.nombreVendedor || <span className="text-slate-400">Sin vendedor</span>}
+                </span>
+              </div>
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-slate-600 flex items-center">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Fecha de creación
+                </span>
+                <span className="text-base text-slate-900 font-medium">
+                  {refaccion.fechaCreacion ? (
+                    new Date(refaccion.fechaCreacion).toLocaleDateString('es-MX', {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric',
                       hour: '2-digit',
                       minute: '2-digit'
-                    })}
-                  </span>
-                </div>
-              )}
-              {!refaccion.nombreVendedor && !refaccion.fechaCreacion && (
-                <p className="text-slate-500 text-center py-2">Sin información adicional</p>
-              )}
+                    })
+                  ) : (
+                    <span className="text-slate-400">Sin fecha</span>
+                  )}
+                </span>
+              </div>
             </div>
           </div>
         </div>

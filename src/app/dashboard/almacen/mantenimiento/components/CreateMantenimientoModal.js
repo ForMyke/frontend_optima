@@ -81,11 +81,42 @@ const CreateMantenimientoModal = ({ isOpen, onClose, onSave, unidades, refaccion
         [name]: value
       }
 
+      // Si se selecciona una refacción, auto-llenar el costo unitario
+      if (name === 'refaccionId' && value) {
+        const refaccion = refacciones?.find(r => r.id === parseInt(value))
+        if (refaccion) {
+          updated.costoUnitario = refaccion.costoUnitario || refaccion.costo || ''
+        }
+      }
+
+      // Limpiar refaccionId si cambia la categoría y no es REFACCIONES
+      if (name === 'categoria' && value !== 'REFACCIONES') {
+        updated.refaccionId = null
+        updated.cantidad = ''
+        updated.costoUnitario = ''
+        updated.monto = ''
+      }
+
+      // Validar cantidad contra stock disponible si es una refacción
+      if (name === 'cantidad' && prev.categoria === 'REFACCIONES' && prev.refaccionId) {
+        const refaccion = refacciones?.find(r => r.id === prev.refaccionId)
+        if (refaccion) {
+          const cantidadSolicitada = parseInt(value) || 0
+          if (cantidadSolicitada > refaccion.stockActual) {
+            toast.error(`Stock insuficiente. Solo hay ${refaccion.stockActual} unidades disponibles de ${refaccion.nombre}`)
+            updated.cantidad = refaccion.stockActual.toString()
+          }
+        }
+      }
+
+      // Calcular automáticamente el monto cuando cambia cantidad o costo unitario
       if (name === 'cantidad' || name === 'costoUnitario') {
         const cantidad = parseFloat(updated.cantidad) || 0
         const costoUnitario = parseFloat(updated.costoUnitario) || 0
         if (cantidad > 0 && costoUnitario > 0) {
           updated.monto = (cantidad * costoUnitario).toFixed(2)
+        } else {
+          updated.monto = ''
         }
       }
 
@@ -95,10 +126,22 @@ const CreateMantenimientoModal = ({ isOpen, onClose, onSave, unidades, refaccion
 
   const handleRefaccionUsadaChange = (e) => {
     const { name, value } = e.target
-    setNuevaRefaccionUsada(prev => ({
-      ...prev,
-      [name]: value
-    }))
+    setNuevaRefaccionUsada(prev => {
+      const updated = {
+        ...prev,
+        [name]: value
+      }
+
+      // Si se selecciona una refacción, auto-llenar el costo unitario
+      if (name === 'refaccionId' && value) {
+        const refaccion = refacciones?.find(r => r.id === parseInt(value))
+        if (refaccion) {
+          updated.costoUnitario = refaccion.costoUnitario || refaccion.costo || ''
+        }
+      }
+
+      return updated
+    })
   }
 
   const agregarRefaccionUsada = () => {
@@ -106,9 +149,18 @@ const CreateMantenimientoModal = ({ isOpen, onClose, onSave, unidades, refaccion
       return
     }
 
+    // Validar stock disponible
+    const refaccion = refacciones?.find(r => r.id === parseInt(nuevaRefaccionUsada.refaccionId))
+    const cantidadSolicitada = parseInt(nuevaRefaccionUsada.cantidad)
+    
+    if (refaccion && refaccion.stockActual < cantidadSolicitada) {
+      alert(`Stock insuficiente. Solo hay ${refaccion.stockActual} unidades disponibles de "${refaccion.nombre}"`)
+      return
+    }
+
     const refaccionToAdd = {
       refaccionId: parseInt(nuevaRefaccionUsada.refaccionId),
-      cantidad: parseInt(nuevaRefaccionUsada.cantidad),
+      cantidad: cantidadSolicitada,
       costoUnitario: parseFloat(nuevaRefaccionUsada.costoUnitario)
     }
 
@@ -136,26 +188,57 @@ const CreateMantenimientoModal = ({ isOpen, onClose, onSave, unidades, refaccion
       return
     }
 
-    const gastoToAdd = {
-      categoria: nuevoGasto.categoria,
-      descripcion: nuevoGasto.descripcion,
-      monto: parseFloat(nuevoGasto.monto)
-    }
+    // Si es categoría REFACCIONES y hay refacción seleccionada, validar stock
+    if (nuevoGasto.categoria === 'REFACCIONES' && nuevoGasto.refaccionId && nuevoGasto.cantidad) {
+      const refaccion = refacciones?.find(r => r.id === parseInt(nuevoGasto.refaccionId))
+      const cantidadSolicitada = parseInt(nuevoGasto.cantidad)
+      
+      if (refaccion && refaccion.stockActual < cantidadSolicitada) {
+        toast.error(`Stock insuficiente. Solo hay ${refaccion.stockActual} unidades disponibles de "${refaccion.nombre}"`)
+        return
+      }
 
-    if (nuevoGasto.refaccionId) {
-      gastoToAdd.refaccionId = parseInt(nuevoGasto.refaccionId)
-    }
-    if (nuevoGasto.cantidad) {
-      gastoToAdd.cantidad = parseInt(nuevoGasto.cantidad)
-    }
-    if (nuevoGasto.costoUnitario) {
-      gastoToAdd.costoUnitario = parseFloat(nuevoGasto.costoUnitario)
-    }
+      // Agregar a refaccionesUsadas
+      const refaccionUsada = {
+        refaccionId: parseInt(nuevoGasto.refaccionId),
+        cantidad: cantidadSolicitada,
+        costoUnitario: parseFloat(nuevoGasto.costoUnitario)
+      }
 
-    setFormData(prev => ({
-      ...prev,
-      gastosNuevos: [...prev.gastosNuevos, gastoToAdd]
-    }))
+      setFormData(prev => ({
+        ...prev,
+        refaccionesUsadas: [...prev.refaccionesUsadas, refaccionUsada],
+        gastosNuevos: [
+          ...prev.gastosNuevos,
+          {
+            categoria: nuevoGasto.categoria,
+            descripcion: nuevoGasto.descripcion,
+            monto: parseFloat(nuevoGasto.monto),
+            cantidad: cantidadSolicitada,
+            costoUnitario: parseFloat(nuevoGasto.costoUnitario)
+          }
+        ]
+      }))
+    } else {
+      // Gasto normal sin refacción de inventario
+      const gastoToAdd = {
+        categoria: nuevoGasto.categoria,
+        descripcion: nuevoGasto.descripcion,
+        monto: parseFloat(nuevoGasto.monto)
+      }
+
+      if (nuevoGasto.cantidad) {
+        gastoToAdd.cantidad = parseInt(nuevoGasto.cantidad)
+      }
+      if (nuevoGasto.costoUnitario) {
+        gastoToAdd.costoUnitario = parseFloat(nuevoGasto.costoUnitario)
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        gastosNuevos: [...prev.gastosNuevos, gastoToAdd]
+      }))
+    }
 
     setNuevoGasto({
       categoria: 'SERVICIO',
@@ -186,15 +269,32 @@ const CreateMantenimientoModal = ({ isOpen, onClose, onSave, unidades, refaccion
         tipo: formData.tipo,
         fecha: formData.fecha,
         descripcion: formData.descripcion,
-        kilometraje: formData.kilometraje ? parseInt(formData.kilometraje) : null,
-        proveedorId: formData.proveedorId ? parseInt(formData.proveedorId) : null,
+        kilometraje: formData.kilometraje ? parseFloat(formData.kilometraje) : null,
+        proveedorId: null, // Siempre null como se acordó
         realizadoPor: formData.realizadoPor,
         creadoPor: user?.id || 1,
-        gastosNuevos: formData.gastosNuevos
-      }
-
-      if (formData.refaccionesUsadas.length > 0) {
-        dataToSend.refaccionesUsadas = formData.refaccionesUsadas
+        refaccionesUsadas: formData.refaccionesUsadas.map(r => ({
+          refaccionId: r.refaccionId,
+          cantidad: r.cantidad,
+          costoUnitario: r.costoUnitario
+        })),
+        gastosNuevos: formData.gastosNuevos.map(g => {
+          const gasto = {
+            categoria: g.categoria,
+            descripcion: g.descripcion,
+            monto: parseFloat(g.monto)
+          }
+          
+          // Solo agregar cantidad y costoUnitario si existen
+          if (g.cantidad) {
+            gasto.cantidad = parseInt(g.cantidad)
+          }
+          if (g.costoUnitario) {
+            gasto.costoUnitario = parseFloat(g.costoUnitario)
+          }
+          
+          return gasto
+        })
       }
 
       await onSave(dataToSend)
@@ -303,25 +403,6 @@ const CreateMantenimientoModal = ({ isOpen, onClose, onSave, unidades, refaccion
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Proveedor
-              </label>
-              <select
-                name="proveedorId"
-                value={formData.proveedorId || ''}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Sin proveedor</option>
-                {proveedores?.map(proveedor => (
-                  <option key={proveedor.id} value={proveedor.id}>
-                    {proveedor.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Realizado por
               </label>
               <input
@@ -350,138 +431,6 @@ const CreateMantenimientoModal = ({ isOpen, onClose, onSave, unidades, refaccion
             />
           </div>
 
-          {/* Sección de refacciones usadas del almacén */}
-          <div className="border-t border-slate-200 pt-6">
-            <button
-              type="button"
-              onClick={() => setMostrarRefaccionesUsadas(!mostrarRefaccionesUsadas)}
-              className="flex items-center justify-between w-full p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
-            >
-              <div className="flex items-center space-x-2">
-                <h3 className="text-lg font-semibold text-slate-900">Refacciones del almacén (opcional)</h3>
-                {formData.refaccionesUsadas.length > 0 && (
-                  <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-semibold rounded">
-                    {formData.refaccionesUsadas.length}
-                  </span>
-                )}
-              </div>
-              {mostrarRefaccionesUsadas ? (
-                <ChevronUp className="h-5 w-5 text-slate-600" />
-              ) : (
-                <ChevronDown className="h-5 w-5 text-slate-600" />
-              )}
-            </button>
-
-            {mostrarRefaccionesUsadas && (
-              <div className="mt-4">
-                <div className="bg-slate-50 rounded-lg p-4 mb-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Refacción
-                      </label>
-                      <select
-                        name="refaccionId"
-                        value={nuevaRefaccionUsada.refaccionId}
-                        onChange={handleRefaccionUsadaChange}
-                        className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="">Seleccionar refacción</option>
-                        {refacciones?.map(ref => (
-                          <option key={ref.id} value={ref.id}>
-                            {ref.nombre} - ${ref.costo}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Cantidad
-                      </label>
-                      <input
-                        type="number"
-                        name="cantidad"
-                        value={nuevaRefaccionUsada.cantidad}
-                        onChange={handleRefaccionUsadaChange}
-                        placeholder="1"
-                        min="1"
-                        step="1"
-                        className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Costo unitario
-                      </label>
-                      <input
-                        type="number"
-                        name="costoUnitario"
-                        value={nuevaRefaccionUsada.costoUnitario}
-                        onChange={handleRefaccionUsadaChange}
-                        placeholder="0.00"
-                        min="0"
-                        step="0.01"
-                        className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={agregarRefaccionUsada}
-                    disabled={!nuevaRefaccionUsada.refaccionId || !nuevaRefaccionUsada.cantidad || !nuevaRefaccionUsada.costoUnitario}
-                    className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>Agregar refacción del almacén</span>
-                  </button>
-                </div>
-
-                {formData.refaccionesUsadas.length > 0 && (
-                  <div className="space-y-2 mb-4">
-                    {formData.refaccionesUsadas.map((refaccion, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-semibold rounded">
-                              ALMACÉN
-                            </span>
-                            <span className="text-sm font-medium text-slate-900">
-                              {getRefaccionNombre(refaccion.refaccionId)}
-                            </span>
-                          </div>
-                          <p className="text-xs text-slate-500">
-                            {refaccion.cantidad} x ${refaccion.costoUnitario.toFixed(2)}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <span className="text-lg font-bold text-slate-900">
-                            ${(refaccion.cantidad * refaccion.costoUnitario).toFixed(2)}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => eliminarRefaccionUsada(index)}
-                            className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-
-                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg font-bold">
-                      <span className="text-slate-900">Total refacciones del almacén</span>
-                      <span className="text-xl text-slate-900">
-                        ${costoTotalRefaccionesUsadas.toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
 
           {/* Sección de gastos */}
           <div className="border-t border-slate-200 pt-6">
@@ -505,6 +454,27 @@ const CreateMantenimientoModal = ({ isOpen, onClose, onSave, unidades, refaccion
                   </select>
                 </div>
 
+                {nuevoGasto.categoria === 'REFACCIONES' && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Refacción
+                    </label>
+                    <select
+                      name="refaccionId"
+                      value={nuevoGasto.refaccionId || ''}
+                      onChange={handleGastoChange}
+                      className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Seleccionar refacción</option>
+                      {refacciones.map(ref => (
+                        <option key={ref.id} value={ref.id}>
+                          {ref.nombre} - Stock: {ref.stockActual} - ${ref.costoUnitario || ref.costo}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     Descripción
@@ -521,26 +491,12 @@ const CreateMantenimientoModal = ({ isOpen, onClose, onSave, unidades, refaccion
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Refacción (opcional)
-                  </label>
-                  <select
-                    name="refaccionId"
-                    value={nuevoGasto.refaccionId || ''}
-                    onChange={handleGastoChange}
-                    className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">Sin refacción del almacén</option>
-                    {refacciones?.map(ref => (
-                      <option key={ref.id} value={ref.id}>
-                        {ref.nombre} - ${ref.costo}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     Cantidad
+                    {nuevoGasto.categoria === 'REFACCIONES' && nuevoGasto.refaccionId && (
+                      <span className="ml-2 text-xs text-amber-600">
+                        (Stock disponible: {refacciones.find(r => r.id === nuevoGasto.refaccionId)?.stockActual || 0})
+                      </span>
+                    )}
                   </label>
                   <input
                     type="number"
@@ -550,6 +506,8 @@ const CreateMantenimientoModal = ({ isOpen, onClose, onSave, unidades, refaccion
                     placeholder="1"
                     min="1"
                     step="1"
+                    max={nuevoGasto.categoria === 'REFACCIONES' && nuevoGasto.refaccionId ? 
+                      refacciones.find(r => r.id === nuevoGasto.refaccionId)?.stockActual : undefined}
                     className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -570,9 +528,14 @@ const CreateMantenimientoModal = ({ isOpen, onClose, onSave, unidades, refaccion
                   />
                 </div>
 
-                <div>
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     Monto total
+                    {nuevoGasto.cantidad && nuevoGasto.costoUnitario && (
+                      <span className="ml-2 text-xs text-green-600">
+                        (Calculado automáticamente: ${(parseFloat(nuevoGasto.cantidad || 0) * parseFloat(nuevoGasto.costoUnitario || 0)).toFixed(2)})
+                      </span>
+                    )}
                   </label>
                   <input
                     type="number"

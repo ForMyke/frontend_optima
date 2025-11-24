@@ -21,6 +21,8 @@ primary_region = 'sjc'
   grace_period = '120s'
 
 [[vm]]
-  memory = '1gb'
+  memory = '2048mb'
   cpu_kind = 'shared'
-  cpus = 1
+  cpus = 4
+
+ 

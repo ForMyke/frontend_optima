@@ -34,13 +34,16 @@ const StatCard = ({ title, value, icon: Icon, color }) => (
 
 const MovimientoCard = ({ movimiento }) => {
   const tipoMovimiento = {
-    ENTRADA: { label: 'Entrada', color: 'bg-green-100 text-green-800', icon: '📥' },
-    SALIDA: { label: 'Salida', color: 'bg-red-100 text-red-800', icon: '📤' },
-    TRANSFERENCIA: { label: 'Transferencia', color: 'bg-blue-100 text-blue-800', icon: '🔄' },
-    AJUSTE: { label: 'Ajuste', color: 'bg-orange-100 text-orange-800', icon: '⚙️' }
+    ENTRADA: { label: 'Entrada', color: 'bg-green-100 text-green-800', icon: '' },
+    SALIDA: { label: 'Salida', color: 'bg-red-100 text-red-800', icon: '' },
+    TRANSFERENCIA: { label: 'Transferencia', color: 'bg-blue-100 text-blue-800', icon: '' },
+    AJUSTE: { label: 'Ajuste', color: 'bg-orange-100 text-orange-800', icon: '' }
   }
 
   const tipo = tipoMovimiento[movimiento.tipo] || tipoMovimiento.ENTRADA
+
+  // Obtener almacén de la refacción si existe
+  const almacen = movimiento.refaccion?.almacen
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-all">
@@ -49,6 +52,7 @@ const MovimientoCard = ({ movimiento }) => {
           <div className="text-2xl">{tipo.icon}</div>
           <div>
             <h3 className="font-semibold text-slate-900">{movimiento.refaccion?.nombre || 'Refacción'}</h3>
+            <p className="text-xs text-slate-500 mt-0.5">{movimiento.refaccion?.descripcion || ''}</p>
             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${tipo.color} mt-1`}>
               {tipo.label}
             </span>
@@ -56,63 +60,63 @@ const MovimientoCard = ({ movimiento }) => {
         </div>
         <div className="text-right">
           <p className="text-sm text-slate-500">Cantidad</p>
-          <p className={`text-lg font-bold ${movimiento.cantidad >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {movimiento.cantidad > 0 ? '+' : ''}{movimiento.cantidad}
+          <p className={`text-lg font-bold ${movimiento.tipo === 'ENTRADA' ? 'text-green-600' : 'text-red-600'}`}>
+            {movimiento.tipo === 'ENTRADA' ? '+' : '-'}{movimiento.cantidad}
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 text-sm">
-        {movimiento.almacenOrigen && (
+        {almacen && (
           <div>
             <p className="text-slate-500 flex items-center mb-1">
               <Warehouse className="h-3.5 w-3.5 mr-1" />
-              Origen
+              Almacén
             </p>
-            <p className="font-medium text-slate-900">{movimiento.almacenOrigen.nombre}</p>
+            <p className="font-medium text-slate-900">{almacen.nombre}</p>
+            <p className="text-xs text-slate-500">{almacen.ubicacion || ''}</p>
           </div>
         )}
-        {movimiento.almacenDestino && (
+        
+        <div>
+          <p className="text-slate-500 flex items-center mb-1">
+            <Calendar className="h-3.5 w-3.5 mr-1" />
+            Fecha
+          </p>
+          <p className="font-medium text-slate-900">
+            {new Date(movimiento.fecha).toLocaleDateString('es-MX', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
+          </p>
+        </div>
+
+        {movimiento.costoUnitario && (
           <div>
-            <p className="text-slate-500 flex items-center mb-1">
-              <Warehouse className="h-3.5 w-3.5 mr-1" />
-              Destino
-            </p>
-            <p className="font-medium text-slate-900">{movimiento.almacenDestino.nombre}</p>
-          </div>
-        )}
-        {movimiento.usuario && (
-          <div>
-            <p className="text-slate-500 flex items-center mb-1">
-              <User className="h-3.5 w-3.5 mr-1" />
-              Usuario
-            </p>
-            <p className="font-medium text-slate-900">{movimiento.usuario.nombre}</p>
-          </div>
-        )}
-        {movimiento.fechaMovimiento && (
-          <div>
-            <p className="text-slate-500 flex items-center mb-1">
-              <Calendar className="h-3.5 w-3.5 mr-1" />
-              Fecha
-            </p>
+            <p className="text-slate-500 mb-1">Costo Unitario</p>
             <p className="font-medium text-slate-900">
-              {new Date(movimiento.fechaMovimiento).toLocaleDateString('es-MX', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
+              ${parseFloat(movimiento.costoUnitario).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+            </p>
+          </div>
+        )}
+
+        {movimiento.costoUnitario && movimiento.cantidad && (
+          <div>
+            <p className="text-slate-500 mb-1">Costo Total</p>
+            <p className="font-medium text-slate-900">
+              ${(parseFloat(movimiento.costoUnitario) * movimiento.cantidad).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
             </p>
           </div>
         )}
       </div>
 
-      {movimiento.observaciones && (
+      {movimiento.referencia && (
         <div className="mt-4 pt-4 border-t border-slate-100">
-          <p className="text-xs text-slate-500 mb-1">Observaciones</p>
-          <p className="text-sm text-slate-700">{movimiento.observaciones}</p>
+          <p className="text-xs text-slate-500 mb-1">Referencia</p>
+          <p className="text-sm text-slate-700">{movimiento.referencia}</p>
         </div>
       )}
     </div>
@@ -136,7 +140,7 @@ export default function HistoricoPage() {
   const loadMovimientos = async () => {
     setIsLoading(true)
     try {
-      const response = await historicoService.getMovimientos(currentPage, pageSize, 'fechaMovimiento,desc')
+      const response = await historicoService.getMovimientos(currentPage, pageSize, 'fecha,desc')
       setMovimientos(response.content || [])
       setTotalPages(response.totalPages || 0)
       setTotalElements(response.totalElements || 0)
@@ -151,9 +155,9 @@ export default function HistoricoPage() {
   const filteredMovimientos = movimientos.filter(movimiento => {
     const matchesSearch = 
       movimiento.refaccion?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      movimiento.almacenOrigen?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      movimiento.almacenDestino?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      movimiento.usuario?.nombre?.toLowerCase().includes(searchTerm.toLowerCase())
+      movimiento.refaccion?.descripcion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      movimiento.refaccion?.almacen?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      movimiento.referencia?.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesTipo = tipoFilter === '' || movimiento.tipo === tipoFilter
 

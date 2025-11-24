@@ -20,10 +20,12 @@ const MantenimientoCard = ({ mantenimiento, onViewDetails, unidades }) => {
 
   // Obtener información de la unidad
   const unidad = mantenimiento.unidad || unidades.find(u => u.id === mantenimiento.unidadId)
-  const unidadInfo = unidad ? `${unidad.numeroEconomico} - ${unidad.marca} ${unidad.modelo}` : 'Sin unidad'
+  const unidadInfo = unidad 
+    ? `${unidad.numeroEconomico || unidad.placas} - ${unidad.marca} ${unidad.modelo}` 
+    : 'Sin unidad'
 
-  // Calcular costo total de gastos
-  const costoTotal = (mantenimiento.gastos || []).reduce((sum, g) => sum + (parseFloat(g.monto) || 0), 0)
+  // Usar el costoTotal que viene del backend
+  const costoTotal = parseFloat(mantenimiento.costoTotal) || 0
 
   // Formatear fecha
   const fechaFormateada = mantenimiento.fecha 
@@ -123,12 +125,7 @@ const MantenimientoCard = ({ mantenimiento, onViewDetails, unidades }) => {
           </span>
         </div>
 
-        {/* Número de gastos */}
-        {mantenimiento.gastos && mantenimiento.gastos.length > 0 && (
-          <div className="text-xs text-slate-500 text-center">
-            {mantenimiento.gastos.length} gasto{mantenimiento.gastos.length !== 1 ? 's' : ''} registrado{mantenimiento.gastos.length !== 1 ? 's' : ''}
-          </div>
-        )}
+
       </div>
     </div>
   )

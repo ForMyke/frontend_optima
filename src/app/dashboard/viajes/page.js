@@ -446,13 +446,8 @@ const ViajesPage = () => {
 
   const loadViajes = async () => {
     try {
-      let response
-      if (estadoFilter === 'TODOS') {
-        response = await viajesService.getViajes(0, 100)
-      } else {
-        response = await viajesService.getViajesByEstado(estadoFilter, 0, 100)
-      }
-
+      // Cargar TODOS los viajes siempre
+      const response = await viajesService.getViajes(0, 100)
       const viajesData = response.content || []
       
       // Ordenar los viajes por ID de forma ascendente (1, 2, 3, 4...)
@@ -466,13 +461,12 @@ const ViajesPage = () => {
       const completados = viajesData.filter(v => v.estado === 'COMPLETADO').length
 
       setStats({
-        total: response.totalElements || viajesData.length,
+        total: viajesData.length,
         pendientes,
         enCurso,
         completados
       })
     } catch (error) {
-
       toast.error('Error al cargar viajes')
     }
   }
@@ -521,7 +515,7 @@ const ViajesPage = () => {
     }
 
     loadInitialData()
-  }, [estadoFilter])
+  }, []) // Sin dependencias - solo carga una vez al montar
 
   const handleCreateViaje = async (viajeData, archivo) => {
     try {
@@ -658,14 +652,27 @@ const ViajesPage = () => {
   }
 
   const filteredViajes = viajes.filter(viaje => {
-    const matchesSearch =
-      viaje.origen?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      viaje.destino?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      viaje.operador?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      viaje.cliente?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      viaje.id?.toString().includes(searchTerm)
+    // Filtrar por estado
+    const matchesEstado = estadoFilter === 'TODOS' || viaje.estado === estadoFilter
 
-    return matchesSearch
+    // Filtrar por búsqueda
+    const matchesSearch = !searchTerm || 
+      (typeof viaje.origen === 'string' && viaje.origen.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (typeof viaje.destino === 'string' && viaje.destino.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      viaje.operador?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      viaje.operador?.apellido?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      viaje.cliente?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      viaje.cliente?.empresa?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      viaje.unidad?.numeroEconomico?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      viaje.unidad?.placas?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      viaje.unidad?.marca?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      viaje.unidad?.modelo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      viaje.folio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      viaje.id?.toString().includes(searchTerm) ||
+      viaje.tipo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (typeof viaje.ruta === 'string' && viaje.ruta.toLowerCase().includes(searchTerm.toLowerCase()))
+
+    return matchesEstado && matchesSearch
   })
 
   if (loading) {
@@ -749,7 +756,7 @@ const ViajesPage = () => {
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
             <input
               type="text"
-              placeholder="Buscar por origen, destino, operador, cliente o ID..."
+              placeholder="Buscar por origen, destino, operador, cliente, unidad, folio, tipo, ruta o ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-700 placeholder-slate-400"
