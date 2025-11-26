@@ -46,7 +46,8 @@ const COLORS = {
     PENDIENTE: '#f59e0b',
     EN_CURSO: '#3b82f6',
     COMPLETADO: '#10b981',
-    CANCELADO: '#ef4444'
+    CANCELADO: '#ef4444',
+    RECHAZADO: '#dc2626'
   },
   estado: {
     ACTIVA: '#10b981',
@@ -210,12 +211,30 @@ export default function GraficosPage() {
   const getViajesPorEstado = () => {
     if (!Array.isArray(viajes) || viajes.length === 0) return []
 
+    // Mapeo de estados a nombres formateados
+    const estadosFormato = {
+      'COMPLETADO': 'Completado',
+      'EN_CURSO': 'En curso',
+      'RECHAZADO': 'Rechazado',
+      'PENDIENTE': 'Pendiente',
+      'CANCELADO': 'Cancelado'
+    }
+
     const estados = {}
     viajes.forEach(viaje => {
-      estados[viaje.estado] = (estados[viaje.estado] || 0) + 1
+      const estadoOriginal = viaje.estado
+      const estadoFormateado = estadosFormato[estadoOriginal] || estadoOriginal
+      estados[estadoOriginal] = {
+        nombre: estadoFormateado,
+        cantidad: (estados[estadoOriginal]?.cantidad || 0) + 1
+      }
     })
 
-    return Object.entries(estados).map(([name, value]) => ({ name, value }))
+    return Object.entries(estados).map(([key, data]) => ({
+      name: key,
+      displayName: data.nombre,
+      value: data.cantidad
+    }))
   }
 
   // Procesar datos para gráficos de gastos (bitácoras)
@@ -873,7 +892,7 @@ export default function GraficosPage() {
                     ))}
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                  <XAxis dataKey="name" stroke="#334155" style={{ fontSize: '12px' }} />
+                  <XAxis dataKey="displayName" stroke="#334155" style={{ fontSize: '12px' }} />
                   <YAxis stroke="#334155" style={{ fontSize: '12px' }} />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }} />
                   <Bar dataKey="value" name="Cantidad" radius={[8, 8, 0, 0]}>
