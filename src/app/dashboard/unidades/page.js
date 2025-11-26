@@ -16,7 +16,9 @@ import {
   Settings,
   Wrench,
   User,
-  FileDown
+  FileDown,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { unidadesService } from '@/app/services/unidadesService'
@@ -28,6 +30,10 @@ const UnidadesPage = () => {
   const [filteredUnidades, setFilteredUnidades] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalElements, setTotalElements] = useState(0)
+  const [pageSize, setPageSize] = useState(20)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showViewModal, setShowViewModal] = useState(false)
@@ -35,8 +41,8 @@ const UnidadesPage = () => {
   const [selectedUnidad, setSelectedUnidad] = useState(null)
 
   useEffect(() => {
-    fetchUnidades()
-  }, [])
+    fetchUnidades(currentPage)
+  }, [currentPage])
 
   useEffect(() => {
     if (searchTerm.trim() === '') {
@@ -52,14 +58,25 @@ const UnidadesPage = () => {
     }
   }, [searchTerm, unidades])
 
-  const fetchUnidades = async () => {
+  const fetchUnidades = async (page = 0) => {
     try {
       setIsLoading(true)
-      const response = await unidadesService.getAll()
-      // Manejar diferentes formatos de respuesta de la API
-      const data = Array.isArray(response) ? response : (response.content || response.data || [])
-      setUnidades(data)
-      setFilteredUnidades(data)
+      const response = await unidadesService.getAll({ page, size: pageSize })
+
+      if (response.content) {
+        setUnidades(response.content)
+        setFilteredUnidades(response.content)
+        setTotalPages(response.totalPages)
+        setTotalElements(response.totalElements)
+        setCurrentPage(response.number)
+      } else {
+        // Fallback para cuando no hay paginación o formato diferente
+        const data = Array.isArray(response) ? response : (response.data || [])
+        setUnidades(data)
+        setFilteredUnidades(data)
+        setTotalPages(1)
+        setTotalElements(data.length)
+      }
     } catch (error) {
       console.error('Error fetching unidades:', error)
       toast.error('Error al cargar las unidades')
@@ -74,7 +91,7 @@ const UnidadesPage = () => {
     try {
       await unidadesService.create(data)
       toast.success('Unidad creada exitosamente')
-      fetchUnidades()
+      fetchUnidades(currentPage)
     } catch (error) {
       console.error('Error creating unidad:', error)
       toast.error('Error al crear la unidad')
@@ -86,7 +103,7 @@ const UnidadesPage = () => {
     try {
       await unidadesService.update(id, data)
       toast.success('Unidad actualizada exitosamente')
-      fetchUnidades()
+      fetchUnidades(currentPage)
     } catch (error) {
       console.error('Error updating unidad:', error)
       toast.error('Error al actualizar la unidad')
@@ -100,7 +117,7 @@ const UnidadesPage = () => {
       toast.success('Unidad eliminada exitosamente')
       setShowDeleteModal(false)
       setSelectedUnidad(null)
-      fetchUnidades()
+      fetchUnidades(currentPage)
     } catch (error) {
       console.error('Error deleting unidad:', error)
       toast.error('Error al eliminar la unidad')
@@ -255,7 +272,99 @@ const UnidadesPage = () => {
               />
             ))}
           </div>
+
         )}
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-slate-200 bg-white px-4 py-3 sm:px-6 rounded-xl shadow-sm">
+            <div className="flex flex-1 justify-between sm:hidden">
+              <button
+                onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                disabled={currentPage === 0}
+                className="relative inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Anterior
+              </button>
+              <button
+                onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+                disabled={currentPage === totalPages - 1}
+                className="relative ml-3 inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Siguiente
+              </button>
+            </div>
+            <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-slate-700">
+                  Mostrando <span className="font-medium">{currentPage * pageSize + 1}</span> a{' '}
+                  <span className="font-medium">
+                    {Math.min((currentPage + 1) * pageSize, totalElements)}
+                  </span>{' '}
+                  de <span className="font-medium">{totalElements}</span> resultados
+                </p>
+              </div>
+              <div>
+                <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                  <button
+                    onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                    disabled={currentPage === 0}
+                    className="relative inline-flex items-center rounded-l-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="sr-only">Anterior</span>
+                    <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+                  </button>
+                  {/* Page numbers */}
+                  {[...Array(totalPages)].map((_, index) => {
+                    // Show limited page numbers logic could be added here for many pages
+                    if (
+                      index === 0 ||
+                      index === totalPages - 1 ||
+                      (index >= currentPage - 1 && index <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => setCurrentPage(index)}
+                          aria-current={currentPage === index ? 'page' : undefined}
+                          className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${currentPage === index
+                            ? 'z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
+                            : 'text-slate-900 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0'
+                            }`}
+                        >
+                          {index + 1}
+                        </button>
+                      )
+                    } else if (
+                      index === currentPage - 2 ||
+                      index === currentPage + 2
+                    ) {
+                      return (
+                        <span
+                          key={index}
+                          className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-inset ring-slate-300 focus:outline-offset-0"
+                        >
+                          ...
+                        </span>
+                      )
+                    }
+                    return null
+                  })}
+                  <button
+                    onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+                    disabled={currentPage === totalPages - 1}
+                    className="relative inline-flex items-center rounded-r-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="sr-only">Siguiente</span>
+                    <ChevronRight className="h-5 w-5" aria-hidden="true" />
+                  </button>
+                </nav>
+              </div>
+            </div>
+          </div>
+        )}
+
+
       </div>
 
       {/* Modals */}
@@ -293,7 +402,7 @@ const UnidadesPage = () => {
         onConfirm={handleDelete}
         unidadPlacas={selectedUnidad?.placas}
       />
-    </div>
+    </div >
   )
 }
 export default UnidadesPage;

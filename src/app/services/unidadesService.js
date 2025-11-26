@@ -2,9 +2,9 @@ import { apiClient } from './authService'
 
 export const unidadesService = {
   // Obtener todas las unidades
-  async getAll() {
+  async getAll(params = {}) {
     try {
-      const response = await apiClient.get('/api/unidades')
+      const response = await apiClient.get('/api/unidades', { params })
       return response.data
     } catch (error) {
       console.error('Error al obtener unidades:', error)
