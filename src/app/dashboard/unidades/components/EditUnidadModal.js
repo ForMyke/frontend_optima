@@ -74,7 +74,7 @@ const EditUnidadModal = ({ isOpen, onClose, onSave, unidad }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Placas *
+                    Número Económico *
                   </label>
                   <input
                     type="text"

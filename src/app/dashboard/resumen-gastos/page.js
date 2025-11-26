@@ -59,7 +59,10 @@ const ResumenGastosPage = () => {
   }
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('es-MX', {
+    // Parsear la fecha como local para evitar problemas de zona horaria
+    const [year, month, day] = dateString.split('-')
+    const date = new Date(year, month - 1, day)
+    return date.toLocaleDateString('es-MX', {
       day: '2-digit',
       month: 'long',
       year: 'numeric'
@@ -292,8 +295,8 @@ const ResumenGastosPage = () => {
           <p className="text-sm text-slate-600 mb-1">Mayor Gasto</p>
           <p className="text-2xl font-bold text-slate-900">
             {resumen.iave >= resumen.diesel && resumen.iave >= resumen.nomina && resumen.iave >= resumen.gastosExtras ? 'IAVE' :
-             resumen.diesel >= resumen.nomina && resumen.diesel >= resumen.gastosExtras ? 'Diesel' :
-             resumen.nomina >= resumen.gastosExtras ? 'Nómina' : 'Gastos Extras'}
+              resumen.diesel >= resumen.nomina && resumen.diesel >= resumen.gastosExtras ? 'Diesel' :
+                resumen.nomina >= resumen.gastosExtras ? 'Nómina' : 'Gastos Extras'}
           </p>
           <p className="text-xs text-slate-500 mt-2">
             Categoría con más gastos
@@ -309,7 +312,13 @@ const ResumenGastosPage = () => {
           </div>
           <p className="text-sm text-slate-600 mb-1">Duración</p>
           <p className="text-2xl font-bold text-slate-900">
-            {Math.ceil((new Date(resumen.fechaFin) - new Date(resumen.fechaInicio)) / (1000 * 60 * 60 * 24)) + 1} días
+            {(() => {
+              const [yearInicio, monthInicio, dayInicio] = resumen.fechaInicio.split('-')
+              const [yearFin, monthFin, dayFin] = resumen.fechaFin.split('-')
+              const inicio = new Date(yearInicio, monthInicio - 1, dayInicio)
+              const fin = new Date(yearFin, monthFin - 1, dayFin)
+              return Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24)) + 1
+            })()} días
           </p>
           <p className="text-xs text-slate-500 mt-2">
             Del período analizado
@@ -326,8 +335,8 @@ const ResumenGastosPage = () => {
               Acerca de este resumen
             </p>
             <p className="text-sm text-blue-700">
-              Este resumen se genera automáticamente por el sistema y consolida todos los gastos registrados 
-              durante el período especificado. Los datos se actualizan periódicamente y reflejan la información 
+              Este resumen se genera automáticamente por el sistema y consolida todos los gastos registrados
+              durante el período especificado. Los datos se actualizan periódicamente y reflejan la información
               más reciente disponible en el sistema.
             </p>
           </div>

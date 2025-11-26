@@ -70,7 +70,7 @@ const ViewUnidadModal = ({ isOpen, onClose, unidad }) => {
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div>
-                <label className="text-xs font-medium text-slate-500">Placas</label>
+                <label className="text-xs font-medium text-slate-500">Número Económico</label>
                 <p className="text-sm text-slate-900 mt-1 font-semibold">{unidad.placas}</p>
               </div>
               <div>

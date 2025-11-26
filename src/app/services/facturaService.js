@@ -58,13 +58,25 @@ export const facturaService = {
     }
   },
 
+  // Eliminar una factura
+  async deleteFactura(id) {
+    try {
+      const response = await apiClient.delete(`/api/facturas/${id}`)
+      return response.data
+    } catch (error) {
+      console.error('Error al eliminar factura:', error)
+      const message = error.response?.data?.message || 'Error al eliminar factura'
+      throw new Error(message)
+    }
+  },
+
   // Registrar pago de factura (con soporte para pagos parciales)
   async registrarPago(id, pagoData) {
     try {
       // pagoData contiene: montoParcial, metodoPago, fechaPago, observaciones
       // Si es EFECTIVO, tipo = SIN_FACTURA, otros métodos = FACTURADO
       const tipo = pagoData.metodoPago === 'EFECTIVO' ? 'SIN_FACTURA' : 'FACTURADO'
-      
+
       const facturaData = {
         montoParcial: parseFloat(pagoData.montoParcial),
         metodoPago: pagoData.metodoPago,
@@ -88,7 +100,7 @@ export const facturaService = {
   async marcarComoPagada(id, fechaPago, metodoPago) {
     try {
       const tipo = metodoPago === 'EFECTIVO' ? 'SIN_FACTURA' : 'FACTURADO'
-      
+
       const facturaData = {
         estatus: 'PAGADA',
         fechaPago,

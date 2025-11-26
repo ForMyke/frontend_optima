@@ -26,7 +26,9 @@ const FacturasPage = () => {
   const [showPagarModal, setShowPagarModal] = useState(false)
   const [showPagoParcialModal, setShowPagoParcialModal] = useState(false)
   const [showViewModal, setShowViewModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [selectedFactura, setSelectedFactura] = useState(null)
+  const [facturaToDelete, setFacturaToDelete] = useState(null)
   const [stats, setStats] = useState({
     total: 0,
     pagadas: 0,
@@ -129,7 +131,7 @@ const FacturasPage = () => {
       // Validar que el monto parcial no sea mayor que lo pendiente
       const montoPendiente = (factura.monto || 0) - (factura.montoParcial || 0)
       const montoAbonar = parseFloat(pagoData.montoParcial)
-      
+
       if (montoAbonar > montoPendiente) {
         toast.error('El monto no puede ser mayor que el saldo pendiente')
         return
@@ -200,13 +202,32 @@ const FacturasPage = () => {
     setShowViewModal(true)
   }
 
+  const handleDeleteFactura = (factura) => {
+    setFacturaToDelete(factura)
+    setShowDeleteModal(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!facturaToDelete) return
+
+    try {
+      await facturaService.deleteFactura(facturaToDelete.id)
+      toast.success(`Factura ${facturaToDelete.numeroFactura} eliminada exitosamente`)
+      setShowDeleteModal(false)
+      setFacturaToDelete(null)
+      loadFacturas()
+    } catch (error) {
+      toast.error(error.message || 'Error al eliminar factura')
+    }
+  }
+
   const filteredFacturas = facturas.filter(factura => {
-    const matchesSearch = 
+    const matchesSearch =
       factura.numeroFactura?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       factura.observaciones?.toLowerCase().includes(searchTerm.toLowerCase())
-    
+
     const matchesFilter = filterEstatus === 'TODAS' || factura.estatus === filterEstatus
-    
+
     return matchesSearch && matchesFilter
   })
 
@@ -323,6 +344,7 @@ const FacturasPage = () => {
             onViewDetails={handleViewDetails}
             onEstatusChange={handleEstatusChange}
             onRegistrarPagoParcial={handleRegistrarPagoParcial}
+            onDelete={handleDeleteFactura}
           />
         ))}
       </div>
@@ -364,6 +386,36 @@ const FacturasPage = () => {
         factura={selectedFactura}
         clientes={clientes}
       />
+
+      {/* Modal de confirmación de eliminación */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 backdrop-blur-xs bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-slate-900 mb-4">Confirmar eliminación</h3>
+            <p className="text-slate-600 mb-6">
+              ¿Estás seguro de que deseas eliminar la factura <strong>{facturaToDelete?.numeroFactura}</strong>?
+              Esta acción no se puede deshacer.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false)
+                  setFacturaToDelete(null)
+                }}
+                className="px-4 cursor-pointer py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 cursor-pointer py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -489,7 +489,8 @@ const ViajesPage = () => {
 
   const loadUnidades = async () => {
     try {
-      const response = await unidadesService.getAll()
+      // Cargar todas las unidades con un límite alto para asegurar que se carguen todas
+      const response = await unidadesService.getAll({ page: 0, size: 1000 })
       const data = Array.isArray(response) ? response : (response.content || response.data || [])
       setUnidades(data)
     } catch (error) {
@@ -655,14 +656,19 @@ const ViajesPage = () => {
     // Filtrar por estado
     const matchesEstado = estadoFilter === 'TODOS' || viaje.estado === estadoFilter
 
+    // Obtener origen y destino (pueden estar en ruta o directamente en viaje)
+    const origen = viaje.ruta?.origen || viaje.origen || ''
+    const destino = viaje.ruta?.destino || viaje.destino || ''
+
     // Filtrar por búsqueda
     const matchesSearch = !searchTerm ||
-      (typeof viaje.origen === 'string' && viaje.origen.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (typeof viaje.destino === 'string' && viaje.destino.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      origen.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+      destino.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
       viaje.operador?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       viaje.operador?.apellido?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       viaje.cliente?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       viaje.cliente?.empresa?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      viaje.cliente?.nombreComercial?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       viaje.unidad?.numeroEconomico?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       viaje.unidad?.placas?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       viaje.unidad?.marca?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -756,7 +762,7 @@ const ViajesPage = () => {
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
             <input
               type="text"
-              placeholder="Buscar por operador, cliente, unidad, folio, tipo, ruta o ID..."
+              placeholder="Buscar por origen, destino, operador, cliente, unidad, folio, tipo o ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-700 placeholder-slate-400"

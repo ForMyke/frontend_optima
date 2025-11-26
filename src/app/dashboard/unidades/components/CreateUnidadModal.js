@@ -37,15 +37,15 @@ const CreateUnidadModal = ({ isOpen, onClose, onSave }) => {
   const validateForm = () => {
     const newErrors = {}
 
-    // Validar placas (formato mexicano: 7 caracteres - 3 letras + 4 números o 4 letras + 3 números)
+    // Validar número económico (formato mexicano: 7 caracteres - 3 letras + 4 números o 4 letras + 3 números)
     if (!formData.placas.trim()) {
-      newErrors.placas = 'Las placas son obligatorias'
+      newErrors.placas = 'El número económico es obligatorio'
     } else if (formData.placas.trim().length < 6) {
-      newErrors.placas = 'Las placas deben tener al menos 6 caracteres'
+      newErrors.placas = 'El número económico debe tener al menos 6 caracteres'
     } else if (formData.placas.trim().length > 10) {
-      newErrors.placas = 'Las placas no pueden tener más de 10 caracteres'
+      newErrors.placas = 'El número económico no puede tener más de 10 caracteres'
     } else if (!/^[A-Z0-9-]+$/.test(formData.placas.trim())) {
-      newErrors.placas = 'Las placas solo pueden contener letras mayúsculas, números y guiones'
+      newErrors.placas = 'El número económico solo puede contener letras mayúsculas, números y guiones'
     }
 
     // Validar marca (mínimo 2 caracteres, solo letras)
@@ -90,7 +90,7 @@ const CreateUnidadModal = ({ isOpen, onClose, onSave }) => {
     if (formData.fechaUltimoMto) {
       const fechaMto = new Date(formData.fechaUltimoMto)
       const today = new Date()
-      
+
       if (fechaMto > today) {
         newErrors.fechaUltimoMto = 'La fecha de mantenimiento no puede ser futura'
       }
@@ -168,7 +168,7 @@ const CreateUnidadModal = ({ isOpen, onClose, onSave }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Placas *
+                    Número Económico *
                   </label>
                   <input
                     type="text"
@@ -178,9 +178,8 @@ const CreateUnidadModal = ({ isOpen, onClose, onSave }) => {
                       setFormData({ ...formData, placas: value })
                       if (errors.placas) setErrors({ ...errors, placas: '' })
                     }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 ${
-                      errors.placas ? 'border-red-500' : 'border-slate-200'
-                    }`}
+                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 ${errors.placas ? 'border-red-500' : 'border-slate-200'
+                      }`}
                     maxLength={10}
                     placeholder="ABC123DEF"
                   />
@@ -202,9 +201,8 @@ const CreateUnidadModal = ({ isOpen, onClose, onSave }) => {
                       setFormData({ ...formData, marca: e.target.value })
                       if (errors.marca) setErrors({ ...errors, marca: '' })
                     }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 ${
-                      errors.marca ? 'border-red-500' : 'border-slate-200'
-                    }`}
+                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 ${errors.marca ? 'border-red-500' : 'border-slate-200'
+                      }`}
                     placeholder="Freightliner"
                   />
                   {errors.marca && (
@@ -225,9 +223,8 @@ const CreateUnidadModal = ({ isOpen, onClose, onSave }) => {
                       setFormData({ ...formData, modelo: e.target.value })
                       if (errors.modelo) setErrors({ ...errors, modelo: '' })
                     }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 ${
-                      errors.modelo ? 'border-red-500' : 'border-slate-200'
-                    }`}
+                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 ${errors.modelo ? 'border-red-500' : 'border-slate-200'
+                      }`}
                     placeholder="Cascadia"
                   />
                   {errors.modelo && (
@@ -248,9 +245,8 @@ const CreateUnidadModal = ({ isOpen, onClose, onSave }) => {
                       setFormData({ ...formData, anio: e.target.value })
                       if (errors.anio) setErrors({ ...errors, anio: '' })
                     }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 ${
-                      errors.anio ? 'border-red-500' : 'border-slate-200'
-                    }`}
+                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 ${errors.anio ? 'border-red-500' : 'border-slate-200'
+                      }`}
                     min="1900"
                     max={new Date().getFullYear() + 1}
                   />
@@ -281,9 +277,8 @@ const CreateUnidadModal = ({ isOpen, onClose, onSave }) => {
                       setFormData({ ...formData, tipo: e.target.value })
                       if (errors.tipo) setErrors({ ...errors, tipo: '' })
                     }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 ${
-                      errors.tipo ? 'border-red-500' : 'border-slate-200'
-                    }`}
+                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 ${errors.tipo ? 'border-red-500' : 'border-slate-200'
+                      }`}
                   >
                     <option value="TRACTOCAMION">Tractocamión</option>
                     <option value="CAMION">Camión</option>
@@ -308,9 +303,8 @@ const CreateUnidadModal = ({ isOpen, onClose, onSave }) => {
                       setFormData({ ...formData, estado: e.target.value })
                       if (errors.estado) setErrors({ ...errors, estado: '' })
                     }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 ${
-                      errors.estado ? 'border-red-500' : 'border-slate-200'
-                    }`}
+                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 ${errors.estado ? 'border-red-500' : 'border-slate-200'
+                      }`}
                   >
                     <option value="ACTIVA">Activa</option>
                     <option value="MANTENIMIENTO">Mantenimiento</option>
@@ -347,9 +341,8 @@ const CreateUnidadModal = ({ isOpen, onClose, onSave }) => {
                       setFormData({ ...formData, kilometrajeActual: value.toString() })
                       if (errors.kilometrajeActual) setErrors({ ...errors, kilometrajeActual: '' })
                     }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 ${
-                      errors.kilometrajeActual ? 'border-red-500' : 'border-slate-200'
-                    }`}
+                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 ${errors.kilometrajeActual ? 'border-red-500' : 'border-slate-200'
+                      }`}
                     placeholder="158000.5"
                   />
                   {errors.kilometrajeActual && (
@@ -370,9 +363,8 @@ const CreateUnidadModal = ({ isOpen, onClose, onSave }) => {
                       setFormData({ ...formData, fechaUltimoMto: e.target.value })
                       if (errors.fechaUltimoMto) setErrors({ ...errors, fechaUltimoMto: '' })
                     }}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 ${
-                      errors.fechaUltimoMto ? 'border-red-500' : 'border-slate-200'
-                    }`}
+                    className={`w-full px-4 py-3 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 ${errors.fechaUltimoMto ? 'border-red-500' : 'border-slate-200'
+                      }`}
                   />
                   {errors.fechaUltimoMto && (
                     <p className="text-red-500 text-sm mt-1 flex items-center">

@@ -11,10 +11,11 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  Plus
+  Plus,
+  Trash2
 } from 'lucide-react'
 
-const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChange, onRegistrarPagoParcial }) => {
+const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChange, onRegistrarPagoParcial, onDelete }) => {
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef(null)
 
@@ -105,6 +106,16 @@ const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChang
                   <Eye className="h-4 w-4 mr-3 text-slate-400" />
                   Ver detalles
                 </button>
+                <button
+                  onClick={() => {
+                    onDelete(factura)
+                    setShowMenu(false)
+                  }}
+                  className="flex cursor-pointer items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 className="h-4 w-4 mr-3" />
+                  Eliminar
+                </button>
               </div>
             )}
           </div>
@@ -123,12 +134,11 @@ const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChang
                 onEstatusChange(factura, nuevoEstatus)
               }
             }}
-            className={`w-full px-3 py-2 rounded-lg border-2 transition-all font-medium text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              factura.estatus === 'PENDIENTE' ? 'border-orange-200 bg-orange-50 text-orange-800' :
+            className={`w-full px-3 py-2 rounded-lg border-2 transition-all font-medium text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 ${factura.estatus === 'PENDIENTE' ? 'border-orange-200 bg-orange-50 text-orange-800' :
               factura.estatus === 'PAGADA' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' :
-              factura.estatus === 'PAGO_PARCIAL' ? 'border-blue-200 bg-blue-50 text-blue-800' :
-              'border-red-200 bg-red-50 text-red-800'
-            }`}
+                factura.estatus === 'PAGO_PARCIAL' ? 'border-blue-200 bg-blue-50 text-blue-800' :
+                  'border-red-200 bg-red-50 text-red-800'
+              }`}
           >
             <option value="PENDIENTE">Pendiente</option>
             <option value="PAGO_PARCIAL">Pago parcial</option>

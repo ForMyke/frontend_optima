@@ -14,7 +14,7 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, unidadPlacas }) => {
           </div>
           <h2 className="text-xl font-bold text-slate-900 mb-2">Eliminar unidad</h2>
           <p className="text-slate-600 mb-6">
-            ¿Estás seguro de que deseas eliminar la unidad con placas <span className="font-semibold">{unidadPlacas}</span>?
+            ¿Estás seguro de que deseas eliminar la unidad con número económico <span className="font-semibold">{unidadPlacas}</span>?
             Esta acción no se puede deshacer y se perderán todos los registros asociados.
           </p>
           <div className="flex space-x-3">

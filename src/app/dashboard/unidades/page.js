@@ -275,8 +275,8 @@ const UnidadesPage = () => {
 
         )}
 
-        {/* Pagination Controls */}
-        {totalPages > 1 && (
+        {/* Pagination Controls - Solo mostrar si no hay búsqueda activa */}
+        {totalPages > 1 && !searchTerm.trim() && (
           <div className="flex items-center justify-between border-t border-slate-200 bg-white px-4 py-3 sm:px-6 rounded-xl shadow-sm">
             <div className="flex flex-1 justify-between sm:hidden">
               <button
