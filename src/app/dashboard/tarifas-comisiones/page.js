@@ -59,7 +59,7 @@ export default function TarifasComisionesPage() {
 
   const loadClientes = async () => {
     try {
-      const data = await clientsService.getClients()
+      const data = await clientsService.getClients(0, 1000)
       setClientes(data.content || data || [])
     } catch (error) {
       console.error('Error loading clientes:', error)
@@ -123,20 +123,20 @@ export default function TarifasComisionesPage() {
     total: rutasComisiones.length,
     clientes: new Set(rutasComisiones.map(r => r.clienteId)).size,
     comisionTotal: rutasComisiones.reduce((sum, r) => sum + parseFloat(r.comision || 0), 0),
-    comisionPromedio: rutasComisiones.length > 0 
-      ? rutasComisiones.reduce((sum, r) => sum + parseFloat(r.comision || 0), 0) / rutasComisiones.length 
+    comisionPromedio: rutasComisiones.length > 0
+      ? rutasComisiones.reduce((sum, r) => sum + parseFloat(r.comision || 0), 0) / rutasComisiones.length
       : 0
   }
 
   // Filtrar rutas con búsqueda global
   const filteredRutas = rutasComisiones.filter(ruta => {
     // Obtener el nombre del cliente desde el objeto o buscar en la lista
-    const clienteNombre = ruta.cliente?.nombre || 
-                         clientes.find(c => c.id === ruta.clienteId)?.nombre || 
-                         ''
-    
+    const clienteNombre = ruta.cliente?.nombre ||
+      clientes.find(c => c.id === ruta.clienteId)?.nombre ||
+      ''
+
     // Búsqueda global: origen, destino, ID, cliente, tarifa, comisión
-    const matchesSearch = searchTerm === '' || 
+    const matchesSearch = searchTerm === '' ||
       ruta.origen?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ruta.destino?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ruta.id?.toString().includes(searchTerm) ||
@@ -256,7 +256,7 @@ export default function TarifasComisionesPage() {
           <MapPin className="h-16 w-16 text-slate-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-slate-900 mb-2">No se encontraron rutas</h3>
           <p className="text-slate-600 mb-6">
-            {searchTerm || clienteFilter 
+            {searchTerm || clienteFilter
               ? 'Intenta ajustar los filtros de búsqueda'
               : 'Comienza creando una nueva comisión por ruta'}
           </p>
