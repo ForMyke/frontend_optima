@@ -74,7 +74,7 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
       // Validar tipos de archivo permitidos (imágenes y documentos)
       const allowedTypes = [
         'image/jpeg',
-        'image/jpg', 
+        'image/jpg',
         'image/png',
         'image/gif',
         'image/webp',
@@ -86,7 +86,7 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
         'text/plain', // .txt
         'text/csv'
       ]
-      
+
       if (!allowedTypes.includes(file.type)) {
         toast.error('Formato no permitido. Puedes subir imágenes (JPG, PNG, GIF, WEBP), PDF, Word (DOC, DOCX), Excel (XLS, XLSX), TXT o CSV')
         return
@@ -95,7 +95,7 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
       // Validar tamaño (máximo 1MB)
       const maxSize = 1 * 1024 * 1024 // 1MB
       const sizeMB = (file.size / 1024 / 1024).toFixed(2)
-      
+
       if (file.size > maxSize) {
         toast.error(
           `Archivo muy pesado (${sizeMB}MB)\n\nEl tamaño máximo permitido es 1MB.\nPor favor reduce el tamaño del archivo antes de subirlo.`,
@@ -156,11 +156,11 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
 
     setUploading(true)
     const loadingToast = toast.loading('Subiendo archivo y cambiando estado...')
-    
+
     try {
-      
+
       await viajesService.cambiarEstado(viaje.id, nuevoEstado, selectedFile, fechaRealLlegada || null)
-      
+
       const estadoTexto = {
         'PENDIENTE': 'pendiente',
         'EN_CURSO': 'en curso',
@@ -169,31 +169,31 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
         'CANCELADO': 'cancelado',
         'RECHAZADO': 'rechazado'
       }[nuevoEstado] || nuevoEstado.toLowerCase()
-      
+
       toast.dismiss(loadingToast)
       toast.success(`✓ Viaje cambiado a ${estadoTexto} exitosamente`)
-      
+
       // Actualizar el estado del viaje localmente sin recargar toda la lista
-      setViajes(prevViajes => 
-        prevViajes.map(v => 
-          v.id === viaje.id 
+      setViajes(prevViajes =>
+        prevViajes.map(v =>
+          v.id === viaje.id
             ? { ...v, estado: nuevoEstado }
             : v
         )
       )
-      
+
       handleClose()
-      
+
       // Notificar que se completó (solo para cerrar el modal)
       if (onSave) {
         await onSave()
       }
     } catch (error) {
       toast.dismiss(loadingToast)
-      
+
       // Determinar el mensaje de error apropiado
       let errorMessage = 'Error al cambiar el estado del viaje'
-      
+
       if (error.response?.status === 403) {
         errorMessage = '🚫 Acceso denegado. El archivo supera el límite permitido por el servidor (1MB máximo).'
       } else if (error.response?.status === 413) {
@@ -205,7 +205,7 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
       } else if (error.message) {
         errorMessage = error.message
       }
-      
+
       toast.error(errorMessage, { duration: 6000 })
     } finally {
       setUploading(false)
@@ -299,7 +299,7 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
                     </div>
                   </div>
                 )}
-                
+
                 {/* Información del archivo */}
                 <div className="absolute top-2 left-2 bg-black bg-opacity-75 text-white px-3 py-1.5 rounded-lg text-xs font-medium">
                   {selectedFile && (
@@ -449,10 +449,10 @@ const ViajesPage = () => {
       // Cargar TODOS los viajes siempre
       const response = await viajesService.getViajes(0, 100)
       const viajesData = response.content || []
-      
+
       // Ordenar los viajes por ID de forma ascendente (1, 2, 3, 4...)
       const viajesOrdenados = [...viajesData].sort((a, b) => a.id - b.id)
-      
+
       setViajes(viajesOrdenados)
 
       // Calcular estadísticas
@@ -618,19 +618,19 @@ const ViajesPage = () => {
       // Para otros estados, cambiar directamente sin modal
       try {
         await viajesService.cambiarEstado(viaje.id, nuevoEstado, null)
-        
+
         const estadoTexto = {
           'PENDIENTE': 'pendiente',
           'EN_CURSO': 'en curso',
           'CANCELADO': 'cancelado'
         }[nuevoEstado] || nuevoEstado.toLowerCase()
-        
+
         toast.success(`Viaje cambiado a ${estadoTexto} exitosamente`)
-        
+
         // Actualizar estado localmente
-        setViajes(prevViajes => 
-          prevViajes.map(v => 
-            v.id === viaje.id 
+        setViajes(prevViajes =>
+          prevViajes.map(v =>
+            v.id === viaje.id
               ? { ...v, estado: nuevoEstado }
               : v
           )
@@ -656,7 +656,7 @@ const ViajesPage = () => {
     const matchesEstado = estadoFilter === 'TODOS' || viaje.estado === estadoFilter
 
     // Filtrar por búsqueda
-    const matchesSearch = !searchTerm || 
+    const matchesSearch = !searchTerm ||
       (typeof viaje.origen === 'string' && viaje.origen.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (typeof viaje.destino === 'string' && viaje.destino.toLowerCase().includes(searchTerm.toLowerCase())) ||
       viaje.operador?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -756,7 +756,7 @@ const ViajesPage = () => {
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
             <input
               type="text"
-              placeholder="Buscar por origen, destino, operador, cliente, unidad, folio, tipo, ruta o ID..."
+              placeholder="Buscar por operador, cliente, unidad, folio, tipo, ruta o ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-700 placeholder-slate-400"
