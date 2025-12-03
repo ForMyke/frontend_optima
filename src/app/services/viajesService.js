@@ -22,7 +22,7 @@ export const viajesService = {
     try {
       // Crear FormData
       const formData = new FormData()
-      
+
       // Preparar el DTO como objeto JSON
       const dto = {
         idUnidad: viajeData.idUnidad,
@@ -47,16 +47,16 @@ export const viajesService = {
         costoTotal: viajeData.costoTotal || null,
         folio: viajeData.folio || null
       }
-      
+
       // Agregar el DTO como Blob con tipo application/json
       const dtoBlob = new Blob([JSON.stringify(dto)], { type: 'application/json' })
       formData.append('dto', dtoBlob)
-      
+
       // Agregar el archivo si existe
       if (archivo) {
         formData.append('archivo', archivo)
       }
-      
+
       const response = await apiClient.post('/api/viajes', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
@@ -92,7 +92,7 @@ export const viajesService = {
         creadoPor: viajeData.creadoPor,
         folio: viajeData.folio || null
       }
-      
+
       const response = await apiClient.put(`/api/viajes/${id}`, body)
       return response.data
     } catch (error) {
@@ -165,7 +165,7 @@ export const viajesService = {
       // Validar tipos de archivo permitidos
       const allowedTypes = [
         'image/jpeg',
-        'image/jpg', 
+        'image/jpg',
         'image/png',
         'image/gif',
         'image/webp',
@@ -177,7 +177,7 @@ export const viajesService = {
         'text/plain',
         'text/csv'
       ]
-      
+
       if (!allowedTypes.includes(archivo.type)) {
         throw new Error('Formato no permitido. Puedes subir imágenes, PDF, Word, Excel, TXT o CSV')
       }
@@ -185,7 +185,7 @@ export const viajesService = {
       // Validar tamaño máximo (1MB estricto)
       const maxSize = 1 * 1024 * 1024 // 1MB
       const sizeMB = (archivo.size / 1024 / 1024).toFixed(2)
-      
+
       if (archivo.size > maxSize) {
         throw new Error(`⚠️ El archivo (${sizeMB}MB) supera el límite de 1MB permitido por el servidor.\n\nPor favor reduce el tamaño del archivo antes de subirlo.`)
       }
@@ -217,25 +217,25 @@ export const viajesService = {
     } catch (error) {
       console.error('❌ Error al completar viaje:', error)
       console.error('Detalles del error:', error.response?.data)
-      
+
       // Manejar diferentes tipos de errores
       if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
         throw new Error('⏱️ La subida tardó demasiado tiempo. Por favor intenta con una imagen más pequeña (menor a 1MB).')
       }
-      
+
       if (error.response?.status === 413) {
         throw new Error('🚫 La imagen es demasiado grande para el servidor. Máximo permitido: 1MB.')
       }
-      
+
       if (error.response?.status === 403) {
         throw new Error('🚫 Acceso denegado. El servidor rechazó la imagen (posiblemente supera 1MB).')
       }
-      
+
       // Si ya es un error personalizado nuestro, pasarlo tal cual
       if (error.message.includes('⚠️') || error.message.includes('🚫')) {
         throw error
       }
-      
+
       const message = error.response?.data?.message || error.message || 'Error al completar viaje'
       throw new Error(message)
     }
@@ -245,7 +245,7 @@ export const viajesService = {
   async cambiarEstado(id, nuevoEstado, archivo = null, fechaRealLlegada = null) {
     try {
       console.log('🔄 Cambiar estado:', { id, nuevoEstado, tieneArchivo: !!archivo, fechaRealLlegada })
-      
+
       // Si hay archivo, siempre usar el endpoint de completar (que maneja la evidencia)
       // independientemente del estado
       if (archivo) {
@@ -254,13 +254,13 @@ export const viajesService = {
         // Pero nosotros queremos cambiar a cualquier estado, así que:
         // 1. Subimos la evidencia
         const result = await this.completarViaje(id, archivo)
-        
+
         // 2. Si el estado deseado NO es COMPLETADO o hay fechaRealLlegada, hacemos otro update
         if (nuevoEstado !== 'COMPLETADO' || fechaRealLlegada) {
           console.log(`📝 Cambiando estado a ${nuevoEstado} después de subir evidencia...`)
           // Obtener el viaje actual para mantener los datos originales
           const viaje = await this.getViajeById(id)
-          
+
           // Construir el DTO exactamente como lo requiere el backend
           const dto = {
             unidadId: viaje.unidad?.id || viaje.idUnidad,
@@ -278,33 +278,27 @@ export const viajesService = {
             tipoViaje: viaje.tipo || viaje.tipoViaje,
             folio: viaje.folio
           }
-          
+
           // Crear FormData con dto y archivo (aunque archivo ya se subió, el backend puede requerirlo)
           const formData = new FormData()
           const dtoBlob = new Blob([JSON.stringify(dto)], { type: 'application/json' })
           formData.append('dto', dtoBlob)
           // El archivo ya se subió en el paso anterior, aquí solo actualizamos el estado
-          
+
           return await apiClient.put(`/api/viajes/${id}`, formData, {
             headers: {
               'Content-Type': 'multipart/form-data'
             }
           }).then(res => res.data)
         }
-        
-        return result
-      }
 
-      // Si el estado es COMPLETADO o RECHAZADO pero NO hay archivo, advertir
-      if ((nuevoEstado === 'COMPLETADO' || nuevoEstado === 'RECHAZADO') && !archivo) {
-        console.warn('⚠️ Intentando completar/rechazar viaje sin evidencia')
-        throw new Error('Se requiere archivo de evidencia para completar o rechazar el viaje')
+        return result
       }
 
       // Para otros estados sin archivo, hacer un simple cambio de estado
       console.log('📝 Actualizando estado sin evidencia...')
       const viaje = await this.getViajeById(id)
-      
+
       // Construir el DTO exactamente como lo requiere el backend
       const dto = {
         unidadId: viaje.unidad?.id || viaje.idUnidad,
@@ -314,7 +308,7 @@ export const viajesService = {
         destino: viaje.destino,
         fechaSalida: viaje.fechaSalida,
         fechaEstimadaLlegada: viaje.fechaEstimadaLlegada,
-        fechaRealLlegada: viaje.fechaRealLlegada || null,
+        fechaRealLlegada: fechaRealLlegada || viaje.fechaRealLlegada || null,
         estado: nuevoEstado,
         cargaDescripcion: viaje.cargaDescripcion,
         tarifa: viaje.tarifa,
@@ -322,12 +316,12 @@ export const viajesService = {
         tipoViaje: viaje.tipo || viaje.tipoViaje,
         folio: viaje.folio
       }
-      
+
       // Crear FormData con dto (sin archivo)
       const formData = new FormData()
       const dtoBlob = new Blob([JSON.stringify(dto)], { type: 'application/json' })
       formData.append('dto', dtoBlob)
-      
+
       const response = await apiClient.put(`/api/viajes/${id}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'

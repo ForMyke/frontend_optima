@@ -130,11 +130,7 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
     const sizeMB = selectedFile ? (selectedFile.size / 1024 / 1024).toFixed(2) : 'N/A'
 
 
-    // Si el estado es COMPLETADO o RECHAZADO, requiere evidencia
-    if ((nuevoEstado === 'COMPLETADO' || nuevoEstado === 'RECHAZADO') && !selectedFile) {
-      toast.error('⚠️ Se requiere archivo de evidencia para completar o rechazar el viaje')
-      return
-    }
+
 
     // Si el estado es RECHAZADO, requiere fecha real de llegada
     if (nuevoEstado === 'RECHAZADO' && !fechaRealLlegada) {
@@ -155,7 +151,6 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
     }
 
     setUploading(true)
-    const loadingToast = toast.loading('Subiendo archivo y cambiando estado...')
 
     try {
 
@@ -170,8 +165,7 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
         'RECHAZADO': 'rechazado'
       }[nuevoEstado] || nuevoEstado.toLowerCase()
 
-      toast.dismiss(loadingToast)
-      toast.success(`✓ Viaje cambiado a ${estadoTexto} exitosamente`)
+      toast.success(`Viaje cambiado a ${estadoTexto} exitosamente`)
 
       // Actualizar el estado del viaje localmente sin recargar toda la lista
       setViajes(prevViajes =>
@@ -189,7 +183,6 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
         await onSave()
       }
     } catch (error) {
-      toast.dismiss(loadingToast)
 
       // Determinar el mensaje de error apropiado
       let errorMessage = 'Error al cambiar el estado del viaje'
@@ -227,7 +220,7 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
 
   const estadoInfo = ESTADOS[nuevoEstado] || ESTADOS.PENDIENTE
   const EstadoIcon = estadoInfo.icon
-  const requiereEvidencia = nuevoEstado === 'COMPLETADO' || nuevoEstado === 'RECHAZADO'
+  const requiereEvidencia = false // La evidencia ahora es opcional
 
   return (
     <div className="fixed inset-0 backdrop-blur-xs bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -259,8 +252,8 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
           {/* Área de carga de imagen */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-3">
-              Archivo de evidencia {requiereEvidencia && '*'}
-              {!requiereEvidencia && <span className="text-slate-500 text-xs ml-1">(opcional)</span>}
+              Archivo de evidencia
+              <span className="text-slate-500 text-xs ml-1">(opcional)</span>
             </label>
 
             {!selectedFile ? (
@@ -390,7 +383,7 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
             </button>
             <button
               type="submit"
-              disabled={uploading || (requiereEvidencia && !selectedFile)}
+              disabled={uploading}
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
               {uploading ? (
@@ -400,7 +393,7 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
                 </>
               ) : (
                 <>
-                  {requiereEvidencia ? (
+                  {selectedFile ? (
                     <>
                       <Upload className="h-4 w-4" />
                       <span>Subir evidencia</span>
