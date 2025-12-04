@@ -66,7 +66,7 @@ const ViajeCard = ({ viaje, onEdit, onDelete, onViewDetails, operadores, cliente
   // Obtener datos de objetos anidados
   const operadorNombre = viaje.operador?.nombre || 'No asignado'
   const clienteNombre = viaje.cliente?.nombre || 'No asignado'
-  const unidadPlacas = viaje.unidad?.placas || viaje.unidad?.numeroEconomico || 'No asignada'
+  const unidadPlacas = viaje.unidad?.numeroEconomico || viaje.unidad?.numeroEconomico || 'No asignada'
 
   // Obtener origen y destino de la ruta si existe
   const origen = viaje.ruta?.origen || viaje.origen || 'N/A'

@@ -132,7 +132,7 @@ const TasksWidget = ({ tasks }) => (
           {tasks.map((task) => (
             <div key={task.id} className="flex items-start space-x-2 lg:space-x-3 p-2.5 lg:p-3 rounded-lg hover:bg-slate-50 transition-colors">
               <div className={`w-2 h-2 rounded-full mt-1.5 lg:mt-2 shrink-0 ${task.priority === 'high' ? 'bg-red-500' :
-                  task.priority === 'medium' ? 'bg-amber-500' : 'bg-emerald-500'
+                task.priority === 'medium' ? 'bg-amber-500' : 'bg-emerald-500'
                 }`}></div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs lg:text-sm font-medium text-slate-900">{task.title}</p>
@@ -224,7 +224,8 @@ const Dashboard = () => {
     monthlyExpenses: 0,
     vehiclesActive: 0,
     vehiclesMaintenance: 0,
-    vehiclesOutOfService: 0
+    vehiclesOutOfService: 0,
+    totalVehicles: 0
   })
 
   const [recentTrips, setRecentTrips] = useState([])
@@ -252,9 +253,11 @@ const Dashboard = () => {
       const clientesResponse = await clientsService.getClients()
       const clientes = clientesResponse.content || clientesResponse || []
 
-      // Cargar unidades
-      const unidadesResponse = await unidadesService.getAll()
+      // Cargar unidades - traer todas para estadísticas correctas
+      // Primero obtenemos la primera página para saber el total y luego cargamos todo si es necesario
+      const unidadesResponse = await unidadesService.getAll({ page: 0, size: 1000 })
       const unidades = unidadesResponse.content || unidadesResponse || []
+      const totalUnidades = unidadesResponse.totalElements || unidades.length
 
       // Cargar bitácoras para calcular ingresos
       let bitacoras = []
@@ -323,7 +326,8 @@ const Dashboard = () => {
         monthlyExpenses: gastosMes,
         vehiclesActive: unidadesActivas,
         vehiclesMaintenance: unidadesMantenimiento,
-        vehiclesOutOfService: unidadesFueraServicio
+        vehiclesOutOfService: unidadesFueraServicio,
+        totalVehicles: totalUnidades
       })
 
       // Preparar viajes recientes (últimos 5)
@@ -543,7 +547,7 @@ const Dashboard = () => {
               <div className="flex justify-between items-center pt-2 border-t border-slate-100">
                 <span className="text-xs lg:text-sm text-slate-600 font-medium">Total</span>
                 <span className="text-xs lg:text-sm font-bold text-slate-900">
-                  {stats.vehiclesActive + stats.vehiclesMaintenance + stats.vehiclesOutOfService}
+                  {stats.totalVehicles}
                 </span>
               </div>
             </div>
