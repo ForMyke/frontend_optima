@@ -152,6 +152,7 @@ const EditNominaFijaModal = ({ isOpen, onClose, onSubmit, nomina }) => {
                             <div className="relative">
                                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                                 <input type="date" name="periodoFin" value={formData.periodoFin} onChange={handleChange}
+                                    max={new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0]}
                                     className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all ${errors.periodoFin ? 'border-red-300' : 'border-slate-300'}`} />
                             </div>
                             {errors.periodoFin && <p className="mt-1 text-sm text-red-600 flex items-center space-x-1"><AlertCircle className="h-4 w-4" /><span>{errors.periodoFin}</span></p>}

@@ -239,6 +239,7 @@ const CreateNominaFijaModal = ({ isOpen, onClose, onSubmit }) => {
                                     name="periodoFin"
                                     value={formData.periodoFin}
                                     onChange={handleChange}
+                                    max={new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0]}
                                     className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${errors.periodoFin ? 'border-red-300' : 'border-slate-300'
                                         }`}
                                 />
