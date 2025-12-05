@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react'
 import { X, Save, User, Calendar, DollarSign, FileText, AlertCircle, CreditCard } from 'lucide-react'
 
+// Función para obtener la fecha de ayer en formato YYYY-MM-DD
+const getYesterdayDate = () => {
+    const today = new Date()
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+    return yesterday.toISOString().split('T')[0]
+}
+
 const CreateNominaFijaModal = ({ isOpen, onClose, onSubmit }) => {
     const [formData, setFormData] = useState({
         gananciaBase: '',
@@ -12,7 +20,7 @@ const CreateNominaFijaModal = ({ isOpen, onClose, onSubmit }) => {
         alias: '',
         cuenta: '',
         periodoInicio: '',
-        periodoFin: ''
+        periodoFin: getYesterdayDate() // Fecha de ayer automáticamente
     })
 
     const [errors, setErrors] = useState({})
@@ -30,7 +38,7 @@ const CreateNominaFijaModal = ({ isOpen, onClose, onSubmit }) => {
                 alias: '',
                 cuenta: '',
                 periodoInicio: '',
-                periodoFin: ''
+                periodoFin: getYesterdayDate() // Siempre la fecha de ayer
             })
             setErrors({})
             setTotal(0)
@@ -58,12 +66,10 @@ const CreateNominaFijaModal = ({ isOpen, onClose, onSubmit }) => {
             newErrors.periodoInicio = 'La fecha de inicio es requerida'
         }
 
-        if (!formData.periodoFin) {
-            newErrors.periodoFin = 'La fecha de fin es requerida'
-        }
+        // periodoFin ya no se valida porque se establece automáticamente
 
         if (formData.periodoInicio && formData.periodoFin && formData.periodoInicio > formData.periodoFin) {
-            newErrors.periodoFin = 'La fecha de fin debe ser posterior a la de inicio'
+            newErrors.periodoInicio = 'La fecha de inicio debe ser anterior al día de ayer'
         }
 
         if (!formData.gananciaBase) {
@@ -230,7 +236,7 @@ const CreateNominaFijaModal = ({ isOpen, onClose, onSubmit }) => {
 
                         <div>
                             <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                Periodo Fin <span className="text-red-500">*</span>
+                                Periodo Fin <span className="text-xs text-blue-600 font-normal">(Automático: día anterior)</span>
                             </label>
                             <div className="relative">
                                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
@@ -238,18 +244,13 @@ const CreateNominaFijaModal = ({ isOpen, onClose, onSubmit }) => {
                                     type="date"
                                     name="periodoFin"
                                     value={formData.periodoFin}
-                                    onChange={handleChange}
-                                    max={new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0]}
-                                    className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${errors.periodoFin ? 'border-red-300' : 'border-slate-300'
-                                        }`}
+                                    disabled
+                                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg bg-slate-100 text-slate-700 cursor-not-allowed"
                                 />
                             </div>
-                            {errors.periodoFin && (
-                                <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
-                                    <AlertCircle className="h-4 w-4" />
-                                    <span>{errors.periodoFin}</span>
-                                </p>
-                            )}
+                            <p className="mt-1 text-xs text-slate-500">
+                                Se establece automáticamente como el día anterior a hoy
+                            </p>
                         </div>
                     </div>
 

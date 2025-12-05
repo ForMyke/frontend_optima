@@ -323,5 +323,30 @@ export const viajesService = {
       const message = error.response?.data?.message || error.message || 'Error al cambiar estado'
       throw new Error(message)
     }
+  },
+
+  // Obtener comisiones de un operador con fechas de periodo
+  async getComisionesByOperador(operadorId, fechaInicio, fechaFin) {
+    try {
+      const url = `/api/viajes/operadores/${operadorId}/comisiones`
+      const params = {
+        inicio: fechaInicio,
+        fin: fechaFin
+      }
+
+      console.log('🔍 Request a API de comisiones:')
+      console.log('   URL:', url)
+      console.log('   Params:', params)
+      console.log('   URL completa:', `${url}?inicio=${fechaInicio}&fin=${fechaFin}`)
+
+      const response = await apiClient.get(url, { params })
+
+      console.log('✅ Respuesta de API:', response.data)
+
+      return response.data
+    } catch (error) {
+      console.error('❌ Error al obtener comisiones del operador:', error)
+      throw error
+    }
   }
 }

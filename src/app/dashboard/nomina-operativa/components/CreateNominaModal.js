@@ -3,13 +3,22 @@ import { X, Save, User, Calendar, DollarSign, Hash, FileText, AlertCircle, Credi
 import { authService } from '@/app/services/authService'
 import { viajesService } from '@/app/services/viajesService'
 
+// Función para obtener la fecha de ayer en formato YYYY-MM-DD
+const getYesterdayDate = () => {
+    const today = new Date()
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+    return yesterday.toISOString().split('T')[0]
+}
+
 const CreateNominaModal = ({ isOpen, onClose, onSubmit, operadores }) => {
     const [currentUserId, setCurrentUserId] = useState(null)
     const [loadingViajes, setLoadingViajes] = useState(false)
+    const [loadingComisiones, setLoadingComisiones] = useState(false)
     const [formData, setFormData] = useState({
         operadorId: '',
         periodoInicio: '',
-        periodoFin: '',
+        periodoFin: getYesterdayDate(), // Fecha de ayer automáticamente
         sueldoBase: '',
         comisionViajes: '',
         bono: '',
@@ -29,9 +38,45 @@ const CreateNominaModal = ({ isOpen, onClose, onSubmit, operadores }) => {
         }
     }, [])
 
-    // Calcular número de viajes y comisiones automáticamente cuando cambian operador o fechas
+    // Llamar a la API de comisiones cuando se selecciona un operador y ambas fechas
     useEffect(() => {
-        const calcularViajesYComisiones = async () => {
+        const obtenerComisiones = async () => {
+            // Solo llamar si tenemos operador y ambas fechas
+            if (!formData.operadorId || !formData.periodoInicio || !formData.periodoFin) {
+                return
+            }
+
+            try {
+                setLoadingComisiones(true)
+                const comisionTotal = await viajesService.getComisionesByOperador(
+                    formData.operadorId,
+                    formData.periodoInicio,
+                    formData.periodoFin
+                )
+
+                console.log('Comisión recibida de API:', comisionTotal)
+
+                // La API devuelve directamente el número de comisión (ej: 700.00)
+                if (comisionTotal !== null && comisionTotal !== undefined) {
+                    setFormData(prev => ({
+                        ...prev,
+                        comisionViajes: comisionTotal.toString()
+                    }))
+                }
+            } catch (error) {
+                console.error('Error al obtener comisiones del operador:', error)
+                // No mostramos error, simplemente no se auto-completan las comisiones
+            } finally {
+                setLoadingComisiones(false)
+            }
+        }
+
+        obtenerComisiones()
+    }, [formData.operadorId, formData.periodoInicio, formData.periodoFin])
+
+    // Calcular SOLO el número de viajes (la comisión viene de la API anterior)
+    useEffect(() => {
+        const calcularNumeroViajes = async () => {
             // Solo calcular si tenemos operador y ambas fechas
             if (!formData.operadorId || !formData.periodoInicio || !formData.periodoFin) {
                 return
@@ -53,27 +98,20 @@ const CreateNominaModal = ({ isOpen, onClose, onSubmit, operadores }) => {
                     return fechaSalida >= fechaInicio && fechaSalida <= fechaFin
                 })
 
-                // Calcular comisión total de los viajes del periodo
-                const comisionTotal = viajesEnPeriodo.reduce((total, viaje) => {
-                    const comision = parseFloat(viaje.comisionOperador) || 0
-                    return total + comision
-                }, 0)
-
-                // Actualizar el número de viajes y la comisión
+                // Actualizar SOLO el número de viajes (NO la comisión, esa viene de la API)
                 setFormData(prev => ({
                     ...prev,
-                    numeroViajes: viajesEnPeriodo.length.toString(),
-                    comisionViajes: comisionTotal.toString()
+                    numeroViajes: viajesEnPeriodo.length.toString()
+                    // NO sobrescribir comisionViajes aquí
                 }))
             } catch (error) {
-                console.error('Error al calcular viajes y comisiones:', error)
-                // No mostramos error al usuario, simplemente no se auto-completa
+                console.error('Error al calcular número de viajes:', error)
             } finally {
                 setLoadingViajes(false)
             }
         }
 
-        calcularViajesYComisiones()
+        calcularNumeroViajes()
     }, [formData.operadorId, formData.periodoInicio, formData.periodoFin])
 
     const [errors, setErrors] = useState({})
@@ -84,7 +122,7 @@ const CreateNominaModal = ({ isOpen, onClose, onSubmit, operadores }) => {
             setFormData({
                 operadorId: '',
                 periodoInicio: '',
-                periodoFin: '',
+                periodoFin: getYesterdayDate(), // Siempre la fecha de ayer
                 sueldoBase: '',
                 comisionViajes: '',
                 bono: '',
@@ -137,12 +175,10 @@ const CreateNominaModal = ({ isOpen, onClose, onSubmit, operadores }) => {
             newErrors.periodoInicio = 'La fecha de inicio es requerida'
         }
 
-        if (!formData.periodoFin) {
-            newErrors.periodoFin = 'La fecha de fin es requerida'
-        }
+        // periodoFin ya no se valida porque se establece automáticamente (día anterior)
 
         if (formData.periodoInicio && formData.periodoFin && formData.periodoInicio > formData.periodoFin) {
-            newErrors.periodoFin = 'La fecha de fin debe ser posterior a la de inicio'
+            newErrors.periodoInicio = 'La fecha de inicio debe ser anterior al día de ayer'
         }
 
         if (!formData.sueldoBase) {
@@ -281,7 +317,7 @@ const CreateNominaModal = ({ isOpen, onClose, onSubmit, operadores }) => {
 
                         <div>
                             <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                Periodo Fin <span className="text-red-500">*</span>
+                                Periodo Fin <span className="text-xs text-blue-600 font-normal">(Automático: día anterior)</span>
                             </label>
                             <div className="relative">
                                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
@@ -289,18 +325,13 @@ const CreateNominaModal = ({ isOpen, onClose, onSubmit, operadores }) => {
                                     type="date"
                                     name="periodoFin"
                                     value={formData.periodoFin}
-                                    onChange={handleChange}
-                                    max={new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0]}
-                                    className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${errors.periodoFin ? 'border-red-300' : 'border-slate-300'
-                                        }`}
+                                    disabled
+                                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg bg-slate-100 text-slate-700 cursor-not-allowed"
                                 />
                             </div>
-                            {errors.periodoFin && (
-                                <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
-                                    <AlertCircle className="h-4 w-4" />
-                                    <span>{errors.periodoFin}</span>
-                                </p>
-                            )}
+                            <p className="mt-1 text-xs text-slate-500">
+                                Se establece automáticamente como el día anterior a hoy
+                            </p>
                         </div>
                     </div>
 
@@ -369,6 +400,11 @@ const CreateNominaModal = ({ isOpen, onClose, onSubmit, operadores }) => {
                         <div>
                             <label className="block text-sm font-semibold text-slate-700 mb-2">
                                 Comisión por Viajes
+                                {loadingComisiones && (
+                                    <span className="ml-2 text-xs text-blue-600 font-normal">
+                                        Cargando desde API...
+                                    </span>
+                                )}
                             </label>
                             <div className="relative">
                                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
@@ -377,12 +413,16 @@ const CreateNominaModal = ({ isOpen, onClose, onSubmit, operadores }) => {
                                     name="comisionViajes"
                                     value={formData.comisionViajes}
                                     onChange={handleChange}
-                                    placeholder="3500.00"
+                                    placeholder="Se carga desde la API"
                                     step="0.01"
                                     min="0"
-                                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                    disabled={loadingComisiones}
+                                    className={`w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${loadingComisiones ? 'bg-slate-50 cursor-not-allowed' : ''}`}
                                 />
                             </div>
+                            <p className="mt-1 text-xs text-slate-500">
+                                Se obtiene automáticamente al seleccionar un operador
+                            </p>
                         </div>
 
                         <div>
