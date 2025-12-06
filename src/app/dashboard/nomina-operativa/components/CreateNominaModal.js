@@ -187,6 +187,32 @@ const CreateNominaModal = ({ isOpen, onClose, onSubmit, operadores }) => {
             newErrors.sueldoBase = 'El sueldo base debe ser mayor o igual a 0'
         }
 
+        // Validar montos numéricos
+        if (formData.comisionViajes && parseFloat(formData.comisionViajes) < 0) {
+            newErrors.comisionViajes = 'La comisión debe ser mayor o igual a 0'
+        }
+
+        if (formData.bono && parseFloat(formData.bono) < 0) {
+            newErrors.bono = 'El bono debe ser mayor o igual a 0'
+        }
+
+        if (formData.compensacion && parseFloat(formData.compensacion) < 0) {
+            newErrors.compensacion = 'La compensación debe ser mayor o igual a 0'
+        }
+
+        if (formData.descuentos && parseFloat(formData.descuentos) < 0) {
+            newErrors.descuentos = 'Los descuentos deben ser mayor o igual a 0'
+        }
+
+        if (formData.numeroViajes && parseInt(formData.numeroViajes) < 0) {
+            newErrors.numeroViajes = 'El número de viajes debe ser mayor o igual a 0'
+        }
+
+        // Validar cuenta (máximo 8 dígitos)
+        if (formData.cuenta && formData.cuenta.length > 8) {
+            newErrors.cuenta = 'La cuenta no puede tener más de 8 dígitos'
+        }
+
         if (!currentUserId) {
             newErrors.general = 'No se pudo obtener el usuario actual'
         }
@@ -358,14 +384,21 @@ const CreateNominaModal = ({ isOpen, onClose, onSubmit, operadores }) => {
                             <div className="relative">
                                 <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                                 <input
-                                    type="number"
+                                    type="text"
                                     name="cuenta"
                                     value={formData.cuenta}
                                     onChange={handleChange}
-                                    placeholder="Número de cuenta"
-                                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                    placeholder="Número de cuenta (máx. 8 dígitos)"
+                                    maxLength={8}
+                                    className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${errors.cuenta ? 'border-red-300' : 'border-slate-300'}`}
                                 />
                             </div>
+                            {errors.cuenta && (
+                                <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <span>{errors.cuenta}</span>
+                                </p>
+                            )}
                         </div>
                     </div>
 
@@ -413,16 +446,23 @@ const CreateNominaModal = ({ isOpen, onClose, onSubmit, operadores }) => {
                                     name="comisionViajes"
                                     value={formData.comisionViajes}
                                     onChange={handleChange}
-                                    placeholder="Se carga desde la API"
+                                    placeholder="Se carga automáticamente"
                                     step="0.01"
                                     min="0"
                                     disabled={loadingComisiones}
-                                    className={`w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${loadingComisiones ? 'bg-slate-50 cursor-not-allowed' : ''}`}
+                                    className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${loadingComisiones ? 'bg-slate-50 cursor-not-allowed' : errors.comisionViajes ? 'border-red-300' : 'border-slate-300'}`}
                                 />
                             </div>
-                            <p className="mt-1 text-xs text-slate-500">
-                                Se obtiene automáticamente al seleccionar un operador
-                            </p>
+                            {errors.comisionViajes ? (
+                                <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <span>{errors.comisionViajes}</span>
+                                </p>
+                            ) : (
+                                <p className="mt-1 text-xs text-slate-500">
+                                    Se obtiene automáticamente al seleccionar un operador
+                                </p>
+                            )}
                         </div>
 
                         <div>
@@ -439,9 +479,15 @@ const CreateNominaModal = ({ isOpen, onClose, onSubmit, operadores }) => {
                                     placeholder="500.00"
                                     step="0.01"
                                     min="0"
-                                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                    className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${errors.bono ? 'border-red-300' : 'border-slate-300'}`}
                                 />
                             </div>
+                            {errors.bono && (
+                                <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <span>{errors.bono}</span>
+                                </p>
+                            )}
                         </div>
 
                         <div>
@@ -458,9 +504,15 @@ const CreateNominaModal = ({ isOpen, onClose, onSubmit, operadores }) => {
                                     placeholder="0.00"
                                     step="0.01"
                                     min="0"
-                                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                    className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${errors.compensacion ? 'border-red-300' : 'border-slate-300'}`}
                                 />
                             </div>
+                            {errors.compensacion && (
+                                <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <span>{errors.compensacion}</span>
+                                </p>
+                            )}
                         </div>
 
                         <div>
@@ -477,9 +529,15 @@ const CreateNominaModal = ({ isOpen, onClose, onSubmit, operadores }) => {
                                     placeholder="200.00"
                                     step="0.01"
                                     min="0"
-                                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                    className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${errors.descuentos ? 'border-red-300' : 'border-slate-300'}`}
                                 />
                             </div>
+                            {errors.descuentos && (
+                                <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <span>{errors.descuentos}</span>
+                                </p>
+                            )}
                         </div>
 
                         <div>
@@ -501,12 +559,19 @@ const CreateNominaModal = ({ isOpen, onClose, onSubmit, operadores }) => {
                                     placeholder="Se calcula automáticamente"
                                     min="0"
                                     disabled={loadingViajes}
-                                    className={`w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${loadingViajes ? 'bg-slate-50 cursor-not-allowed' : ''}`}
+                                    className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${loadingViajes ? 'bg-slate-50 cursor-not-allowed' : errors.numeroViajes ? 'border-red-300' : 'border-slate-300'}`}
                                 />
                             </div>
-                            <p className="mt-1 text-xs text-slate-500">
-                                Se calcula automáticamente según el operador y periodo
-                            </p>
+                            {errors.numeroViajes ? (
+                                <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <span>{errors.numeroViajes}</span>
+                                </p>
+                            ) : (
+                                <p className="mt-1 text-xs text-slate-500">
+                                    Se calcula automáticamente según el operador y periodo
+                                </p>
+                            )}
                         </div>
                     </div>
 

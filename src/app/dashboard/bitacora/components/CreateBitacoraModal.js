@@ -268,7 +268,7 @@ const CreateBitacoraModal = ({ isOpen, onClose, onSave, viajes, operadores, clie
               {/* Diesel Litros */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Diesel (Litros) <span className="text-red-500">*</span>
+                  Costo diesel <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <Fuel className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />

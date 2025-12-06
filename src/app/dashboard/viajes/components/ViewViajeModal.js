@@ -82,6 +82,24 @@ const ViewViajeModal = ({ isOpen, onClose, viaje, operadores = [], clientes = []
   const tipoInfo = TIPOS_VIAJE[viaje.tipo] || TIPOS_VIAJE.NORMAL
   const EstadoIcon = estadoInfo.icon
 
+  // Calcular costo total si no viene del backend
+  const calcularCostoTotal = () => {
+    // Si viene del backend, usarlo
+    if (viaje.costoTotal) {
+      return parseFloat(viaje.costoTotal)
+    }
+
+    // Si no viene, calcularlo desde los campos individuales
+    const casetas = parseFloat(viaje.casetas) || 0
+    const dieselCostoTotal = parseFloat(viaje.dieselCostoTotal) || 0
+    const comisionOperador = parseFloat(viaje.comisionOperador) || 0
+    const gastosExtras = parseFloat(viaje.gastosExtras) || 0
+
+    return casetas + dieselCostoTotal + comisionOperador + gastosExtras
+  }
+
+  const costoTotalCalculado = calcularCostoTotal()
+
   // Buscar datos usando IDs o usar objetos anidados si existen
   let operadorNombre = 'No disponible'
   let operadorLicencia = null
@@ -375,7 +393,9 @@ const ViewViajeModal = ({ isOpen, onClose, viaje, operadores = [], clientes = []
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-semibold text-slate-700">Costo Total</label>
                   <p className="text-lg font-bold text-blue-600">
-                    {viaje.costoTotal ? `$${viaje.costoTotal}` : 'No calculado'}
+                    {costoTotalCalculado > 0 
+                      ? `$${costoTotalCalculado.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
+                      : '$0.00'}
                   </p>
                 </div>
               </div>

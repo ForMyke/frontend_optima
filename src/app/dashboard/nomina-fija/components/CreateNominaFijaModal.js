@@ -78,6 +78,20 @@ const CreateNominaFijaModal = ({ isOpen, onClose, onSubmit }) => {
             newErrors.gananciaBase = 'La ganancia base debe ser mayor o igual a 0'
         }
 
+        // Validar montos numéricos
+        if (formData.extra && parseFloat(formData.extra) < 0) {
+            newErrors.extra = 'El extra debe ser mayor o igual a 0'
+        }
+
+        if (formData.deben && parseFloat(formData.deben) < 0) {
+            newErrors.deben = 'El debe debe ser mayor o igual a 0'
+        }
+
+        // Validar cuenta (máximo 8 dígitos)
+        if (formData.cuenta && formData.cuenta.length > 8) {
+            newErrors.cuenta = 'La cuenta no puede tener más de 8 dígitos'
+        }
+
         setErrors(newErrors)
         return Object.keys(newErrors).length === 0
     }
@@ -198,14 +212,21 @@ const CreateNominaFijaModal = ({ isOpen, onClose, onSubmit }) => {
                             <div className="relative">
                                 <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                                 <input
-                                    type="number"
+                                    type="text"
                                     name="cuenta"
                                     value={formData.cuenta}
                                     onChange={handleChange}
-                                    placeholder="Número de cuenta"
-                                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                    placeholder="Número de cuenta (máx. 8 dígitos)"
+                                    maxLength={8}
+                                    className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${errors.cuenta ? 'border-red-300' : 'border-slate-300'}`}
                                 />
                             </div>
+                            {errors.cuenta && (
+                                <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <span>{errors.cuenta}</span>
+                                </p>
+                            )}
                         </div>
                     </div>
 
@@ -296,9 +317,15 @@ const CreateNominaFijaModal = ({ isOpen, onClose, onSubmit }) => {
                                     placeholder="2000.00"
                                     step="0.01"
                                     min="0"
-                                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                    className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${errors.extra ? 'border-red-300' : 'border-slate-300'}`}
                                 />
                             </div>
+                            {errors.extra && (
+                                <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <span>{errors.extra}</span>
+                                </p>
+                            )}
                         </div>
 
                         <div>
@@ -315,9 +342,15 @@ const CreateNominaFijaModal = ({ isOpen, onClose, onSubmit }) => {
                                     placeholder="500.00"
                                     step="0.01"
                                     min="0"
-                                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                    className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${errors.deben ? 'border-red-300' : 'border-slate-300'}`}
                                 />
                             </div>
+                            {errors.deben && (
+                                <p className="mt-1 text-sm text-red-600 flex items-center space-x-1">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <span>{errors.deben}</span>
+                                </p>
+                            )}
                         </div>
                     </div>
 
