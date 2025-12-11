@@ -72,82 +72,82 @@ export const viajesService = {
 
   // Actualizar un viaje existente con FormData (dto + archivo)
   async updateViaje(id, viajeData, archivo = null) {
-  try {
-    console.log('📝 Datos recibidos en updateViaje:', viajeData)
+    try {
+      console.log('📝 Datos recibidos en updateViaje:', viajeData)
 
-    // Crear FormData
-    const formData = new FormData()
+      // Crear FormData
+      const formData = new FormData()
 
-    // ⚠️ CRÍTICO: Construir el DTO con TODOS los campos
-    const dto = {
-      unidadId: viajeData.idUnidad,
-      operadorId: viajeData.idOperador,
-      clienteId: viajeData.idCliente,
-      origen: viajeData.origen,
-      destino: viajeData.destino,
-      fechaSalida: viajeData.fechaSalida,
-      fechaEstimadaLlegada: viajeData.fechaEstimadaLlegada,
-      fechaRealLlegada: viajeData.fechaRealLlegada || null,
-      estado: viajeData.estado,
-      cargaDescripcion: viajeData.cargaDescripcion,
-      tipoViaje: viajeData.tipo,
-      folio: viajeData.folio || null
-    }
-
-    // Agregar campos opcionales SOLO si tienen valor
-    if (viajeData.tarifa !== null && viajeData.tarifa !== undefined) {
-      dto.tarifa = viajeData.tarifa
-    }
-
-    if (viajeData.distanciaKm !== null && viajeData.distanciaKm !== undefined) {
-      dto.distanciaKm = viajeData.distanciaKm
-    }
-
-    if (viajeData.comisionOperador !== null && viajeData.comisionOperador !== undefined) {
-      dto.comisionOperador = viajeData.comisionOperador
-    }
-
-    // 🔥 CAMPOS DE COSTOS - CRÍTICO
-    if (viajeData.casetas !== null && viajeData.casetas !== undefined) {
-      dto.casetas = viajeData.casetas
-    }
-
-    if (viajeData.dieselLitros !== null && viajeData.dieselLitros !== undefined) {
-      dto.dieselLitros = viajeData.dieselLitros
-    }
-
-    if (viajeData.gastosExtras !== null && viajeData.gastosExtras !== undefined) {
-      dto.gastosExtras = viajeData.gastosExtras
-    }
-
-    if (viajeData.costoTotal !== null && viajeData.costoTotal !== undefined) {
-      dto.costoTotal = viajeData.costoTotal
-    }
-
-    console.log('📦 DTO final a enviar:', dto)
-
-    // Agregar el DTO como Blob con tipo application/json
-    const dtoBlob = new Blob([JSON.stringify(dto)], { type: 'application/json' })
-    formData.append('dto', dtoBlob)
-
-    // Agregar el archivo si existe
-    if (archivo) {
-      formData.append('archivo', archivo)
-    }
-
-    const response = await apiClient.put(`/api/viajes/${id}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
+      // ⚠️ CRÍTICO: Construir el DTO con TODOS los campos
+      const dto = {
+        unidadId: viajeData.idUnidad,
+        operadorId: viajeData.idOperador,
+        clienteId: viajeData.idCliente,
+        origen: viajeData.origen,
+        destino: viajeData.destino,
+        fechaSalida: viajeData.fechaSalida,
+        fechaEstimadaLlegada: viajeData.fechaEstimadaLlegada,
+        fechaRealLlegada: viajeData.fechaRealLlegada || null,
+        estado: viajeData.estado,
+        cargaDescripcion: viajeData.cargaDescripcion,
+        tipoViaje: viajeData.tipo,
+        folio: viajeData.folio || null
       }
-    })
-    
-    console.log('✅ Respuesta del servidor:', response.data)
-    return response.data
-  } catch (error) {
-    console.error('Error al actualizar viaje:', error)
-    const message = error.response?.data?.message || 'Error al actualizar viaje'
-    throw new Error(message)
-  }
+
+      // Agregar campos opcionales SOLO si tienen valor
+      if (viajeData.tarifa !== null && viajeData.tarifa !== undefined) {
+        dto.tarifa = viajeData.tarifa
+      }
+
+      if (viajeData.distanciaKm !== null && viajeData.distanciaKm !== undefined) {
+        dto.distanciaKm = viajeData.distanciaKm
+      }
+
+      if (viajeData.comisionOperador !== null && viajeData.comisionOperador !== undefined) {
+        dto.comisionOperador = viajeData.comisionOperador
+      }
+
+      // 🔥 CAMPOS DE COSTOS - CRÍTICO
+      if (viajeData.casetas !== null && viajeData.casetas !== undefined) {
+        dto.casetas = viajeData.casetas
+      }
+
+      if (viajeData.dieselLitros !== null && viajeData.dieselLitros !== undefined) {
+        dto.dieselLitros = viajeData.dieselLitros
+      }
+
+      if (viajeData.gastosExtras !== null && viajeData.gastosExtras !== undefined) {
+        dto.gastosExtras = viajeData.gastosExtras
+      }
+
+      if (viajeData.costoTotal !== null && viajeData.costoTotal !== undefined) {
+        dto.costoTotal = viajeData.costoTotal
+      }
+
+      console.log('📦 DTO final a enviar:', dto)
+
+      // Agregar el DTO como Blob con tipo application/json
+      const dtoBlob = new Blob([JSON.stringify(dto)], { type: 'application/json' })
+      formData.append('dto', dtoBlob)
+
+      // Agregar el archivo si existe
+      if (archivo) {
+        formData.append('archivo', archivo)
+      }
+
+      const response = await apiClient.put(`/api/viajes/${id}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+
+      console.log('✅ Respuesta del servidor:', response.data)
+      return response.data
+    } catch (error) {
+      console.error('Error al actualizar viaje:', error)
+      const message = error.response?.data?.message || 'Error al actualizar viaje'
+      throw new Error(message)
+    }
   },
 
   // Eliminar un viaje
@@ -292,131 +292,114 @@ export const viajesService = {
 
   // src/app/services/viajesService.js
 
-// Cambiar el estado de un viaje
-async cambiarEstado(id, nuevoEstado, archivo = null, fechaRealLlegada = null) {
-  try {
-    console.log('🔄 Cambiar estado:', { id, nuevoEstado, tieneArchivo: !!archivo, fechaRealLlegada })
+  // Cambiar el estado de un viaje
+  async cambiarEstado(id, nuevoEstado, archivo = null, fechaRealLlegada = null) {
+    try {
+      console.log('🔄 Cambiar estado:', { id, nuevoEstado, tieneArchivo: !!archivo, fechaRealLlegada })
 
-    // Obtener el viaje actual para mantener los datos originales
-    const viaje = await this.getViajeById(id)
+      // Obtener el viaje actual para mantener los datos originales
+      const viaje = await this.getViajeById(id)
 
-    // Construir el DTO base (campos obligatorios)
-    const dto = {
-      unidadId: viaje.unidad?.id || viaje.idUnidad,
-      operadorId: viaje.operador?.id || viaje.idOperador,
-      clienteId: viaje.cliente?.id || viaje.idCliente,
-      origen: viaje.origen,
-      destino: viaje.destino,
-      fechaSalida: viaje.fechaSalida,
-      fechaEstimadaLlegada: viaje.fechaEstimadaLlegada,
-      estado: nuevoEstado,
-      cargaDescripcion: viaje.cargaDescripcion,
-      tipoViaje: viaje.tipo || viaje.tipoViaje
-    }
-
-    // ⚠️ CRÍTICO: Agregar campos opcionales SOLO si tienen valor
-    // Esto evita enviar null/undefined y que el backend los sobrescriba
-    if (fechaRealLlegada) {
-      dto.fechaRealLlegada = fechaRealLlegada
-    } else if (viaje.fechaRealLlegada) {
-      dto.fechaRealLlegada = viaje.fechaRealLlegada
-    }
-
-    if (viaje.tarifa !== null && viaje.tarifa !== undefined) {
-      dto.tarifa = viaje.tarifa
-    }
-
-    if (viaje.distanciaKm !== null && viaje.distanciaKm !== undefined) {
-      dto.distanciaKm = viaje.distanciaKm
-    }
-
-    if (viaje.folio) {
-      dto.folio = viaje.folio
-    }
-
-    // Campos de costos - SOLO enviar si existen
-    if (viaje.casetas !== null && viaje.casetas !== undefined) {
-      dto.casetas = viaje.casetas
-    }
-
-    if (viaje.dieselLitros !== null && viaje.dieselLitros !== undefined) {
-      dto.dieselLitros = viaje.dieselLitros
-    }
-
-    if (viaje.comisionOperador !== null && viaje.comisionOperador !== undefined) {
-      dto.comisionOperador = viaje.comisionOperador
-    }
-
-    if (viaje.gastosExtras !== null && viaje.gastosExtras !== undefined) {
-      dto.gastosExtras = viaje.gastosExtras
-    }
-
-    if (viaje.costoTotal !== null && viaje.costoTotal !== undefined) {
-      dto.costoTotal = viaje.costoTotal
-    }
-
-    console.log('📦 DTO a enviar:', dto)
-
-    // Crear FormData con dto y archivo opcional
-    const formData = new FormData()
-    const dtoBlob = new Blob([JSON.stringify(dto)], { type: 'application/json' })
-    formData.append('dto', dtoBlob)
-
-    if (archivo) {
-      // Validar tipos de archivo permitidos
-      const allowedTypes = [
-        'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
-        'application/pdf', 'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'text/plain', 'text/csv'
-      ]
-
-      if (!allowedTypes.includes(archivo.type)) {
-        throw new Error('Formato no permitido. Puedes subir imágenes, PDF, Word, Excel, TXT o CSV')
+      // Construir el DTO base (campos obligatorios)
+      const dto = {
+        unidadId: viaje.unidad?.id || viaje.idUnidad,
+        operadorId: viaje.operador?.id || viaje.idOperador,
+        clienteId: viaje.cliente?.id || viaje.idCliente,
+        origen: viaje.origen,
+        destino: viaje.destino,
+        fechaSalida: viaje.fechaSalida,
+        fechaEstimadaLlegada: viaje.fechaEstimadaLlegada,
+        estado: nuevoEstado,
+        cargaDescripcion: viaje.cargaDescripcion,
+        tipoViaje: viaje.tipo || viaje.tipoViaje
       }
 
-      // Validar tamaño máximo (1MB estricto)
-      const maxSize = 1 * 1024 * 1024 // 1MB
-      if (archivo.size > maxSize) {
-        const sizeMB = (archivo.size / 1024 / 1024).toFixed(2)
-        throw new Error(`⚠️ El archivo (${sizeMB}MB) supera el límite de 1MB permitido por el servidor.`)
+      // ⚠️ CRÍTICO: Agregar campos opcionales SOLO si tienen valor
+      // Esto evita enviar null/undefined y que el backend los sobrescriba
+      if (fechaRealLlegada) {
+        dto.fechaRealLlegada = fechaRealLlegada
+      } else if (viaje.fechaRealLlegada) {
+        dto.fechaRealLlegada = viaje.fechaRealLlegada
       }
 
-      formData.append('archivo', archivo)
-    }
-
-    const response = await apiClient.put(`/api/viajes/${id}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
+      if (viaje.tarifa !== null && viaje.tarifa !== undefined) {
+        dto.tarifa = viaje.tarifa
       }
-    })
 
-      // Si el estado es COMPLETADO, llamar también al endpoint específico
-      if (nuevoEstado === 'COMPLETADO') {
-        console.log('🏁 Ejecutando endpoint adicional de completar viaje...')
-        const completarFormData = new FormData()
-        if (archivo) {
-          completarFormData.append('archivo', archivo)
+      if (viaje.distanciaKm !== null && viaje.distanciaKm !== undefined) {
+        dto.distanciaKm = viaje.distanciaKm
+      }
+
+      if (viaje.folio) {
+        dto.folio = viaje.folio
+      }
+
+      // Campos de costos - SOLO enviar si existen
+      if (viaje.casetas !== null && viaje.casetas !== undefined) {
+        dto.casetas = viaje.casetas
+      }
+
+      if (viaje.dieselLitros !== null && viaje.dieselLitros !== undefined) {
+        dto.dieselLitros = viaje.dieselLitros
+      }
+
+      if (viaje.comisionOperador !== null && viaje.comisionOperador !== undefined) {
+        dto.comisionOperador = viaje.comisionOperador
+      }
+
+      if (viaje.gastosExtras !== null && viaje.gastosExtras !== undefined) {
+        dto.gastosExtras = viaje.gastosExtras
+      }
+
+      if (viaje.costoTotal !== null && viaje.costoTotal !== undefined) {
+        dto.costoTotal = viaje.costoTotal
+      }
+
+      console.log('📦 DTO a enviar:', dto)
+
+      // Crear FormData con dto y archivo opcional
+      const formData = new FormData()
+      const dtoBlob = new Blob([JSON.stringify(dto)], { type: 'application/json' })
+      formData.append('dto', dtoBlob)
+
+      if (archivo) {
+        // Validar tipos de archivo permitidos
+        const allowedTypes = [
+          'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+          'application/pdf', 'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'application/vnd.ms-excel',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'text/plain', 'text/csv'
+        ]
+
+        if (!allowedTypes.includes(archivo.type)) {
+          throw new Error('Formato no permitido. Puedes subir imágenes, PDF, Word, Excel, TXT o CSV')
         }
 
-        // Axios maneja automáticamente el Content-Type: multipart/form-data para objetos FormData
-        try {
-          await apiClient.post(`/api/viajes/${id}/completar`, completarFormData)
-        } catch (error) {
-          console.error('⚠️ Error al llamar al endpoint de completar (pero el estado se actualizó):', error)
-          // No lanzamos el error para no bloquear el flujo exitoso del cambio de estado
+        // Validar tamaño máximo (1MB estricto)
+        const maxSize = 1 * 1024 * 1024 // 1MB
+        if (archivo.size > maxSize) {
+          const sizeMB = (archivo.size / 1024 / 1024).toFixed(2)
+          throw new Error(`⚠️ El archivo (${sizeMB}MB) supera el límite de 1MB permitido por el servidor.`)
         }
+
+        formData.append('archivo', archivo)
       }
 
-    return response.data
-  } catch (error) {
-    console.error('Error al cambiar estado del viaje:', error)
-    const message = error.response?.data?.message || error.message || 'Error al cambiar estado'
-    throw new Error(message)
-  }
-},
+      const response = await apiClient.put(`/api/viajes/${id}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+
+      return response.data
+    } catch (error) {
+      console.error('Error al cambiar estado del viaje:', error)
+      const message = error.response?.data?.message || error.message || 'Error al cambiar estado'
+      throw new Error(message)
+    }
+  },
 
 
 

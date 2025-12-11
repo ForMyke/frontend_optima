@@ -147,10 +147,17 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
 
     // Para COMPLETADO la evidencia es opcional - no validamos
 
-    // Validación de fecha requerida
+    // Validación de fecha requerida (solo para RECHAZADO que la pide manual)
     if (requiereFecha && !fechaRealLlegada) {
       toast.error('⚠️ Se requiere la fecha real de llegada')
       return
+    }
+
+    // Calcular fecha automática para COMPLETADO (escondida al usuario)
+    let fechaFinal = fechaRealLlegada
+    if (nuevoEstado === 'COMPLETADO') {
+      // Usar fecha de hoy en formato YYYY-MM-DD
+      fechaFinal = new Date().toISOString().split('T')[0]
     }
 
     // Validación ESTRICTA de tamaño antes de enviar (1MB máximo)
@@ -170,7 +177,7 @@ const EvidenciaModal = ({ isOpen, onClose, onSave, viaje, nuevoEstado, setViajes
 
     try {
 
-      await viajesService.cambiarEstado(viaje.id, nuevoEstado, selectedFile, fechaRealLlegada || null)
+      await viajesService.cambiarEstado(viaje.id, nuevoEstado, selectedFile, fechaFinal || null)
 
       const estadoTexto = {
         'PENDIENTE': 'pendiente',
