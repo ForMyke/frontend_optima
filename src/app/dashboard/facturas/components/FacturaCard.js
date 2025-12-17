@@ -13,10 +13,11 @@ import {
   Clock,
   XCircle,
   Plus,
-  Trash2
+  Trash2,
+  Edit
 } from 'lucide-react'
 
-const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChange, onRegistrarPagoParcial, onDelete }) => {
+const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChange, onRegistrarPagoParcial, onDelete, onEdit }) => {
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef(null)
 
@@ -39,6 +40,29 @@ const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChang
   // Buscar el cliente por ID
   const cliente = clientes.find(c => c.id === factura.clienteId)
 
+  // Calcular el estatus real (considerar si está vencida)
+  const getEstatusReal = () => {
+    if (factura.estatus === 'PAGADA' || factura.estatus === 'FACTURADA') {
+      return factura.estatus
+    }
+    
+    // Verificar si está vencida
+    if (factura.fechaVencimiento) {
+      const hoy = new Date()
+      hoy.setHours(0, 0, 0, 0)
+      const fechaVenc = new Date(factura.fechaVencimiento)
+      fechaVenc.setHours(0, 0, 0, 0)
+      
+      if (fechaVenc < hoy && factura.estatus !== 'PAGADA' && factura.estatus !== 'COMPLETADA') {
+        return 'VENCIDA'
+      }
+    }
+    
+    return factura.estatus
+  }
+
+  const estatusReal = getEstatusReal()
+
   const getEstatusColor = (estatus) => {
     switch (estatus) {
       case 'PAGADA':
@@ -47,6 +71,8 @@ const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChang
         return 'bg-blue-100 text-blue-700'
       case 'PENDIENTE':
         return 'bg-orange-100 text-orange-700'
+      case 'COMPLETADA':
+        return 'bg-purple-100 text-purple-700'
       case 'VENCIDA':
         return 'bg-red-100 text-red-700'
       default:
@@ -80,12 +106,17 @@ const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChang
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="text-lg font-semibold text-slate-900">{factura.numeroFactura}</h3>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEstatusColor(factura.estatus)} flex items-center gap-1`}>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEstatusColor(estatusReal)} flex items-center gap-1`}>
                   <EstatusIcon className="h-3 w-3" />
-                  {factura.estatus}
+                  {estatusReal}
                 </span>
               </div>
               <p className="text-sm text-slate-500">{cliente?.nombre || 'Sin cliente'}</p>
+              {factura.viajeId && (
+                <p className="text-xs text-slate-400 mt-1">
+                  Viaje ID: <span className="font-semibold text-slate-600">#{factura.viajeId}</span>
+                </p>
+              )}
             </div>
           </div>
           <div className="relative" ref={menuRef}>
@@ -106,6 +137,16 @@ const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChang
                 >
                   <Eye className="h-4 w-4 mr-3 text-slate-400" />
                   Ver detalles
+                </button>
+                <button
+                  onClick={() => {
+                    onEdit(factura)
+                    setShowMenu(false)
+                  }}
+                  className="flex cursor-pointer items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  <Edit className="h-4 w-4 mr-3 text-slate-400" />
+                  Editar
                 </button>
                 <button
                   onClick={() => {
@@ -138,13 +179,14 @@ const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChang
             className={`w-full px-3 py-2 rounded-lg border-2 transition-all font-medium text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 ${factura.estatus === 'PENDIENTE' ? 'border-orange-200 bg-orange-50 text-orange-800' :
               factura.estatus === 'PAGADA' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' :
                 factura.estatus === 'PAGO_PARCIAL' ? 'border-blue-200 bg-blue-50 text-blue-800' :
-                  'border-red-200 bg-red-50 text-red-800'
+                  factura.estatus === 'COMPLETADA' ? 'border-purple-200 bg-purple-50 text-purple-800' :
+                    'border-red-200 bg-red-50 text-red-800'
               }`}
           >
             <option value="PENDIENTE">Pendiente</option>
+            <option value="COMPLETADA">Completada</option>
             <option value="PAGO_PARCIAL">Pago parcial</option>
             <option value="PAGADA">Pagada</option>
-            <option value="VENCIDA">Vencida</option>
           </select>
         </div>
 

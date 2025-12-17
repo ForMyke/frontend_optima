@@ -16,7 +16,7 @@ import {
 import toast from 'react-hot-toast'
 import { facturaService } from '@/app/services/facturaService'
 import { clientsService } from '@/app/services/clientsService'
-import { FacturaCard, StatCard, PagarFacturaModal, PagoParcialModal, ViewFacturaModal } from './components'
+import { FacturaCard, StatCard, PagarFacturaModal, PagoParcialModal, ViewFacturaModal, EditFacturaModal } from './components'
 import { exportFacturasPDF } from '@/utils/pdfExport'
 
 const FacturasPage = () => {
@@ -29,6 +29,7 @@ const FacturasPage = () => {
   const [showPagarModal, setShowPagarModal] = useState(false)
   const [showPagoParcialModal, setShowPagoParcialModal] = useState(false)
   const [showViewModal, setShowViewModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [selectedFactura, setSelectedFactura] = useState(null)
   const [facturaToDelete, setFacturaToDelete] = useState(null)
@@ -221,36 +222,58 @@ const FacturasPage = () => {
   }
 
   const handleEstatusChange = (factura, nuevoEstatus) => {
-    // Si cambia a PAGO_PARCIAL o ya está en PAGO_PARCIAL, abrir modal de pago parcial
-    if (nuevoEstatus === 'PAGO_PARCIAL' || factura.estatus === 'PAGO_PARCIAL') {
-      setSelectedFactura(factura)
-      setShowPagoParcialModal(true)
-    } else if (nuevoEstatus === 'PAGADA') {
-      // Si cambia a PAGADA, abrir modal para pago completo
-      handlePagarFactura(factura)
-    } else {
-      // Para otros estados, actualizar directamente
-      handleUpdateEstatus(factura, nuevoEstatus)
-    }
+  // Validar que solo facturas PAGADAS puedan marcarse como COMPLETADA
+  if (nuevoEstatus === 'COMPLETADA' && factura.estatus !== 'PAGADA') {
+    toast.error('Solo las facturas PAGADAS pueden marcarse como COMPLETADAS')
+    return
   }
 
-  const handleUpdateEstatus = async (factura, nuevoEstatus) => {
-    try {
-      const facturaActualizada = {
-        ...factura,
-        estatus: nuevoEstatus
-      }
-      await facturaService.updateFacturaEstatus(factura.id, facturaActualizada)
-      toast.success(`Estado actualizado a ${nuevoEstatus}`)
-      loadFacturas(currentPage)
-    } catch (error) {
-      toast.error(error.message || 'Error al actualizar estado')
-    }
+  // Si cambia a PAGO_PARCIAL o ya está en PAGO_PARCIAL, abrir modal de pago parcial
+  if (nuevoEstatus === 'PAGO_PARCIAL' || factura.estatus === 'PAGO_PARCIAL') {
+    setSelectedFactura(factura)
+    setShowPagoParcialModal(true)
+  } else if (nuevoEstatus === 'PAGADA') {
+    // Si cambia a PAGADA, abrir modal para pago completo
+    handlePagarFactura(factura)
+  } else {
+    // Para PENDIENTE, VENCIDA y COMPLETADA, actualizar directamente sin modal
+    handleUpdateEstatus(factura, nuevoEstatus)
   }
+}
+
+  const handleUpdateEstatus = async (factura, nuevoEstatus) => {
+  try {
+    // Solo enviar el estatus, no toda la factura
+    await facturaService.updateFacturaEstatus(factura.id, {
+      estatus: nuevoEstatus
+    })
+    toast.success(`Estado actualizado a ${nuevoEstatus}`)
+    loadFacturas(currentPage)
+  } catch (error) {
+    toast.error(error.message || 'Error al actualizar estado')
+  }
+}
 
   const handleViewDetails = (factura) => {
     setSelectedFactura(factura)
     setShowViewModal(true)
+  }
+
+  const handleEdit = (factura) => {
+    setSelectedFactura(factura)
+    setShowEditModal(true)
+  }
+  const handleConfirmEdit = async (id, updateData) => {
+    try {
+      await facturaService.updateFactura(id, updateData)
+      toast.success('Factura actualizada exitosamente')
+      setShowEditModal(false)
+      setSelectedFactura(null)
+      loadFacturas(currentPage)
+    } catch (error) {
+      toast.error(error.message || 'Error al actualizar factura')
+      throw error
+    }
   }
 
   const handleDeleteFactura = (factura) => {
@@ -353,16 +376,17 @@ const FacturasPage = () => {
           <div className="relative lg:w-64">
             <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
             <select
-              value={filterEstatus}
-              onChange={(e) => setFilterEstatus(e.target.value)}
-              className="w-full pl-12 pr-4 py-2.5 lg:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-700 appearance-none cursor-pointer"
-            >
-              <option value="TODAS">Todas las facturas</option>
-              <option value="PENDIENTE">Pendientes</option>
-              <option value="PAGO_PARCIAL">Pago parcial</option>
-              <option value="PAGADA">Pagadas</option>
-              <option value="VENCIDA">Vencidas</option>
-            </select>
+                value={filterEstatus}
+                onChange={(e) => setFilterEstatus(e.target.value)}
+                className="w-full pl-12 pr-4 py-2.5 lg:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-700 appearance-none cursor-pointer"
+                >
+                <option value="TODAS">Todas las facturas</option>
+                <option value="PENDIENTE">Pendientes</option>
+                <option value="COMPLETADA">Completadas</option>
+                <option value="PAGO_PARCIAL">Pago parcial</option>
+                <option value="PAGADA">Pagadas</option>
+                <option value="VENCIDA">Vencidas</option>
+              </select>
           </div>
         </div>
       </div>
@@ -387,6 +411,7 @@ const FacturasPage = () => {
             onEstatusChange={handleEstatusChange}
             onRegistrarPagoParcial={handleRegistrarPagoParcial}
             onDelete={handleDeleteFactura}
+            onEdit={handleEdit}
           />
         ))}
       </div>
@@ -512,6 +537,17 @@ const FacturasPage = () => {
           setShowViewModal(false)
           setSelectedFactura(null)
         }}
+        factura={selectedFactura}
+        clientes={clientes}
+      />
+
+      <EditFacturaModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false)
+          setSelectedFactura(null)
+        }}
+        onConfirm={handleConfirmEdit}
         factura={selectedFactura}
         clientes={clientes}
       />

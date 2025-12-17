@@ -58,6 +58,18 @@ export const facturaService = {
     }
   },
 
+  // Actualizar todos los campos de una factura
+  async updateFactura(id, facturaData) {
+    try {
+      const response = await apiClient.put(`/api/facturas/${id}`, facturaData)
+      return response.data
+    } catch (error) {
+      console.error('Error al actualizar factura:', error)
+      const message = error.response?.data?.message || 'Error al actualizar factura'
+      throw new Error(message)
+    }
+  },
+
   // Eliminar una factura
   async deleteFactura(id) {
     try {

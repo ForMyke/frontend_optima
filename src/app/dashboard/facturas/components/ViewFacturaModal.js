@@ -1,6 +1,6 @@
 'use client'
 
-import { FileText, User, DollarSign, Calendar, CheckCircle, Clock, X } from 'lucide-react'
+import { FileText, User, DollarSign, Calendar, CheckCircle, Clock, X, MapPin, Truck } from 'lucide-react'
 import { formatDateUTC } from '@/utils/dateUtils'
 
 const ViewFacturaModal = ({ isOpen, onClose, factura, clientes = [] }) => {
@@ -58,6 +58,10 @@ const ViewFacturaModal = ({ isOpen, onClose, factura, clientes = [] }) => {
                 </span>
               </div>
               <div>
+                <p className="text-sm text-slate-600 font-medium mb-1">Tipo</p>
+                <p className="text-base text-slate-900">{factura.tipo || 'Sin tipo'}</p>
+              </div>
+              <div>
                 <p className="text-sm text-slate-600 font-medium mb-1">Observaciones</p>
                 <p className="text-base text-slate-900">{factura.observaciones || 'Sin observaciones'}</p>
               </div>
@@ -98,6 +102,73 @@ const ViewFacturaModal = ({ isOpen, onClose, factura, clientes = [] }) => {
               )}
             </div>
           </div>
+
+          {/* Información del Viaje */}
+          {(factura.origen || factura.destino || factura.operadorNombre || factura.unidadPlacas || factura.fechaViaje) && (
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
+                <Truck className="h-5 w-5 mr-2" />
+                Información del Viaje
+              </h3>
+              <div className="bg-slate-50 rounded-lg p-4 space-y-3">
+                {(factura.origen || factura.destino) && (
+                  <div className="grid grid-cols-2 gap-4">
+                    {factura.origen && (
+                      <div>
+                        <p className="text-sm text-slate-600 font-medium mb-1 flex items-center">
+                          <MapPin className="h-4 w-4 mr-1" />
+                          Origen
+                        </p>
+                        <p className="text-base text-slate-900">{factura.origen}</p>
+                      </div>
+                    )}
+                    {factura.destino && (
+                      <div>
+                        <p className="text-sm text-slate-600 font-medium mb-1 flex items-center">
+                          <MapPin className="h-4 w-4 mr-1" />
+                          Destino
+                        </p>
+                        <p className="text-base text-slate-900">{factura.destino}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {(factura.operadorNombre || factura.unidadPlacas) && (
+                  <div className="grid grid-cols-2 gap-4">
+                    {factura.operadorNombre && (
+                      <div>
+                        <p className="text-sm text-slate-600 font-medium mb-1 flex items-center">
+                          <User className="h-4 w-4 mr-1" />
+                          Operador
+                        </p>
+                        <p className="text-base text-slate-900">{factura.operadorNombre}</p>
+                      </div>
+                    )}
+                    {factura.unidadPlacas && (
+                      <div>
+                        <p className="text-sm text-slate-600 font-medium mb-1 flex items-center">
+                          <Truck className="h-4 w-4 mr-1" />
+                          Placas
+                        </p>
+                        <p className="text-base text-slate-900">{factura.unidadPlacas}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {factura.fechaViaje && (
+                  <div>
+                    <p className="text-sm text-slate-600 font-medium mb-1 flex items-center">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      Fecha del Viaje
+                    </p>
+                    <p className="text-base text-slate-900">{formatDateUTC(factura.fechaViaje)}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Cliente */}
           <div>
