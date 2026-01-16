@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useRef } from 'react'
-import { formatDateUTC } from '@/utils/dateUtils'
+import { useState, useEffect, useRef } from "react";
+import { formatDateUTC } from "@/utils/dateUtils";
 import {
   FileText,
   MoreVertical,
@@ -14,86 +14,97 @@ import {
   XCircle,
   Plus,
   Trash2,
-  Edit
-} from 'lucide-react'
+  Edit,
+} from "lucide-react";
 
-const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChange, onRegistrarPagoParcial, onDelete, onEdit }) => {
-  const [showMenu, setShowMenu] = useState(false)
-  const menuRef = useRef(null)
+const FacturaCard = ({
+  factura,
+  clientes,
+  onPagar,
+  onViewDetails,
+  onEstatusChange,
+  onRegistrarPagoParcial,
+  onDelete,
+  onEdit,
+}) => {
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setShowMenu(false)
+        setShowMenu(false);
       }
-    }
+    };
 
     if (showMenu) {
-      document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [showMenu])
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showMenu]);
 
   // Buscar el cliente por ID
-  const cliente = clientes.find(c => c.id === factura.clienteId)
+  const cliente = clientes.find((c) => c.id === factura.clienteId);
 
   // Calcular el estatus real (considerar si está vencida)
   const getEstatusReal = () => {
-    if (factura.estatus === 'PAGADA' || factura.estatus === 'FACTURADA') {
-      return factura.estatus
+    if (factura.estatus === "PAGADA" || factura.estatus === "FACTURADA") {
+      return factura.estatus;
     }
-    
+
     // Verificar si está vencida
     if (factura.fechaVencimiento) {
-      const hoy = new Date()
-      hoy.setHours(0, 0, 0, 0)
-      const fechaVenc = new Date(factura.fechaVencimiento)
-      fechaVenc.setHours(0, 0, 0, 0)
-      
-      if (fechaVenc < hoy && factura.estatus !== 'PAGADA' && factura.estatus !== 'COMPLETADA') {
-        return 'VENCIDA'
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      const fechaVenc = new Date(factura.fechaVencimiento);
+      fechaVenc.setHours(0, 0, 0, 0);
+
+      if (
+        fechaVenc < hoy &&
+        factura.estatus !== "PAGADA" &&
+        factura.estatus !== "COMPLETADA"
+      ) {
+        return "VENCIDA";
       }
     }
-    
-    return factura.estatus
-  }
 
-  const estatusReal = getEstatusReal()
+    return factura.estatus;
+  };
+
+  const estatusReal = getEstatusReal();
 
   const getEstatusColor = (estatus) => {
     switch (estatus) {
-      case 'PAGADA':
-        return 'bg-emerald-100 text-emerald-700'
-      case 'PAGO_PARCIAL':
-        return 'bg-blue-100 text-blue-700'
-      case 'PENDIENTE':
-        return 'bg-orange-100 text-orange-700'
-      case 'COMPLETADA':
-        return 'bg-purple-100 text-purple-700'
-      case 'VENCIDA':
-        return 'bg-red-100 text-red-700'
+      case "PAGADA":
+        return "bg-emerald-100 text-emerald-700";
+      case "PAGO_PARCIAL":
+        return "bg-blue-100 text-blue-700";
+      case "PENDIENTE":
+        return "bg-orange-100 text-orange-700";
+      case "COMPLETADA":
+        return "bg-purple-100 text-purple-700";
+      case "VENCIDA":
+        return "bg-red-100 text-red-700";
       default:
-        return 'bg-slate-100 text-slate-700'
+        return "bg-slate-100 text-slate-700";
     }
-  }
+  };
 
-  const getEstatusIcon = (estatus) => {
+  const renderEstatusIcon = (estatus) => {
     switch (estatus) {
-      case 'PAGADA':
-        return CheckCircle
-      case 'PENDIENTE':
-        return Clock
-      case 'VENCIDA':
-        return XCircle
+      case "PAGADA":
+        return <CheckCircle className="h-3 w-3" />;
+      case "PENDIENTE":
+        return <Clock className="h-3 w-3" />;
+      case "VENCIDA":
+        return <XCircle className="h-3 w-3" />;
       default:
-        return FileText
+        return <FileText className="h-3 w-3" />;
     }
-  }
-
-  const EstatusIcon = getEstatusIcon(factura.estatus)
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-all">
@@ -105,16 +116,25 @@ const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChang
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-lg font-semibold text-slate-900">{factura.numeroFactura}</h3>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEstatusColor(estatusReal)} flex items-center gap-1`}>
-                  <EstatusIcon className="h-3 w-3" />
+                <h3 className="text-lg font-semibold text-slate-900">
+                  {factura.numeroFactura}
+                </h3>
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-medium ${getEstatusColor(estatusReal)} flex items-center gap-1`}
+                >
+                  {renderEstatusIcon(factura.estatus)}
                   {estatusReal}
                 </span>
               </div>
-              <p className="text-sm text-slate-500">{cliente?.nombre || 'Sin cliente'}</p>
+              <p className="text-sm text-slate-500">
+                {cliente?.nombre || "Sin cliente"}
+              </p>
               {factura.viajeId && (
                 <p className="text-xs text-slate-400 mt-1">
-                  Viaje ID: <span className="font-semibold text-slate-600">#{factura.viajeId}</span>
+                  Viaje ID:{" "}
+                  <span className="font-semibold text-slate-600">
+                    #{factura.viajeId}
+                  </span>
                 </p>
               )}
             </div>
@@ -130,8 +150,8 @@ const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChang
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-10">
                 <button
                   onClick={() => {
-                    onViewDetails(factura)
-                    setShowMenu(false)
+                    onViewDetails(factura);
+                    setShowMenu(false);
                   }}
                   className="flex cursor-pointer items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                 >
@@ -140,8 +160,8 @@ const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChang
                 </button>
                 <button
                   onClick={() => {
-                    onEdit(factura)
-                    setShowMenu(false)
+                    onEdit(factura);
+                    setShowMenu(false);
                   }}
                   className="flex cursor-pointer items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                 >
@@ -150,8 +170,8 @@ const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChang
                 </button>
                 <button
                   onClick={() => {
-                    onDelete(factura)
-                    setShowMenu(false)
+                    onDelete(factura);
+                    setShowMenu(false);
                   }}
                   className="flex cursor-pointer items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                 >
@@ -171,17 +191,22 @@ const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChang
           <select
             value={factura.estatus}
             onChange={(e) => {
-              const nuevoEstatus = e.target.value
+              const nuevoEstatus = e.target.value;
               if (nuevoEstatus !== factura.estatus) {
-                onEstatusChange(factura, nuevoEstatus)
+                onEstatusChange(factura, nuevoEstatus);
               }
             }}
-            className={`w-full px-3 py-2 rounded-lg border-2 transition-all font-medium text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 ${factura.estatus === 'PENDIENTE' ? 'border-orange-200 bg-orange-50 text-orange-800' :
-              factura.estatus === 'PAGADA' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' :
-                factura.estatus === 'PAGO_PARCIAL' ? 'border-blue-200 bg-blue-50 text-blue-800' :
-                  factura.estatus === 'COMPLETADA' ? 'border-purple-200 bg-purple-50 text-purple-800' :
-                    'border-red-200 bg-red-50 text-red-800'
-              }`}
+            className={`w-full px-3 py-2 rounded-lg border-2 transition-all font-medium text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              factura.estatus === "PENDIENTE"
+                ? "border-orange-200 bg-orange-50 text-orange-800"
+                : factura.estatus === "PAGADA"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                  : factura.estatus === "PAGO_PARCIAL"
+                    ? "border-blue-200 bg-blue-50 text-blue-800"
+                    : factura.estatus === "COMPLETADA"
+                      ? "border-purple-200 bg-purple-50 text-purple-800"
+                      : "border-red-200 bg-red-50 text-red-800"
+            }`}
           >
             <option value="PENDIENTE">Pendiente</option>
             <option value="COMPLETADA">Completada</option>
@@ -198,7 +223,11 @@ const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChang
                 Monto Total:
               </span>
               <span className="text-sm font-bold text-slate-900">
-                ${(factura.monto || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                $
+                {(factura.monto || 0).toLocaleString("es-MX", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </span>
             </div>
             <div>
@@ -213,30 +242,44 @@ const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChang
           </div>
 
           {/* Información de pago parcial */}
-          {factura.estatus === 'PAGO_PARCIAL' && factura.montoParcial > 0 && (
+          {factura.estatus === "PAGO_PARCIAL" && factura.montoParcial > 0 && (
             <div className="pt-3 border-t border-slate-100 bg-linear-to-br from-orange-50 to-orange-100 rounded-lg p-3 -mx-3">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-xs text-orange-600 font-medium">Pagado:</span>
+                <span className="text-xs text-orange-600 font-medium">
+                  Pagado:
+                </span>
                 <span className="text-sm font-bold text-orange-700">
-                  ${(factura.montoParcial || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                  $
+                  {(factura.montoParcial || 0).toLocaleString("es-MX", {
+                    minimumFractionDigits: 2,
+                  })}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-xs text-orange-700 font-medium">Por pagar:</span>
+                <span className="text-xs text-orange-700 font-medium">
+                  Por pagar:
+                </span>
                 <span className="text-sm font-bold text-orange-800">
-                  ${((factura.monto || 0) - (factura.montoParcial || 0)).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                  $
+                  {(
+                    (factura.monto || 0) - (factura.montoParcial || 0)
+                  ).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                 </span>
               </div>
               {/* Barra de progreso */}
               <div className="mt-3 w-full bg-orange-200 rounded-full h-2">
                 <div
                   className="bg-orange-600 h-2 rounded-full transition-all"
-                  style={{ width: `${((factura.montoParcial || 0) / (factura.monto || 1)) * 100}%` }}
+                  style={{
+                    width: `${((factura.montoParcial || 0) / (factura.monto || 1)) * 100}%`,
+                  }}
                 />
               </div>
               {/* Botón Registrar Pago */}
               <button
-                onClick={() => onRegistrarPagoParcial && onRegistrarPagoParcial(factura)}
+                onClick={() =>
+                  onRegistrarPagoParcial && onRegistrarPagoParcial(factura)
+                }
                 className="mt-3 w-full bg-orange-400 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
               >
                 <Plus className="h-4 w-4" />
@@ -248,13 +291,17 @@ const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChang
           {factura.observaciones && (
             <div className="pt-3 border-t border-slate-100">
               <p className="text-xs text-slate-500 mb-1">Observaciones:</p>
-              <p className="text-sm text-slate-700 line-clamp-2">{factura.observaciones}</p>
+              <p className="text-sm text-slate-700 line-clamp-2">
+                {factura.observaciones}
+              </p>
             </div>
           )}
 
-          {factura.estatus === 'PAGADA' && factura.fechaPago && (
+          {factura.estatus === "PAGADA" && factura.fechaPago && (
             <div className="pt-3 border-t border-slate-100 bg-emerald-50 rounded-lg p-3 -mx-3">
-              <p className="text-xs text-emerald-600 font-medium mb-1">Pagada el:</p>
+              <p className="text-xs text-emerald-600 font-medium mb-1">
+                Pagada el:
+              </p>
               <p className="text-sm text-emerald-700 font-semibold">
                 {formatDateUTC(factura.fechaPago)}
               </p>
@@ -268,7 +315,7 @@ const FacturaCard = ({ factura, clientes, onPagar, onViewDetails, onEstatusChang
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default FacturaCard
+export default FacturaCard;

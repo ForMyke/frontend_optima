@@ -1,84 +1,88 @@
-import { apiClient } from './authService'
+import { apiClient } from "./authService";
 
 export const facturaService = {
   // Obtener todas las facturas con paginación
   async getFacturas(page = 0, size = 10) {
     try {
-      const response = await apiClient.get('/api/facturas', {
+      const response = await apiClient.get("/api/facturas", {
         params: {
           page,
-          size
-        }
-      })
-      return response.data
+          size,
+        },
+      });
+      return response.data;
     } catch (error) {
-      console.error('Error al obtener facturas:', error)
-      throw error
+      console.error("Error al obtener facturas:", error);
+      throw error;
     }
   },
 
   // Obtener facturas por estatus
   async getFacturasByEstatus(estatus, page = 0, size = 10) {
     try {
-      const response = await apiClient.get('/api/facturas/estatus', {
+      const response = await apiClient.get("/api/facturas/estatus", {
         params: {
           estatus,
           page,
-          size
-        }
-      })
-      return response.data
+          size,
+        },
+      });
+      return response.data;
     } catch (error) {
-      console.error('Error al obtener facturas por estatus:', error)
-      throw error
+      console.error("Error al obtener facturas por estatus:", error);
+      throw error;
     }
   },
 
   // Obtener una factura por ID
   async getFacturaById(id) {
     try {
-      const response = await apiClient.get(`/api/facturas/${id}`)
-      return response.data
+      const response = await apiClient.get(`/api/facturas/${id}`);
+      return response.data;
     } catch (error) {
-      console.error('Error al obtener factura:', error)
-      const message = error.response?.data?.message || 'Error al obtener factura'
-      throw new Error(message)
+      console.error("Error al obtener factura:", error);
+      const message =
+        error.response?.data?.message || "Error al obtener factura";
+      throw new Error(message);
     }
   },
 
   // Actualizar el estatus de una factura (marcar como pagada)
   async updateFacturaEstatus(id, facturaData) {
     try {
-      const response = await apiClient.put(`/api/facturas/${id}`, facturaData)
-      return response.data
+      const response = await apiClient.put(`/api/facturas/${id}`, facturaData);
+      return response.data;
     } catch (error) {
-      console.error('Error al actualizar factura:', error)
-      const message = error.response?.data?.message || 'Error al actualizar factura'
-      throw new Error(message)
+      console.error("Error al actualizar factura:", error);
+      const message =
+        error.response?.data?.message || "Error al actualizar factura";
+      throw new Error(message);
     }
   },
 
   // Actualizar todos los campos de una factura
   async updateFactura(id, facturaData) {
     try {
-      const response = await apiClient.put(`/api/facturas/${id}`, facturaData)
-      return response.data
+      const response = await apiClient.put(`/api/facturas/${id}`, facturaData);
+      return response.data;
     } catch (error) {
-      console.error('Error al actualizar factura:', error)
-      const message = error.response?.data?.message || 'Error al actualizar factura'
-      throw new Error(message)
+      console.error("Error al actualizar factura:", error);
+      const message =
+        error.response?.data?.message || "Error al actualizar factura";
+      throw new Error(message);
     }
   },
 
   // Eliminar una factura
   async deleteFactura(id) {
     try {
-      const response = await apiClient.delete(`/api/facturas/${id}`)
-      return response.data
+      const response = await apiClient.delete(`/api/facturas/${id}`);
+      return response.data;
     } catch (error) {
-      console.error('Error al eliminar factura:', error)
-      const message = error.response?.data?.message || 'Error al eliminar factura'
-      throw new Error(message)
+      console.error("Error al eliminar factura:", error);
+      const message =
+        error.response?.data?.message || "Error al eliminar factura";
+      throw new Error(message);
     }
   },
 
@@ -87,59 +91,60 @@ export const facturaService = {
     try {
       // pagoData contiene: montoParcial, metodoPago, fechaPago, observaciones
       // Si es EFECTIVO, tipo = SIN_FACTURA, otros métodos = FACTURADO
-      const tipo = pagoData.metodoPago === 'EFECTIVO' ? 'SIN_FACTURA' : 'FACTURADO'
+      const tipo =
+        pagoData.metodoPago === "EFECTIVO" ? "SIN_FACTURA" : "FACTURADO";
 
       const facturaData = {
         montoParcial: parseFloat(pagoData.montoParcial),
         metodoPago: pagoData.metodoPago,
         fechaPago: pagoData.fechaPago,
-        tipo
-      }
+        tipo,
+      };
 
       // Agregar observaciones si existen
       if (pagoData.observaciones && pagoData.observaciones.trim()) {
-        facturaData.observaciones = pagoData.observaciones.trim()
+        facturaData.observaciones = pagoData.observaciones.trim();
       }
 
-      return await this.updateFacturaEstatus(id, facturaData)
+      return await this.updateFacturaEstatus(id, facturaData);
     } catch (error) {
-      console.error('Error al registrar pago:', error)
-      throw error
+      console.error("Error al registrar pago:", error);
+      throw error;
     }
   },
 
   // Método legacy - mantener compatibilidad
   async marcarComoPagada(id, fechaPago, metodoPago) {
     try {
-      const tipo = metodoPago === 'EFECTIVO' ? 'SIN_FACTURA' : 'FACTURADO'
+      const tipo = metodoPago === "EFECTIVO" ? "SIN_FACTURA" : "FACTURADO";
 
       const facturaData = {
-        estatus: 'PAGADA',
+        estatus: "PAGADA",
         fechaPago,
         metodoPago,
-        tipo
-      }
-      return await this.updateFacturaEstatus(id, facturaData)
+        tipo,
+      };
+      return await this.updateFacturaEstatus(id, facturaData);
     } catch (error) {
-      console.error('Error al marcar factura como pagada:', error)
-      throw error
+      console.error("Error al marcar factura como pagada:", error);
+      throw error;
     }
   },
 
   // Obtener facturas por tipo (SIN_FACTURA o FACTURADO)
   async getFacturasByTipo(tipo, page = 0, size = 10) {
     try {
-      const response = await apiClient.get('/api/facturas/tipo', {
+      const response = await apiClient.get("/api/facturas/tipo", {
         params: {
           tipo,
           page,
-          size
-        }
-      })
-      return response.data
+          size,
+        },
+      });
+      return response.data;
     } catch (error) {
-      console.error('Error al obtener facturas por tipo:', error)
-      throw error
+      console.error("Error al obtener facturas por tipo:", error);
+      throw error;
     }
   },
 
@@ -148,113 +153,123 @@ export const facturaService = {
   // Obtener todas las facturas extra con paginación
   async getFacturasExtra(page = 0, size = 10) {
     try {
-      const response = await apiClient.get('/api/facturas-extra', {
+      const response = await apiClient.get("/api/facturas-extra", {
         params: {
           page,
-          size
-        }
-      })
-      return response.data
+          size,
+        },
+      });
+      return response.data;
     } catch (error) {
-      console.error('Error al obtener facturas extra:', error)
-      throw error
+      console.error("Error al obtener facturas extra:", error);
+      throw error;
     }
   },
 
   // Obtener una factura extra por ID
   async getFacturaExtraById(id) {
     try {
-      const response = await apiClient.get(`/api/facturas-extra/${id}`)
-      return response.data
+      const response = await apiClient.get(`/api/facturas-extra/${id}`);
+      return response.data;
     } catch (error) {
-      console.error('Error al obtener factura extra:', error)
-      const message = error.response?.data?.message || 'Error al obtener factura extra'
-      throw new Error(message)
+      console.error("Error al obtener factura extra:", error);
+      const message =
+        error.response?.data?.message || "Error al obtener factura extra";
+      throw new Error(message);
     }
   },
 
   // Crear una nueva factura extra
   async createFacturaExtra(facturaData) {
     try {
-      const response = await apiClient.post('/api/facturas-extra', facturaData)
-      return response.data
+      const response = await apiClient.post("/api/facturas-extra", facturaData);
+      return response.data;
     } catch (error) {
-      console.error('Error al crear factura extra:', error)
-      const message = error.response?.data?.message || 'Error al crear factura extra'
-      throw new Error(message)
+      console.error("Error al crear factura extra:", error);
+      const message =
+        error.response?.data?.message || "Error al crear factura extra";
+      throw new Error(message);
     }
   },
 
   // Actualizar una factura extra
   async updateFacturaExtra(id, facturaData) {
     try {
-      const response = await apiClient.put(`/api/facturas-extra/${id}`, facturaData)
-      return response.data
+      const response = await apiClient.put(
+        `/api/facturas-extra/${id}`,
+        facturaData,
+      );
+      return response.data;
     } catch (error) {
-      console.error('Error al actualizar factura extra:', error)
-      const message = error.response?.data?.message || 'Error al actualizar factura extra'
-      throw new Error(message)
+      console.error("Error al actualizar factura extra:", error);
+      const message =
+        error.response?.data?.message || "Error al actualizar factura extra";
+      throw new Error(message);
     }
   },
 
   // Eliminar una factura extra
   async deleteFacturaExtra(id) {
     try {
-      const response = await apiClient.delete(`/api/facturas-extra/${id}`)
-      return response.data
+      const response = await apiClient.delete(`/api/facturas-extra/${id}`);
+      return response.data;
     } catch (error) {
-      console.error('Error al eliminar factura extra:', error)
-      const message = error.response?.data?.message || 'Error al eliminar factura extra'
-      throw new Error(message)
+      console.error("Error al eliminar factura extra:", error);
+      const message =
+        error.response?.data?.message || "Error al eliminar factura extra";
+      throw new Error(message);
     }
   },
 
   // Obtener facturas extra por estatus
   async getFacturasExtraByEstatus(estatus, page = 0, size = 10) {
     try {
-      const response = await apiClient.get('/api/facturas-extra/estatus', {
+      const response = await apiClient.get("/api/facturas-extra/estatus", {
         params: {
           estatus,
           page,
-          size
-        }
-      })
-      return response.data
+          size,
+        },
+      });
+      return response.data;
     } catch (error) {
-      console.error('Error al obtener facturas extra por estatus:', error)
-      throw error
+      console.error("Error al obtener facturas extra por estatus:", error);
+      throw error;
     }
   },
 
   // Obtener facturas extra por cliente
   async getFacturasExtraByCliente(clienteId, page = 0, size = 10) {
     try {
-      const response = await apiClient.get(`/api/facturas-extra/cliente/${clienteId}`, {
-        params: {
-          page,
-          size
-        }
-      })
-      return response.data
+      const response = await apiClient.get(
+        `/api/facturas-extra/cliente/${clienteId}`,
+        {
+          params: {
+            page,
+            size,
+          },
+        },
+      );
+      return response.data;
     } catch (error) {
-      console.error('Error al obtener facturas extra por cliente:', error)
-      throw error
+      console.error("Error al obtener facturas extra por cliente:", error);
+      throw error;
     }
   },
 
   // Obtener facturas extra vencidas
   async getFacturasExtraVencidas(page = 0, size = 10) {
     try {
-      const response = await apiClient.get('/api/facturas-extra/vencidas', {
+      const response = await apiClient.get("/api/facturas-extra/vencidas", {
         params: {
           page,
-          size
-        }
-      })
-      return response.data
+          size,
+        },
+      });
+      return response.data;
     } catch (error) {
-      console.error('Error al obtener facturas extra vencidas:', error)
-      throw error
+      console.error("Error al obtener facturas extra vencidas:", error);
+      throw error;
     }
   },
 
@@ -262,14 +277,37 @@ export const facturaService = {
   async marcarFacturaExtraComoPagada(id, fechaPago, metodoPago) {
     try {
       const facturaData = {
-        estatus: 'PAGADA',
+        estatus: "PAGADA",
         fechaPago,
-        metodoPago
-      }
-      return await this.updateFacturaExtra(id, facturaData)
+        metodoPago,
+      };
+      return await this.updateFacturaExtra(id, facturaData);
     } catch (error) {
-      console.error('Error al marcar factura extra como pagada:', error)
-      throw error
+      console.error("Error al marcar factura extra como pagada:", error);
+      throw error;
     }
-  }
-}
+  },
+
+  // ========== SERVICIOS DE DASHBOARD ==========
+
+  // Obtener datos del dashboard de facturas
+  async getDashboard(diasHistorial = null, diasCompletadas = null) {
+    try {
+      const params = {};
+      if (diasHistorial !== null) {
+        params.diasHistorial = diasHistorial;
+      }
+      if (diasCompletadas !== null) {
+        params.diasCompletadas = diasCompletadas;
+      }
+
+      const response = await apiClient.get("/api/facturas/dashboard", {
+        params,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error al obtener dashboard de facturas:", error);
+      throw error;
+    }
+  },
+};
