@@ -594,35 +594,25 @@ const ViajesPage = () => {
 
   }, [viewMode])
 
-  const loadViajes = async (page = 0) => {
+  // No dependencias de activeTabId en el efecto para evitar recargas constantes,
+  // ya que filtraremos en cliente.
+  // Pero si el usuario cambia algo que requiera recarga (como crear), llamamos loadViajes.
+
+  const loadViajes = async () => {
     try {
       setLoading(true)
-      const response = await viajesService.getViajes(page, pageSize)
-      const viajesData = response.content || []
 
-      // Si la respuesta incluye información de paginación, actualizar el estado
-      if (response.totalPages !== undefined) {
-        setTotalPages(response.totalPages)
-      }
+      // Cargar una gran cantidad de viajes para permitir filtrado y paginación en cliente
+      // Esto soluciona que el paginador respete los filtros de fecha (semana/mes)
+      const response = await viajesService.getViajes(0, 2000)
+      const viajesData = response.content || []
 
       // Ordenar los viajes por ID de forma descendente (más recientes primero)
       const viajesOrdenados = [...viajesData].sort((a, b) => b.id - a.id)
 
       setViajes(viajesOrdenados)
-      setCurrentPage(page)
+      // No seteamos estadísticas aquí porque dependen del filtro
 
-      // Calcular estadísticas 
-      // Nota: Estas estadísticas serán solo de la página actual si no hay un endpoint de stats
-      const pendientes = viajesData.filter(v => v.estado === 'PENDIENTE').length
-      const enCurso = viajesData.filter(v => v.estado === 'EN_CURSO').length
-      const completados = viajesData.filter(v => v.estado === 'COMPLETADO').length
-
-      setStats({
-        total: response.totalElements || viajesData.length,
-        pendientes,
-        enCurso,
-        completados
-      })
     } catch (error) {
       console.error('Error loading viajes:', error)
       toast.error('Error al cargar viajes')
@@ -682,7 +672,7 @@ const ViajesPage = () => {
     try {
       await viajesService.createViaje(viajeData, archivo)
       toast.success('Viaje creado exitosamente')
-      loadViajes(0)
+      loadViajes()
     } catch (error) {
       toast.error(error.message || 'Error al crear viaje')
       throw error
@@ -705,7 +695,7 @@ const ViajesPage = () => {
       toast.success('Viaje actualizado exitosamente')
       setShowEditModal(false)
       setSelectedViaje(null)
-      loadViajes(currentPage)
+      loadViajes()
     } catch (error) {
       toast.error(error.message || 'Error al actualizar viaje')
       throw error
@@ -725,7 +715,7 @@ const ViajesPage = () => {
       toast.success(`Viaje #${viajeToDelete.id} eliminado`)
       setShowDeleteModal(false)
       setViajeToDelete(null)
-      loadViajes(currentPage)
+      loadViajes()
     } catch (error) {
       toast.error(error.message || 'Error al eliminar viaje')
     }
@@ -817,7 +807,7 @@ const ViajesPage = () => {
     // Filtrar por estado
     const matchesEstado = estadoFilter === 'TODOS' || viaje.estado === estadoFilter
 
-    // Obtener origen y destino (pueden estar en ruta o directamente en viaje)
+    // Obtener origen y destino
     const origen = viaje.ruta?.origen || viaje.origen || ''
     const destino = viaje.ruta?.destino || viaje.destino || ''
 
@@ -859,6 +849,37 @@ const ViajesPage = () => {
 
     return matchesEstado && matchesSearch && matchesTime
   })
+
+  // Calcular estadísticas basadas en lo filtrado
+  useEffect(() => {
+    const pendientes = filteredViajes.filter(v => v.estado === 'PENDIENTE').length
+    const enCurso = filteredViajes.filter(v => v.estado === 'EN_CURSO').length
+    const completados = filteredViajes.filter(v => v.estado === 'COMPLETADO').length
+
+    setStats({
+      total: filteredViajes.length,
+      pendientes,
+      enCurso,
+      completados
+    })
+
+    // Resetear a página 0 cuando cambian los filtros
+    setCurrentPage(0)
+    // Calcular total de páginas
+    setTotalPages(Math.ceil(filteredViajes.length / pageSize))
+  }, [viajes, estadoFilter, searchTerm, activeTabId, pageSize]) // Dependencias que afectan el filtrado
+
+  // Paginación en cliente
+  const paginatedViajes = filteredViajes.slice(
+    currentPage * pageSize,
+    (currentPage + 1) * pageSize
+  )
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 0 && newPage < totalPages) {
+      setCurrentPage(newPage)
+    }
+  }
 
   if (loading) {
     return (
@@ -909,7 +930,7 @@ const ViajesPage = () => {
           value={stats.total}
           icon={Truck}
           color="bg-blue-600"
-          description="Viajes registrados"
+          description="En periodo seleccionado"
         />
         <StatCard
           title="Pendientes"
@@ -1018,7 +1039,7 @@ const ViajesPage = () => {
 
       {/* Viajes Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredViajes.map((viaje) => (
+        {paginatedViajes.map((viaje) => (
           <ViajeCard
             key={viaje.id}
             viaje={viaje}
@@ -1033,38 +1054,41 @@ const ViajesPage = () => {
         ))}
       </div>
 
-      {filteredViajes.length === 0 && (
+      {paginatedViajes.length === 0 && (
         <div className="text-center py-12">
           <Truck className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-          <p className="text-slate-500">No se encontraron viajes</p>
+          <p className="text-slate-500">No se encontraron viajes en este periodo</p>
         </div>
       )}
 
       {/* Pagination */}
-      <div className="mt-8 flex items-center justify-between border-t border-slate-200 pt-4">
-        <div className="text-sm text-slate-500">
-          Página <span className="font-medium text-slate-900">{currentPage + 1}</span> de{' '}
-          <span className="font-medium text-slate-900">{totalPages}</span>
+      {filteredViajes.length > 0 && (
+        <div className="mt-8 flex items-center justify-between border-t border-slate-200 pt-4">
+          <div className="text-sm text-slate-500">
+            Página <span className="font-medium text-slate-900">{currentPage + 1}</span> de{' '}
+            <span className="font-medium text-slate-900">{totalPages || 1}</span>
+            <span className="ml-2 text-slate-400">(Total: {filteredViajes.length} viajes)</span>
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 0 || loading}
+              className="flex items-center px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Anterior
+            </button>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage >= totalPages - 1 || loading}
+              className="flex items-center px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Siguiente
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </button>
+          </div>
         </div>
-        <div className="flex space-x-2">
-          <button
-            onClick={() => loadViajes(currentPage - 1)}
-            disabled={currentPage === 0 || loading}
-            className="flex items-center px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <ChevronLeft className="h-4 w-4 mr-2" />
-            Anterior
-          </button>
-          <button
-            onClick={() => loadViajes(currentPage + 1)}
-            disabled={currentPage >= totalPages - 1 || loading}
-            className="flex items-center px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Siguiente
-            <ChevronRight className="h-4 w-4 ml-2" />
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Modals */}
       <CreateViajeModal

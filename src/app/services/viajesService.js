@@ -2,14 +2,16 @@ import { apiClient } from './authService'
 
 export const viajesService = {
   // Obtener todos los viajes con paginación
-  async getViajes(page = 0, size = 10) {
+  // Obtener todos los viajes con paginación y filtros
+  async getViajes(page = 0, size = 10, filters = {}) {
     try {
-      const response = await apiClient.get('/api/viajes', {
-        params: {
-          page,
-          size
-        }
-      })
+      const params = {
+        page,
+        size,
+        ...filters
+      }
+
+      const response = await apiClient.get('/api/viajes', { params })
       return response.data
     } catch (error) {
       console.error('Error al obtener viajes:', error)
