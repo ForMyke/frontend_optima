@@ -104,6 +104,8 @@ export default function NominaFijaPage() {
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
     const [periodoFilter, setPeriodoFilter] = useState('')
+    const [fechaInicioFiltro, setFechaInicioFiltro] = useState('')
+    const [fechaFinFiltro, setFechaFinFiltro] = useState('')
 
     // Date Tabs State
     const [viewMode, setViewMode] = useState('week') // 'week' | 'month'
@@ -249,20 +251,46 @@ export default function NominaFijaPage() {
         const matchesPeriodo = periodoFilter === '' ||
             nomina.periodoInicio?.startsWith(periodoFilter)
 
-        // Filtro por Fecha/Pestaña seleccionada (Browser Tabs)
-        let matchesTime = true
-        if (activeTabId && timeTabs.length > 0) {
-            const activeTab = timeTabs.find(t => t.id === activeTabId)
-            if (activeTab) {
-                if (nomina.periodoInicio) {
-                    // Ajustar zona horaria o comparar fecha
-                    const nominaDate = new Date(nomina.periodoInicio + 'T12:00:00')
-                    matchesTime = nominaDate >= activeTab.start && nominaDate <= activeTab.end
-                } else {
-                    matchesTime = false
+            let matchesTime = true
+
+            if (nomina.periodoInicio || nomina.periodoFin) {
+                const inicioNomina = nomina.periodoInicio
+                    ? new Date(nomina.periodoInicio + 'T12:00:00')
+                    : null
+
+                const finNomina = nomina.periodoFin
+                    ? new Date(nomina.periodoFin + 'T12:00:00')
+                    : inicioNomina
+
+                if (fechaInicioFiltro || fechaFinFiltro) {
+                    const inicioFiltro = fechaInicioFiltro
+                        ? new Date(fechaInicioFiltro + 'T00:00:00')
+                        : null
+
+                    const finFiltro = fechaFinFiltro
+                        ? new Date(fechaFinFiltro + 'T23:59:59')
+                        : null
+
+                    if (inicioFiltro && finNomina) {
+                        matchesTime = matchesTime && finNomina >= inicioFiltro
+                    }
+
+                    if (finFiltro && inicioNomina) {
+                        matchesTime = matchesTime && inicioNomina <= finFiltro
+                    }
+                } else if (activeTabId && timeTabs.length > 0) {
+                    const activeTab = timeTabs.find(t => t.id === activeTabId)
+                    if (activeTab) {
+                        matchesTime =
+                            !!inicioNomina &&
+                            !!finNomina &&
+                            finNomina >= activeTab.start &&
+                            inicioNomina <= activeTab.end
+                    }
                 }
+            } else {
+                matchesTime = false
             }
-        }
 
         return matchesSearch && matchesPeriodo && matchesTime
     })
@@ -319,6 +347,12 @@ export default function NominaFijaPage() {
                 />
             </div>
 
+            {(fechaInicioFiltro || fechaFinFiltro) && (
+                <div className="mb-4 mx-1 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+                    Estás usando un filtro manual por fechas. Las pestañas semanal/mensual quedan en segundo plano.
+                </div>
+            )}
+
             {/* Time Filter Switch & Tabs */}
             <div className="mb-0 bg-white rounded-t-xl border border-b-0 border-slate-200 shadow-sm mx-1">
                 <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 rounded-t-xl">
@@ -371,7 +405,7 @@ export default function NominaFijaPage() {
 
             {/* Filters */}
             <div className="bg-white rounded-b-xl rounded-t-none shadow-sm border border-t-0 border-slate-200 p-4 mx-1 mt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                     {/* Search */}
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
@@ -403,6 +437,50 @@ export default function NominaFijaPage() {
                             })}
                         </select>
                     </div>
+
+                    {/* Fecha inicio manual */}
+                    <div>
+                        <label className="block text-xs font-medium text-slate-500 mb-1">
+                            Fecha inicio
+                        </label>
+                        <input
+                            type="date"
+                            value={fechaInicioFiltro}
+                            onChange={(e) => setFechaInicioFiltro(e.target.value)}
+                            className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                        />
+                    </div>
+
+                    {/* Fecha fin manual */}
+                    <div>
+                        <label className="block text-xs font-medium text-slate-500 mb-1">
+                            Fecha fin
+                        </label>
+                        <input
+                            type="date"
+                            value={fechaFinFiltro}
+                            onChange={(e) => setFechaFinFiltro(e.target.value)}
+                            className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                        />
+                    </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                        onClick={() => {
+                            setFechaInicioFiltro('')
+                            setFechaFinFiltro('')
+                        }}
+                        className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
+                    >
+                        Limpiar fechas
+                    </button>
+
+                    {(fechaInicioFiltro || fechaFinFiltro) && (
+                        <div className="flex items-center px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium">
+                            Filtro manual activo
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -420,11 +498,11 @@ export default function NominaFijaPage() {
                     <Wallet className="h-16 w-16 text-slate-300 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold text-slate-900 mb-2">No se encontraron nóminas</h3>
                     <p className="text-slate-600 mb-6">
-                        {searchTerm || periodoFilter
+                        {searchTerm || periodoFilter || fechaInicioFiltro || fechaFinFiltro
                             ? 'Intenta ajustar los filtros de búsqueda'
                             : 'Comienza creando una nueva nómina fija'}
                     </p>
-                    {!searchTerm && !periodoFilter && (
+                    {!searchTerm && !periodoFilter && !fechaInicioFiltro && !fechaFinFiltro && (
                         <button
                             onClick={() => setShowCreateModal(true)}
                             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
