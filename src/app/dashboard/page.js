@@ -398,7 +398,79 @@ const FacturasPagoParcialSection = ({
   );
 };
 
+const SemanaResumenCard = ({ semana, titulo }) => {
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency: "MXN",
+    }).format(amount ?? 0);
+  };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+
+    const date = new Date(`${dateString}T00:00:00`);
+
+    return date.toLocaleDateString("es-MX", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const estadoConfig =
+    semana?.estado === "EN_CURSO"
+      ? {
+          text: "En curso",
+          className: "bg-blue-100 text-blue-800",
+        }
+      : {
+          text: "Cerrada",
+          className: "bg-green-100 text-green-800",
+        };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900">{titulo}</h3>
+          <p className="text-xs text-slate-500">
+            {formatDate(semana?.viernes)} - {formatDate(semana?.finReal)}
+          </p>
+        </div>
+
+        <span
+          className={`px-2 py-0.5 rounded-full text-xs font-medium ${estadoConfig.className}`}
+        >
+          {estadoConfig.text}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-blue-50 rounded-md p-3 border border-blue-100">
+          <p className="text-xs text-slate-600 mb-1">Ingresos</p>
+          <p className="text-base font-bold text-blue-700">
+            {formatCurrency(semana?.ingresos)}
+          </p>
+        </div>
+
+        <div className="bg-red-50 rounded-md p-3 border border-red-100">
+          <p className="text-xs text-slate-600 mb-1">Gastos</p>
+          <p className="text-base font-bold text-red-700">
+            {formatCurrency(semana?.gastos)}
+          </p>
+        </div>
+
+        <div className="bg-green-50 rounded-md p-3 border border-green-100">
+          <p className="text-xs text-slate-600 mb-1">Utilidad</p>
+          <p className="text-base font-bold text-green-700">
+            {formatCurrency(semana?.utilidad)}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -409,14 +481,18 @@ const Dashboard = () => {
   const [userName, setUserName] = useState("");
 
   // Estados para Finanzas (Tabs Compactos)
-  const [activeTab, setActiveTab] = useState("diario");
-  const [finanzasData, setFinanzasData] = useState({
-    ingresos: 0,
-    gastos: 0,
-    utilidad: 0,
-    fecha: "",
-  });
-  const [loadingFinanzas, setLoadingFinanzas] = useState(false);
+const [activeTab, setActiveTab] = useState("diario");
+
+const [finanzasData, setFinanzasData] = useState({
+  ingresos: 0,
+  gastos: 0,
+  utilidad: 0,
+  fecha: "",
+});
+
+const [semanasData, setSemanasData] = useState([]);
+
+const [loadingFinanzas, setLoadingFinanzas] = useState(false);
 
   useEffect(() => {
     const user = authService.getUser();
@@ -442,45 +518,66 @@ const Dashboard = () => {
   }, [activeTab, userRole]);
 
   const loadFinanzasData = async () => {
-    try {
-      setLoadingFinanzas(true);
+  try {
+    setLoadingFinanzas(true);
 
-      // Promesa de delay artificial para suavizar la transición (600ms)
-      const delayPromise = new Promise(resolve => setTimeout(resolve, 600));
+    const delayPromise = new Promise(resolve => setTimeout(resolve, 600));
 
-      let dataPromise;
-      const today = new Date();
-      const currentMonth = today.getMonth() + 1; // 1-12
-      const previousMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+    let dataPromise;
+    const today = new Date();
+    const currentMonth = today.getMonth() + 1;
+    const previousMonth = currentMonth === 1 ? 12 : currentMonth - 1;
 
-      switch (activeTab) {
-        case "diario":
-          dataPromise = finanzasService.getFinanzasDiario();
-          break;
-        case "semanal":
-          dataPromise = finanzasService.getFinanzasSemanal();
-          break;
-        case "mes_actual":
-          dataPromise = finanzasService.getFinanzasMensual(currentMonth);
-          break;
-        case "mes_anterior":
-          dataPromise = finanzasService.getFinanzasMensual(previousMonth);
-          break;
-        default:
-          dataPromise = finanzasService.getFinanzasDiario();
-      }
-
-      // Esperar a que ambas promesas se resuelvan (datos + delay mínimo)
-      const [data] = await Promise.all([dataPromise, delayPromise]);
-
-      setFinanzasData(data);
-    } catch (error) {
-      console.error("Error al cargar datos de finanzas:", error);
-      toast.error("Error al cargar datos financieros");
-    } finally {
-      setLoadingFinanzas(false);
+    switch (activeTab) {
+      case "diario":
+        dataPromise = finanzasService.getFinanzasDiario();
+        break;
+      case "semanal":
+        dataPromise = finanzasService.getFinanzasSemanal();
+        break;
+      case "mes_actual":
+        dataPromise = finanzasService.getFinanzasMensual(currentMonth);
+        break;
+      case "mes_anterior":
+        dataPromise = finanzasService.getFinanzasMensual(previousMonth);
+        break;
+      default:
+        dataPromise = finanzasService.getFinanzasDiario();
     }
-  };
+
+    const [data] = await Promise.all([dataPromise, delayPromise]);
+
+    console.log("TAB ACTIVO:", activeTab);
+    console.log("DATA FINANZAS:", data);
+
+    if (activeTab === "semanal" && Array.isArray(data)) {
+      setSemanasData(data);
+
+      setFinanzasData({
+        ingresos: Number(data[0]?.ingresos ?? 0),
+        gastos: Number(data[0]?.gastos ?? 0),
+        utilidad: Number(data[0]?.utilidad ?? 0),
+        fecha: data[0]?.viernes ?? "",
+        finReal: data[0]?.finReal ?? "",
+        estado: data[0]?.estado ?? "",
+      });
+    } else {
+      setSemanasData([]);
+
+      setFinanzasData({
+        ingresos: Number(data?.ingresos ?? 0),
+        gastos: Number(data?.gastos ?? 0),
+        utilidad: Number(data?.utilidad ?? 0),
+        fecha: data?.fecha ?? "",
+      });
+    }
+  } catch (error) {
+    console.error("Error al cargar datos de finanzas:", error);
+    toast.error("Error al cargar datos financieros");
+  } finally {
+    setLoadingFinanzas(false);
+  }
+};
 
   // Obtener nombres de los meses
   const fechaActual = new Date();
@@ -637,7 +734,7 @@ const Dashboard = () => {
           value={new Intl.NumberFormat("es-MX", {
             style: "currency",
             currency: "MXN",
-          }).format(finanzasData?.ingresos || 0)}
+          }).format(finanzasData?.ingresos ?? 0)}
           color="bg-gradient-to-br from-blue-600 to-blue-700"
           loading={loadingFinanzas}
         />
@@ -651,7 +748,7 @@ const Dashboard = () => {
           value={new Intl.NumberFormat("es-MX", {
             style: "currency",
             currency: "MXN",
-          }).format(finanzasData?.gastos || 0)}
+          }).format(finanzasData?.gastos ?? 0)}
           color="bg-gradient-to-br from-red-600 to-red-700"
           loading={loadingFinanzas}
         />
@@ -665,11 +762,24 @@ const Dashboard = () => {
           value={new Intl.NumberFormat("es-MX", {
             style: "currency",
             currency: "MXN",
-          }).format(finanzasData?.utilidad || 0)}
+          }).format(finanzasData?.utilidad ?? 0)}
           color="bg-gradient-to-br from-green-600 to-green-700"
           loading={loadingFinanzas}
         />
       </div>
+      {activeTab === "semanal" && semanasData.length > 0 && (
+  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
+    <SemanaResumenCard
+      titulo="Semana actual"
+      semana={semanasData[0]}
+    />
+
+    <SemanaResumenCard
+      titulo="Semana pasada"
+      semana={semanasData[1]}
+    />
+  </div>
+)}
 
       {/* Selector de profundidad compacto */}
       <div className="mb-4 bg-white rounded-lg shadow-sm border border-slate-200 p-3">
