@@ -843,28 +843,51 @@ export const exportNominaFijaPDF = (nomina) => {
 
 
   // Observaciones Area
-  let obsY = finalYTable + 35;
+  // Observaciones Area
+const pageHeight = doc.internal.pageSize.getHeight();
 
-  if (nomina.observaciones) {
-    doc.setFontSize(9);
-    doc.setTextColor(...COMPANY_COLOR);
-    doc.setFont('helvetica', 'bold');
-    doc.text('OBSERVACIONES', 15, obsY);
+let obsY = finalYTable + 35;
 
-    doc.setDrawColor(200, 200, 200);
-    doc.rect(15, obsY + 2, pageWidth - 30, 15);
+// Calculamos alto dinámico de observaciones
+let splitText = [];
+let obsBoxHeight = 0;
 
-    doc.setFontSize(9);
-    doc.setTextColor(...TEXT_COLOR);
-    doc.setFont('helvetica', 'normal');
-    const splitText = doc.splitTextToSize(nomina.observaciones, pageWidth - 40);
-    doc.text(splitText, 18, obsY + 7);
-    obsY += 25;
+if (nomina.observaciones) {
+  splitText = doc.splitTextToSize(nomina.observaciones, pageWidth - 40);
+  obsBoxHeight = Math.max(18, splitText.length * 5 + 10);
+
+  // Si ya no cabe observaciones + firmas + footer, agregamos nueva página
+  if (obsY + obsBoxHeight + 45 > pageHeight - 20) {
+    doc.addPage();
+    addProfessionalHeader(doc, 'Recibo de Nómina', 'Personal Administrativo');
+    obsY = 45;
   }
 
-  // Signatures
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const signY = pageHeight - 35;
+  doc.setFontSize(9);
+  doc.setTextColor(...COMPANY_COLOR);
+  doc.setFont('helvetica', 'bold');
+  doc.text('OBSERVACIONES', 15, obsY);
+
+  doc.setDrawColor(200, 200, 200);
+  doc.rect(15, obsY + 3, pageWidth - 30, obsBoxHeight);
+
+  doc.setFontSize(9);
+  doc.setTextColor(...TEXT_COLOR);
+  doc.setFont('helvetica', 'normal');
+  doc.text(splitText, 18, obsY + 9);
+}
+
+// Signatures
+let signY = nomina.observaciones
+  ? obsY + obsBoxHeight + 35
+  : finalYTable + 45;
+
+// Si las firmas ya no caben, agregamos nueva página
+if (signY + 20 > pageHeight - 15) {
+  doc.addPage();
+  addProfessionalHeader(doc, 'Recibo de Nómina', 'Personal Administrativo');
+  signY = 65;
+}
 
   doc.setDrawColor(...LIGHT_TEXT_COLOR);
   doc.setLineWidth(0.5);
