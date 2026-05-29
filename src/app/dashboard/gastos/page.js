@@ -151,8 +151,8 @@ export default function GastosSemanalesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Gastos Semanales</h1>
-          <p className="text-slate-600 mt-1">Registro y control de gastos por semana</p>
+          <h1 className="text-3xl font-bold text-slate-900">Gastos Diarios Administrativos y Operativos</h1>
+          <p className="text-slate-600 mt-1">Registro y control de gastos diarios</p>
         </div>
         <div className="flex gap-3">
           <button
