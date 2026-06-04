@@ -20,13 +20,17 @@ const GastoSemanalCard = ({ gasto, calcularTotal, onEdit, onDelete, onViewDetail
 
   // Formatear fechas
   const formatDate = (dateString) => {
-    if (!dateString) return 'Sin fecha'
-    return new Date(dateString).toLocaleDateString('es-MX', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    })
-  }
+  if (!dateString) return 'Sin fecha'
+
+  const [year, month, day] = dateString.split('-')
+  const date = new Date(Number(year), Number(month) - 1, Number(day))
+
+  return date.toLocaleDateString('es-MX', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  })
+}
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-all p-6">
