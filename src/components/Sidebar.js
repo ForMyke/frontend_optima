@@ -149,7 +149,7 @@ const menuItems = [
     {
         title: 'Administrativos',
         icon: Users2,
-        href: '/dashboard/administrartivos',
+        href: '/dashboard/administrativos',
     },
     {
         title: 'Usuarios',
