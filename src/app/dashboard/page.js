@@ -472,6 +472,82 @@ const SemanaResumenCard = ({ semana, titulo }) => {
   );
 };
 
+const DiaActualCard = ({ data, loading }) => {
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN'
+    }).format(Number(amount ?? 0))
+  }
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 mb-4">
+        <div className="h-5 w-44 bg-slate-100 rounded animate-pulse mb-4"></div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="h-20 bg-slate-100 rounded animate-pulse"></div>
+          <div className="h-20 bg-slate-100 rounded animate-pulse"></div>
+          <div className="h-20 bg-slate-100 rounded animate-pulse"></div>
+        </div>
+      </div>
+    )
+  }
+
+  const utilidad = Number(data?.utilidad ?? 0)
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 mb-4">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900">
+            Día actual en curso
+          </h3>
+          <p className="text-xs text-slate-500">
+            Ingresos, egresos y utilidad acumulada de hoy
+          </p>
+        </div>
+
+        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+          {data?.totalViajes ?? 0} viajes hoy
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-blue-50 rounded-md p-3 border border-blue-100">
+          <p className="text-xs text-slate-600 mb-1">Ingresos</p>
+          <p className="text-lg font-bold text-blue-700">
+            {formatCurrency(data?.ingresos)}
+          </p>
+        </div>
+
+        <div className="bg-red-50 rounded-md p-3 border border-red-100">
+          <p className="text-xs text-slate-600 mb-1">Egresos</p>
+          <p className="text-lg font-bold text-red-700">
+            {formatCurrency(data?.egresos)}
+          </p>
+        </div>
+
+        <div
+          className={`rounded-md p-3 border ${
+            utilidad >= 0
+              ? 'bg-green-50 border-green-100'
+              : 'bg-red-50 border-red-100'
+          }`}
+        >
+          <p className="text-xs text-slate-600 mb-1">Utilidad</p>
+          <p
+            className={`text-lg font-bold ${
+              utilidad >= 0 ? 'text-green-700' : 'text-red-700'
+            }`}
+          >
+            {formatCurrency(data?.utilidad)}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState(null);
@@ -479,6 +555,15 @@ const Dashboard = () => {
   const [diasCompletadas, setDiasCompletadas] = useState(10);
   const [userRole, setUserRole] = useState(null);
   const [userName, setUserName] = useState("");
+  const [diaActualData, setDiaActualData] = useState({
+    ingresos: 0,
+    egresos: 0,
+    utilidad: 0,
+    totalViajes: 0,
+    fecha: ''
+  })
+
+  const [loadingDiaActual, setLoadingDiaActual] = useState(false)
 
   // Estados para Finanzas (Tabs Compactos)
 const [activeTab, setActiveTab] = useState("diario");
@@ -510,6 +595,12 @@ const [loadingFinanzas, setLoadingFinanzas] = useState(false);
       setLoading(false);
     }
   }, [diasHistorial, diasCompletadas, userRole]);
+
+  useEffect(() => {
+  if (userRole === ROLES.ADMIN) {
+    loadDiaActualData()
+  }
+}, [userRole])
 
   useEffect(() => {
     if (userRole === ROLES.ADMIN) {
@@ -579,6 +670,26 @@ const [loadingFinanzas, setLoadingFinanzas] = useState(false);
   }
 };
 
+const loadDiaActualData = async () => {
+  try {
+    setLoadingDiaActual(true)
+
+    const data = await finanzasService.getDiaActual()
+
+    setDiaActualData({
+      ingresos: Number(data?.ingresos ?? 0),
+      egresos: Number(data?.egresos ?? 0),
+      utilidad: Number(data?.utilidad ?? 0),
+      totalViajes: Number(data?.totalViajes ?? 0),
+      fecha: data?.fecha ?? ''
+    })
+  } catch (error) {
+    console.error('Error al cargar día actual:', error)
+    toast.error('Error al cargar datos del día actual')
+  } finally {
+    setLoadingDiaActual(false)
+  }
+}
   // Obtener nombres de los meses
   const fechaActual = new Date();
   const nombreMesActual = fechaActual.toLocaleString('es-MX', { month: 'long' });
@@ -767,6 +878,10 @@ const [loadingFinanzas, setLoadingFinanzas] = useState(false);
           loading={loadingFinanzas}
         />
       </div>
+      <DiaActualCard
+  data={diaActualData}
+  loading={loadingDiaActual}
+/>
       {activeTab === "semanal" && semanasData.length > 0 && (
   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
     <SemanaResumenCard

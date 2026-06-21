@@ -14,6 +14,17 @@ const finanzasService = {
         }
     },
 
+    async getDiaActual() {
+    try {
+        const response = await apiClient.get('/api/finanzas/dia-actual')
+        return response.data
+    } catch (error) {
+        console.error('Error al obtener día actual:', error)
+        const message = error.response?.data?.message || 'Error al obtener día actual'
+        throw new Error(message)
+    }
+    },
+
     /**
      * Obtener finanzas de la semana actual
      */
