@@ -5,6 +5,17 @@ import { X, Save, Calendar, DollarSign, AlertCircle } from 'lucide-react'
 import { authService } from '@/app/services/authService'
 import gastosService from '@/app/services/gastosService'
 import toast from 'react-hot-toast'
+import gastosFijosService from '@/app/services/gastosFijosService'
+
+const MAP_GASTOS_FIJOS = {
+  IMSS: 'imss',
+  INFONAVIT: 'infonavit',
+  CONTADOR: 'contador',
+  GPS: 'gps',
+  SEGUROS: 'seguros',
+  CREDITOS: 'creditos',
+  TELEFONIA: 'telefonia'
+}
 
 const CreateGastoSemanalModal = ({ isOpen, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -31,87 +42,119 @@ const CreateGastoSemanalModal = ({ isOpen, onClose, onSubmit }) => {
   const [loadingDatos, setLoadingDatos] = useState(false)
 
   useEffect(() => {
-    const loadDatosGenerados = async () => {
-      if (isOpen) {
-        setLoadingDatos(true)
+  const loadDatosGenerados = async () => {
+    if (isOpen) {
+      setLoadingDatos(true)
+
+      try {
+        const datosGenerados = await gastosService.getGastosGenerados()
+
+        const fechaInicio = datosGenerados.fechaInicio || ''
+        const fechaFin = datosGenerados.fechaFin || ''
+        const dias = calcularDiasPeriodo(fechaInicio, fechaFin)
+
+        let gastosFijosCalculados = []
+
         try {
-          // Cargar datos generados por la API
-          const datosGenerados = await gastosService.getGastosGenerados()
-
-          setFormData({
-            semanaInicio: datosGenerados.fechaInicio || '',
-            semanaFin: datosGenerados.fechaFin || '',
-            iave: datosGenerados.iave || '0',
-            imss: '0',
-            infonavit: '0',
-            diesel: datosGenerados.diesel || '0',
-            nomina: datosGenerados.nomina || '0',
-            refacciones: '0',
-            contador: '0',
-            gps: '0',
-            gastosExtras: datosGenerados.gastosExtras || '0',
-            seguros: '0',
-            creditos: '0',
-            telefonia: '0',
-            gastoExtrahordinario: '0',
-            observaciones: ''
-          })
-
-          setTotalViajes(datosGenerados.totalViajes || 0)
-          setErrors({})
+          gastosFijosCalculados = await gastosFijosService.calcularGastosFijos(dias)
         } catch (error) {
-          console.error('Error al cargar datos generados:', error)
-          toast.error('Error al cargar datos automáticos')
-          // Resetear a valores en 0 si falla
-          setFormData({
-            semanaInicio: '',
-            semanaFin: '',
-            iave: '0',
-            imss: '0',
-            infonavit: '0',
-            diesel: '0',
-            nomina: '0',
-            refacciones: '0',
-            contador: '0',
-            gps: '0',
-            gastosExtras: '0',
-            seguros: '0',
-            creditos: '0',
-            telefonia: '0',
-            gastoExtrahordinario: '0',
-            observaciones: ''
-          })
-          setTotalViajes(0)
-        } finally {
-          setLoadingDatos(false)
+          console.error('Error al cargar gastos fijos:', error)
+          toast.error('No se pudieron cargar los gastos fijos')
         }
-      } else {
-        // Limpiar cuando se cierra
+
+        const camposGastosFijos = {}
+
+        gastosFijosCalculados.forEach((gasto) => {
+          const nombre = gasto.nombre?.toUpperCase()
+          const campoForm = MAP_GASTOS_FIJOS[nombre]
+
+          if (campoForm) {
+            camposGastosFijos[campoForm] = String(gasto.total || 0)
+          }
+        })
+
+        setFormData({
+          semanaInicio: fechaInicio,
+          semanaFin: fechaFin,
+
+          // Gastos calculados automáticamente por viajes
+          iave: datosGenerados.iave || '0',
+          diesel: datosGenerados.diesel || '0',
+          nomina: datosGenerados.nomina || '0',
+          gastosExtras: datosGenerados.gastosExtras || '0',
+
+          // Campos normales/manuales
+          refacciones: '0',
+          gastoExtrahordinario: '0',
+
+          // Gastos fijos calculados automáticamente
+          imss: camposGastosFijos.imss || '0',
+          infonavit: camposGastosFijos.infonavit || '0',
+          contador: camposGastosFijos.contador || '0',
+          gps: camposGastosFijos.gps || '0',
+          seguros: camposGastosFijos.seguros || '0',
+          creditos: camposGastosFijos.creditos || '0',
+          telefonia: camposGastosFijos.telefonia || '0',
+
+          observaciones: ''
+        })
+
+        setTotalViajes(datosGenerados.totalViajes || 0)
+        setErrors({})
+      } catch (error) {
+        console.error('Error al cargar datos generados:', error)
+        toast.error('Error al cargar datos automáticos')
+
         setFormData({
           semanaInicio: '',
           semanaFin: '',
-          iave: '',
-          imss: '',
-          infonavit: '',
-          diesel: '',
-          nomina: '',
-          refacciones: '',
-          contador: '',
-          gps: '',
-          gastosExtras: '',
-          seguros: '',
-          creditos: '',
-          gastoExtrahordinario: '',
-          telefonia: '',
+          iave: '0',
+          imss: '0',
+          infonavit: '0',
+          diesel: '0',
+          nomina: '0',
+          refacciones: '0',
+          contador: '0',
+          gps: '0',
+          gastosExtras: '0',
+          seguros: '0',
+          creditos: '0',
+          telefonia: '0',
+          gastoExtrahordinario: '0',
           observaciones: ''
         })
-        setTotalViajes(0)
-        setErrors({})
-      }
-    }
 
-    loadDatosGenerados()
-  }, [isOpen])
+        setTotalViajes(0)
+      } finally {
+        setLoadingDatos(false)
+      }
+    } else {
+      setFormData({
+        semanaInicio: '',
+        semanaFin: '',
+        iave: '',
+        imss: '',
+        infonavit: '',
+        diesel: '',
+        nomina: '',
+        refacciones: '',
+        contador: '',
+        gps: '',
+        gastosExtras: '',
+        seguros: '',
+        creditos: '',
+        gastoExtrahordinario: '',
+        telefonia: '',
+        observaciones: ''
+      })
+
+      setTotalViajes(0)
+      setErrors({})
+    }
+  }
+
+  loadDatosGenerados()
+}, [isOpen])
 
   const validate = () => {
     const newErrors = {}

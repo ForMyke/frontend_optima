@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Plus, DollarSign, Calendar, TrendingUp, TrendingDown, FileDown } from 'lucide-react'
+import { Search, Plus, DollarSign, FileDown, Settings } from 'lucide-react'
 import gastosService from '@/app/services/gastosService'
 import toast from 'react-hot-toast'
 import {
@@ -10,7 +10,8 @@ import {
   CreateGastoSemanalModal,
   EditGastoSemanalModal,
   ViewGastoSemanalModal,
-  ConfirmDeleteModal
+  ConfirmDeleteModal,
+  GastosFijosModal
 } from './components'
 import { exportGastosPDF } from '@/utils/pdfExport'
 
@@ -25,6 +26,7 @@ export default function GastosSemanalesPage() {
   const [showViewModal, setShowViewModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [selectedGasto, setSelectedGasto] = useState(null)
+  const [showGastosFijosModal, setShowGastosFijosModal] = useState(false)
 
   useEffect(() => {
     loadGastos()
@@ -163,6 +165,13 @@ export default function GastosSemanalesPage() {
             <span>Exportar PDF</span>
           </button>
           <button
+            onClick={() => setShowGastosFijosModal(true)}
+            className="px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2 font-medium"
+          >
+            <Settings className="h-5 w-5" />
+            <span>Gastos fijos</span>
+          </button>
+          <button
             onClick={() => setShowCreateModal(true)}
             className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 font-medium"
           >
@@ -264,6 +273,10 @@ export default function GastosSemanalesPage() {
         onConfirm={handleConfirmDelete}
         gasto={selectedGasto}
         calcularTotal={calcularTotal}
+      />
+      <GastosFijosModal
+        isOpen={showGastosFijosModal}
+        onClose={() => setShowGastosFijosModal(false)}
       />
     </div>
   )
