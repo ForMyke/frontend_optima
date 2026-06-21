@@ -6,46 +6,52 @@ import {
   Phone,
   MapPin,
   CreditCard,
-  Shield
+  DollarSign,
+  Hash
 } from 'lucide-react'
 import { authService } from '@/app/services/authService'
 
+const initialFormData = {
+  nombre: '',
+  telefono: '',
+  calle: '',
+  numeroExterior: '',
+  numeroInterior: '',
+  colonia: '',
+  ciudad: '',
+  estado: '',
+  codigoPostal: '',
+  pais: 'México',
+  licenciaNumero: '',
+  licenciaTipo: 'A',
+  licenciaVencimiento: '',
+  usuarioId: '',
+  sueldoBase: '',
+  eco: '',
+  activo: true
+}
+
 const CreateOperadorModal = ({ isOpen, onClose, onSave, users }) => {
   const [currentUser, setCurrentUser] = useState(null)
-  const [formData, setFormData] = useState({
-    nombre: '',
-    telefono: '',
-    calle: '',
-    numeroExterior: '',
-    numeroInterior: '',
-    colonia: '',
-    ciudad: '',
-    estado: '',
-    codigoPostal: '',
-    pais: 'México',
-    licenciaNumero: '',
-    licenciaTipo: 'A',
-    licenciaVencimiento: '',
-    usuarioId: '',
-    activo: true
-  })
+  const [formData, setFormData] = useState(initialFormData)
   const [isLoading, setIsLoading] = useState(false)
 
-  // Obtener el usuario actual al abrir el modal
   useEffect(() => {
     if (isOpen) {
       const user = authService.getUser()
       setCurrentUser(user)
-      // Establecer automáticamente el ID del usuario actual
-      setFormData(prev => ({ ...prev, usuarioId: user?.id || '' }))
+      setFormData(prev => ({
+        ...prev,
+        usuarioId: user?.id || ''
+      }))
     }
   }, [isOpen])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
+
     try {
-      // Concatenar dirección manteniendo el orden exacto (sin filtrar vacíos)
       const direccionCompleta = [
         formData.calle || '',
         formData.numeroExterior || '',
@@ -65,27 +71,14 @@ const CreateOperadorModal = ({ isOpen, onClose, onSave, users }) => {
         licenciaTipo: formData.licenciaTipo,
         licenciaVencimiento: formData.licenciaVencimiento,
         usuarioId: formData.usuarioId ? parseInt(formData.usuarioId) : null,
+        sueldoBase: Number(formData.sueldoBase || 0),
+        eco: formData.eco,
         activo: formData.activo
       }
 
       await onSave(dataToSend)
-      setFormData({
-        nombre: '',
-        telefono: '',
-        calle: '',
-        numeroExterior: '',
-        numeroInterior: '',
-        colonia: '',
-        ciudad: '',
-        estado: '',
-        codigoPostal: '',
-        pais: 'México',
-        licenciaNumero: '',
-        licenciaTipo: 'A',
-        licenciaVencimiento: '',
-        usuarioId: '',
-        activo: true
-      })
+
+      setFormData(initialFormData)
       onClose()
     } catch (error) {
       console.error('Error saving operador:', error)
@@ -106,7 +99,6 @@ const CreateOperadorModal = ({ isOpen, onClose, onSave, users }) => {
 
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Información Personal */}
             <div className="md:col-span-2">
               <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center">
                 <User className="h-4 w-4 mr-2" />
@@ -155,7 +147,44 @@ const CreateOperadorModal = ({ isOpen, onClose, onSave, users }) => {
               </p>
             </div>
 
-            {/* Dirección */}
+            <div className="md:col-span-2 mt-4">
+              <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center">
+                <DollarSign className="h-4 w-4 mr-2" />
+                Información laboral
+              </h3>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Sueldo base *
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.sueldoBase}
+                onChange={(e) => setFormData({ ...formData, sueldoBase: e.target.value })}
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                ECO
+              </label>
+              <div className="relative">
+                <Hash className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
+                <input
+                  type="text"
+                  value={formData.eco}
+                  onChange={(e) => setFormData({ ...formData, eco: e.target.value })}
+                  placeholder="Ej. ECO-04"
+                  className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                />
+              </div>
+            </div>
+
             <div className="md:col-span-2 mt-4">
               <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center">
                 <MapPin className="h-4 w-4 mr-2" />
@@ -265,7 +294,6 @@ const CreateOperadorModal = ({ isOpen, onClose, onSave, users }) => {
               />
             </div>
 
-            {/* Información de Licencia */}
             <div className="md:col-span-2 mt-4">
               <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center">
                 <CreditCard className="h-4 w-4 mr-2" />
@@ -338,6 +366,7 @@ const CreateOperadorModal = ({ isOpen, onClose, onSave, users }) => {
             >
               Cancelar
             </button>
+
             <button
               type="submit"
               disabled={isLoading}

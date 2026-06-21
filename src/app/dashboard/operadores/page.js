@@ -162,19 +162,24 @@ const OperadoresPage = () => {
   }
 
   const filteredOperadores = operadores.filter(operador => {
-    const matchesSearch = operador.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      operador.telefono.includes(searchTerm) ||
-      operador.licenciaNumero.toLowerCase().includes(searchTerm.toLowerCase())
+  const term = searchTerm.toLowerCase()
 
-    let matchesStatus = true
-    if (filterStatus === 'activo') {
-      matchesStatus = operador.activo === true
-    } else if (filterStatus === 'inactivo') {
-      matchesStatus = operador.activo === false
-    }
+  const matchesSearch =
+    (operador.nombre || '').toLowerCase().includes(term) ||
+    (operador.telefono || '').includes(searchTerm) ||
+    (operador.licenciaNumero || '').toLowerCase().includes(term) ||
+    (operador.eco || '').toLowerCase().includes(term)
 
-    return matchesSearch && matchesStatus
-  })
+  let matchesStatus = true
+
+  if (filterStatus === 'activo') {
+    matchesStatus = operador.activo === true
+  } else if (filterStatus === 'inactivo') {
+    matchesStatus = operador.activo === false
+  }
+
+  return matchesSearch && matchesStatus
+})
 
   if (loading) {
     return (

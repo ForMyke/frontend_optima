@@ -51,6 +51,7 @@ const availablePages = [
     '/dashboard/nomina-operativa',
     '/dashboard/nomina-fija',
     '/dashboard/pronostico-cobranza',
+    '/dashboard/administrativos'
 ]
 
 const menuItems = [
@@ -144,6 +145,11 @@ const menuItems = [
         title: 'Operadores',
         icon: Users2,
         href: '/dashboard/operadores',
+    },
+    {
+        title: 'Administrativos',
+        icon: Users2,
+        href: '/dashboard/administrartivos',
     },
     {
         title: 'Usuarios',

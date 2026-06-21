@@ -44,6 +44,7 @@ export const PERMISSIONS = {
       '/dashboard/resumen-gastos',
       '/dashboard/historico',
       '/dashboard/pronostico-cobranza',
+      '/dashboard/administrativos',
       // El admin tiene acceso a TODO
       '*' // Wildcard: acceso completo
     ],
@@ -74,6 +75,7 @@ export const PERMISSIONS = {
       '/dashboard/graficos',
       '/dashboard/resumen-gastos',
       '/dashboard/pronostico-cobranza',
+      '/dashboard/administrativos',
     ],
     displayName: 'Nomina'
   },

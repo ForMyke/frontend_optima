@@ -1,0 +1,6 @@
+export { default as StatCard } from './StatCard'
+export { default as AdministrativoCard } from './AdministrativoCard'
+export { default as ConfirmDeleteModal } from './ConfirmDeleteModal'
+export { default as CreateAdministrativoModal } from './CreateAdministrativoModal'
+export { default as EditAdministrativoModal } from './EditAdministrativoModal'
+export { default as ViewAdministrativoModal } from './ViewAdministrativoModal'

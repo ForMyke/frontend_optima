@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react'
 import {
   User,
+  Phone,
   MapPin,
-  CreditCard,
+  Mail,
+  Briefcase,
   DollarSign,
-  Hash
+  CreditCard
 } from 'lucide-react'
 
 const parseDireccion = (direccionString) => {
@@ -37,10 +39,12 @@ const parseDireccion = (direccionString) => {
   }
 }
 
-const EditOperadorModal = ({ isOpen, onClose, onSave, operador, users }) => {
+const EditAdministrativoModal = ({ isOpen, onClose, onSave, administrativo }) => {
   const [formData, setFormData] = useState({
     nombre: '',
+    puesto: '',
     telefono: '',
+    email: '',
     calle: '',
     numeroExterior: '',
     numeroInterior: '',
@@ -49,35 +53,33 @@ const EditOperadorModal = ({ isOpen, onClose, onSave, operador, users }) => {
     estado: '',
     codigoPostal: '',
     pais: 'México',
-    licenciaNumero: '',
-    licenciaTipo: 'A',
-    licenciaVencimiento: '',
-    usuarioId: '',
     sueldoBase: '',
-    eco: '',
+    nombreCuenta: '',
+    alias: '',
+    cuenta: '',
     activo: true
   })
 
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    if (operador) {
-      const direccionParsed = parseDireccion(operador.direccion)
+    if (administrativo) {
+      const direccionParsed = parseDireccion(administrativo.direccion)
 
       setFormData({
-        nombre: operador.nombre || '',
-        telefono: operador.telefono || '',
+        nombre: administrativo.nombre || '',
+        puesto: administrativo.puesto || '',
+        telefono: administrativo.telefono || '',
+        email: administrativo.email || '',
         ...direccionParsed,
-        licenciaNumero: operador.licenciaNumero || '',
-        licenciaTipo: operador.licenciaTipo || 'A',
-        licenciaVencimiento: operador.licenciaVencimiento || '',
-        usuarioId: operador.usuarioId || '',
-        sueldoBase: operador.sueldoBase ?? '',
-        eco: operador.eco || '',
-        activo: operador.activo ?? true
+        sueldoBase: administrativo.sueldoBase ?? '',
+        nombreCuenta: administrativo.nombreCuenta || '',
+        alias: administrativo.alias || '',
+        cuenta: administrativo.cuenta || '',
+        activo: administrativo.activo ?? true
       })
     }
-  }, [operador])
+  }, [administrativo])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -97,34 +99,36 @@ const EditOperadorModal = ({ isOpen, onClose, onSave, operador, users }) => {
 
       const dataToSend = {
         nombre: formData.nombre,
+        puesto: formData.puesto,
         telefono: formData.telefono,
         direccion: direccionCompleta,
-        licenciaNumero: formData.licenciaNumero,
-        licenciaTipo: formData.licenciaTipo,
-        licenciaVencimiento: formData.licenciaVencimiento,
-        usuarioId: formData.usuarioId ? parseInt(formData.usuarioId) : null,
+        email: formData.email,
         sueldoBase: Number(formData.sueldoBase || 0),
-        eco: formData.eco,
+        nombreCuenta: formData.nombreCuenta,
+        alias: formData.alias,
+        cuenta: formData.cuenta,
         activo: formData.activo
       }
 
-      await onSave(operador.id, dataToSend)
+      await onSave(administrativo.id, dataToSend)
       onClose()
     } catch (error) {
-      console.error('Error saving operador:', error)
+      console.error('Error saving administrativo:', error)
     } finally {
       setIsLoading(false)
     }
   }
 
-  if (!isOpen || !operador) return null
+  if (!isOpen || !administrativo) return null
 
   return (
     <div className="fixed inset-0 backdrop-blur-xs bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-slate-200">
-          <h2 className="text-2xl font-bold text-slate-900">Editar operador</h2>
-          <p className="text-sm text-slate-600 mt-1">Actualiza la información del operador</p>
+          <h2 className="text-2xl font-bold text-slate-900">Editar administrativo</h2>
+          <p className="text-sm text-slate-600 mt-1">
+            Actualiza la información del administrativo
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6">
@@ -151,43 +155,60 @@ const EditOperadorModal = ({ isOpen, onClose, onSave, operador, users }) => {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Teléfono *
+                Puesto
               </label>
-              <input
-                type="tel"
-                value={formData.telefono}
-                onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-                required
-              />
+              <div className="relative">
+                <Briefcase className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
+
+                <input
+                  type="text"
+                  value={formData.puesto}
+                  onChange={(e) => setFormData({ ...formData, puesto: e.target.value })}
+                  className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                />
+              </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Usuario asociado
+                Teléfono
               </label>
-              <select
-                value={formData.usuarioId}
-                onChange={(e) => setFormData({ ...formData, usuarioId: e.target.value })}
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-              >
-                <option value="">Sin usuario asociado</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.nombre} - {user.email}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
+
+                <input
+                  type="tel"
+                  value={formData.telefono}
+                  onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                  className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                />
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Correo electrónico
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
+
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+                />
+              </div>
             </div>
 
             <div className="md:col-span-2 mt-4">
               <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center">
                 <DollarSign className="h-4 w-4 mr-2" />
-                Información laboral
+                Información de sueldo
               </h3>
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Sueldo base *
               </label>
@@ -202,20 +223,47 @@ const EditOperadorModal = ({ isOpen, onClose, onSave, operador, users }) => {
               />
             </div>
 
+            <div className="md:col-span-2 mt-4">
+              <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center">
+                <CreditCard className="h-4 w-4 mr-2" />
+                Datos de pago
+              </h3>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                ECO
+                Nombre de cuenta
               </label>
-              <div className="relative">
-                <Hash className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
-                <input
-                  type="text"
-                  value={formData.eco}
-                  onChange={(e) => setFormData({ ...formData, eco: e.target.value })}
-                  placeholder="Ej. ECO-04"
-                  className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-                />
-              </div>
+              <input
+                type="text"
+                value={formData.nombreCuenta}
+                onChange={(e) => setFormData({ ...formData, nombreCuenta: e.target.value })}
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Alias
+              </label>
+              <input
+                type="text"
+                value={formData.alias}
+                onChange={(e) => setFormData({ ...formData, alias: e.target.value })}
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Cuenta
+              </label>
+              <input
+                type="text"
+                value={formData.cuenta}
+                onChange={(e) => setFormData({ ...formData, cuenta: e.target.value })}
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
+              />
             </div>
 
             <div className="md:col-span-2 mt-4">
@@ -227,30 +275,30 @@ const EditOperadorModal = ({ isOpen, onClose, onSave, operador, users }) => {
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Calle *
+                Calle
               </label>
               <input
                 type="text"
                 value={formData.calle}
                 onChange={(e) => setFormData({ ...formData, calle: e.target.value })}
                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-                required
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Números Exterior / Interior *
+                Números Exterior / Interior
               </label>
+
               <div className="grid grid-cols-2 gap-2">
                 <input
                   type="text"
                   value={formData.numeroExterior}
                   onChange={(e) => setFormData({ ...formData, numeroExterior: e.target.value })}
-                  placeholder="Ext.*"
+                  placeholder="Ext."
                   className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-                  required
                 />
+
                 <input
                   type="text"
                   value={formData.numeroInterior}
@@ -263,118 +311,62 @@ const EditOperadorModal = ({ isOpen, onClose, onSave, operador, users }) => {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Colonia *
+                Colonia
               </label>
               <input
                 type="text"
                 value={formData.colonia}
                 onChange={(e) => setFormData({ ...formData, colonia: e.target.value })}
                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-                required
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Ciudad *
+                Ciudad
               </label>
               <input
                 type="text"
                 value={formData.ciudad}
                 onChange={(e) => setFormData({ ...formData, ciudad: e.target.value })}
                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-                required
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Estado *
+                Estado
               </label>
               <input
                 type="text"
                 value={formData.estado}
                 onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-                required
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Código Postal *
+                Código Postal
               </label>
               <input
                 type="text"
                 value={formData.codigoPostal}
                 onChange={(e) => setFormData({ ...formData, codigoPostal: e.target.value })}
                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-                required
                 maxLength={5}
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                País *
+                País
               </label>
               <input
                 type="text"
                 value={formData.pais}
                 onChange={(e) => setFormData({ ...formData, pais: e.target.value })}
                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-                required
-              />
-            </div>
-
-            <div className="md:col-span-2 mt-4">
-              <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center">
-                <CreditCard className="h-4 w-4 mr-2" />
-                Información de licencia
-              </h3>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Número de licencia *
-              </label>
-              <input
-                type="text"
-                value={formData.licenciaNumero}
-                onChange={(e) => setFormData({ ...formData, licenciaNumero: e.target.value })}
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Tipo de licencia *
-              </label>
-              <select
-                value={formData.licenciaTipo}
-                onChange={(e) => setFormData({ ...formData, licenciaTipo: e.target.value })}
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-                required
-              >
-                <option value="A">A - Motocicletas</option>
-                <option value="B">B - Automóviles</option>
-                <option value="C">C - Camiones ligeros</option>
-                <option value="D">D - Camiones pesados</option>
-                <option value="E">E - Transporte de pasajeros</option>
-              </select>
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Fecha de vencimiento *
-              </label>
-              <input
-                type="date"
-                value={formData.licenciaVencimiento}
-                onChange={(e) => setFormData({ ...formData, licenciaVencimiento: e.target.value })}
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
-                required
               />
             </div>
 
@@ -386,7 +378,10 @@ const EditOperadorModal = ({ isOpen, onClose, onSave, operador, users }) => {
                   onChange={(e) => setFormData({ ...formData, activo: e.target.checked })}
                   className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
                 />
-                <span className="text-sm font-medium text-slate-700">Operador activo</span>
+
+                <span className="text-sm font-medium text-slate-700">
+                  Administrativo activo
+                </span>
               </label>
             </div>
           </div>
@@ -405,7 +400,7 @@ const EditOperadorModal = ({ isOpen, onClose, onSave, operador, users }) => {
               disabled={isLoading}
               className="px-6 cursor-pointer py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Actualizando...' : 'Actualizar operador'}
+              {isLoading ? 'Actualizando...' : 'Actualizar administrativo'}
             </button>
           </div>
         </form>
@@ -414,4 +409,4 @@ const EditOperadorModal = ({ isOpen, onClose, onSave, operador, users }) => {
   )
 }
 
-export default EditOperadorModal
+export default EditAdministrativoModal
