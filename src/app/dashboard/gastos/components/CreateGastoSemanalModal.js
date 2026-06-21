@@ -17,6 +17,15 @@ const MAP_GASTOS_FIJOS = {
   TELEFONIA: 'telefonia'
 }
 
+const normalizarNombreGasto = (nombre = '') => {
+  return nombre
+    .toString()
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+}
+
 const CreateGastoSemanalModal = ({ isOpen, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
     semanaInicio: '',
@@ -49,53 +58,51 @@ const CreateGastoSemanalModal = ({ isOpen, onClose, onSubmit }) => {
       try {
         const datosGenerados = await gastosService.getGastosGenerados()
 
-        const fechaInicio = datosGenerados.fechaInicio || ''
-        const fechaFin = datosGenerados.fechaFin || ''
-        const dias = calcularDiasPeriodo(fechaInicio, fechaFin)
-
-        let gastosFijosCalculados = []
+        let camposGastosFijos = {
+          imss: '0',
+          infonavit: '0',
+          contador: '0',
+          gps: '0',
+          seguros: '0',
+          creditos: '0',
+          telefonia: '0'
+        }
 
         try {
-          gastosFijosCalculados = await gastosFijosService.calcularGastosFijos(dias)
+          const gastosFijos = await gastosFijosService.getGastosFijos()
+
+          gastosFijos.forEach((gasto) => {
+            const nombreNormalizado = normalizarNombreGasto(gasto.nombre)
+            const campoForm = MAP_GASTOS_FIJOS[nombreNormalizado]
+
+            if (campoForm) {
+              camposGastosFijos[campoForm] = String(gasto.montoDiario || 0)
+            }
+          })
         } catch (error) {
           console.error('Error al cargar gastos fijos:', error)
           toast.error('No se pudieron cargar los gastos fijos')
         }
 
-        const camposGastosFijos = {}
-
-        gastosFijosCalculados.forEach((gasto) => {
-          const nombre = gasto.nombre?.toUpperCase()
-          const campoForm = MAP_GASTOS_FIJOS[nombre]
-
-          if (campoForm) {
-            camposGastosFijos[campoForm] = String(gasto.total || 0)
-          }
-        })
-
         setFormData({
-          semanaInicio: fechaInicio,
-          semanaFin: fechaFin,
+          semanaInicio: datosGenerados.fechaInicio || '',
+          semanaFin: datosGenerados.fechaFin || '',
 
-          // Gastos calculados automáticamente por viajes
           iave: datosGenerados.iave || '0',
           diesel: datosGenerados.diesel || '0',
           nomina: datosGenerados.nomina || '0',
           gastosExtras: datosGenerados.gastosExtras || '0',
 
-          // Campos normales/manuales
+          imss: camposGastosFijos.imss,
+          infonavit: camposGastosFijos.infonavit,
+          contador: camposGastosFijos.contador,
+          gps: camposGastosFijos.gps,
+          seguros: camposGastosFijos.seguros,
+          creditos: camposGastosFijos.creditos,
+          telefonia: camposGastosFijos.telefonia,
+
           refacciones: '0',
           gastoExtrahordinario: '0',
-
-          // Gastos fijos calculados automáticamente
-          imss: camposGastosFijos.imss || '0',
-          infonavit: camposGastosFijos.infonavit || '0',
-          contador: camposGastosFijos.contador || '0',
-          gps: camposGastosFijos.gps || '0',
-          seguros: camposGastosFijos.seguros || '0',
-          creditos: camposGastosFijos.creditos || '0',
-          telefonia: camposGastosFijos.telefonia || '0',
-
           observaciones: ''
         })
 
