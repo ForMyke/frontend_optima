@@ -1,4 +1,4 @@
-import { MoreVertical, Eye, Edit, Trash2, User, Calendar, DollarSign, Wallet, FileDown } from 'lucide-react'
+import { MoreVertical, Eye, Edit, Trash2, User, Calendar, DollarSign, Wallet, FileDown, Briefcase } from 'lucide-react'
 import { useState } from 'react'
 import { exportNominaFijaPDF } from '@/utils/pdfExport'
 import toast from 'react-hot-toast'
@@ -7,7 +7,6 @@ const NominaFijaCard = ({ nomina, onEdit, onDelete, onViewDetails }) => {
     const [showMenu, setShowMenu] = useState(false)
     const [generatingPDF, setGeneratingPDF] = useState(false)
 
-    // Calcular el total neto
     const totalNeto = (
         parseFloat(nomina.gananciaBase || 0) +
         parseFloat(nomina.extra || 0) -
@@ -23,7 +22,9 @@ const NominaFijaCard = ({ nomina, onEdit, onDelete, onViewDetails }) => {
 
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A'
-        const date = new Date(dateString)
+
+        const date = new Date(`${dateString}T12:00:00`)
+
         return date.toLocaleDateString('es-MX', {
             year: 'numeric',
             month: 'short',
@@ -34,6 +35,7 @@ const NominaFijaCard = ({ nomina, onEdit, onDelete, onViewDetails }) => {
     const handleGeneratePDF = () => {
         setGeneratingPDF(true)
         const toastId = toast.loading('Generando recibo...')
+
         try {
             exportNominaFijaPDF(nomina)
             toast.success('Recibo generado', { id: toastId })
@@ -48,26 +50,35 @@ const NominaFijaCard = ({ nomina, onEdit, onDelete, onViewDetails }) => {
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-all duration-200">
-            {/* Header */}
             <div className="p-5 border-b border-slate-100">
                 <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-3 flex-1">
                         <div className="p-2.5 bg-purple-50 rounded-lg">
                             <User className="h-5 w-5 text-purple-600" />
                         </div>
+
                         <div className="flex-1 min-w-0">
                             <h3 className="font-semibold text-slate-900 text-lg truncate">
                                 {nomina.nombre}
                             </h3>
-                            {nomina.alias && (
-                                <p className="text-sm text-slate-500 mt-0.5">
-                                    Alias: {nomina.alias}
-                                </p>
-                            )}
+
+                            <div className="flex flex-wrap gap-2 mt-1">
+                                {nomina.alias && (
+                                    <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-md">
+                                        Alias: {nomina.alias}
+                                    </span>
+                                )}
+
+                                {nomina.administrativoId && (
+                                    <span className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded-md flex items-center">
+                                        <Briefcase className="h-3 w-3 mr-1" />
+                                        Admin #{nomina.administrativoId}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Menu */}
                     <div className="relative">
                         <button
                             onClick={() => setShowMenu(!showMenu)}
@@ -82,6 +93,7 @@ const NominaFijaCard = ({ nomina, onEdit, onDelete, onViewDetails }) => {
                                     className="fixed inset-0 z-10"
                                     onClick={() => setShowMenu(false)}
                                 />
+
                                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-20">
                                     <button
                                         onClick={handleGeneratePDF}
@@ -89,8 +101,9 @@ const NominaFijaCard = ({ nomina, onEdit, onDelete, onViewDetails }) => {
                                         className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center space-x-2 disabled:opacity-50"
                                     >
                                         <FileDown className="h-4 w-4" />
-                                        <span>{generatingPDF ? 'Generando...' : 'Recibo Nomina'}</span>
+                                        <span>{generatingPDF ? 'Generando...' : 'Recibo Nómina'}</span>
                                     </button>
+
                                     <button
                                         onClick={() => {
                                             onViewDetails(nomina)
@@ -101,6 +114,7 @@ const NominaFijaCard = ({ nomina, onEdit, onDelete, onViewDetails }) => {
                                         <Eye className="h-4 w-4" />
                                         <span>Ver detalles</span>
                                     </button>
+
                                     <button
                                         onClick={() => {
                                             onEdit(nomina)
@@ -111,6 +125,7 @@ const NominaFijaCard = ({ nomina, onEdit, onDelete, onViewDetails }) => {
                                         <Edit className="h-4 w-4" />
                                         <span>Editar</span>
                                     </button>
+
                                     <button
                                         onClick={() => {
                                             onDelete(nomina)
@@ -128,9 +143,7 @@ const NominaFijaCard = ({ nomina, onEdit, onDelete, onViewDetails }) => {
                 </div>
             </div>
 
-            {/* Body */}
             <div className="p-5 space-y-4">
-                {/* Periodo */}
                 <div className="flex items-center space-x-2 text-sm">
                     <Calendar className="h-4 w-4 text-slate-400" />
                     <span className="text-slate-600">Periodo:</span>
@@ -139,20 +152,21 @@ const NominaFijaCard = ({ nomina, onEdit, onDelete, onViewDetails }) => {
                     </span>
                 </div>
 
-                {/* Detalles financieros */}
                 <div className="grid grid-cols-3 gap-3">
                     <div className="bg-slate-50 rounded-lg p-3">
-                        <p className="text-xs text-slate-600 mb-1">Ganancia Base</p>
+                        <p className="text-xs text-slate-600 mb-1">Sueldo Base</p>
                         <p className="text-sm font-semibold text-slate-900">
                             {formatCurrency(nomina.gananciaBase)}
                         </p>
                     </div>
+
                     <div className="bg-green-50 rounded-lg p-3">
                         <p className="text-xs text-green-700 mb-1">Extra</p>
                         <p className="text-sm font-semibold text-green-900">
                             {formatCurrency(nomina.extra)}
                         </p>
                     </div>
+
                     <div className="bg-red-50 rounded-lg p-3">
                         <p className="text-xs text-red-700 mb-1">Deben</p>
                         <p className="text-sm font-semibold text-red-900">
@@ -161,13 +175,13 @@ const NominaFijaCard = ({ nomina, onEdit, onDelete, onViewDetails }) => {
                     </div>
                 </div>
 
-                {/* Información bancaria */}
                 {(nomina.nombreCuenta || nomina.cuenta) && (
                     <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                         <div className="flex items-center space-x-2">
                             <Wallet className="h-4 w-4 text-slate-400" />
                             <span className="text-sm text-slate-600">Cuenta:</span>
                         </div>
+
                         <span className="text-sm font-medium text-slate-900 truncate max-w-[200px]">
                             {nomina.cuenta || 'No especificada'}
                         </span>
@@ -175,13 +189,13 @@ const NominaFijaCard = ({ nomina, onEdit, onDelete, onViewDetails }) => {
                 )}
             </div>
 
-            {/* Footer - Total */}
             <div className="px-5 py-4 bg-gradient-to-r from-purple-50 to-indigo-50 border-t border-slate-100 rounded-b-xl">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                         <DollarSign className="h-5 w-5 text-purple-600" />
                         <span className="text-sm font-medium text-slate-700">Total Neto:</span>
                     </div>
+
                     <span className="text-xl font-bold text-purple-600">
                         {formatCurrency(totalNeto)}
                     </span>

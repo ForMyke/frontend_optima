@@ -1,4 +1,4 @@
-import { X, User, Calendar, DollarSign, FileText, CreditCard, Wallet, Hash } from 'lucide-react'
+import { X, User, Calendar, DollarSign, FileText, CreditCard, Wallet, Hash, Briefcase } from 'lucide-react'
 
 const ViewNominaFijaModal = ({ isOpen, onClose, nomina }) => {
     if (!isOpen || !nomina) return null
@@ -18,7 +18,9 @@ const ViewNominaFijaModal = ({ isOpen, onClose, nomina }) => {
 
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A'
-        const date = new Date(dateString)
+
+        const date = new Date(`${dateString}T12:00:00`)
+
         return date.toLocaleDateString('es-MX', {
             year: 'numeric',
             month: 'long',
@@ -35,6 +37,7 @@ const ViewNominaFijaModal = ({ isOpen, onClose, nomina }) => {
                             <h2 className="text-2xl font-bold text-slate-900">Detalles de Nómina Fija</h2>
                             <p className="text-sm text-slate-600 mt-1">Información completa del registro</p>
                         </div>
+
                         <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-600 to-purple-700">
                             <Wallet className="h-7 w-7 text-white" />
                         </div>
@@ -45,21 +48,33 @@ const ViewNominaFijaModal = ({ isOpen, onClose, nomina }) => {
                     <div>
                         <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center">
                             <User className="h-4 w-4 mr-2" />
-                            Información Personal
+                            Administrativo
                         </h3>
+
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                             <div>
                                 <label className="text-xs font-medium text-slate-500">Nombre</label>
                                 <p className="text-sm text-slate-900 mt-1 font-semibold">{nomina.nombre}</p>
                             </div>
+
                             <div>
                                 <label className="text-xs font-medium text-slate-500">Alias</label>
                                 <p className="text-sm text-slate-900 mt-1">{nomina.alias || 'N/A'}</p>
                             </div>
+
+                            <div>
+                                <label className="text-xs font-medium text-slate-500">Administrativo ID</label>
+                                <p className="text-sm text-slate-900 mt-1 flex items-center">
+                                    <Briefcase className="h-3 w-3 mr-1 text-slate-400" />
+                                    {nomina.administrativoId ? `#${nomina.administrativoId}` : 'N/A'}
+                                </p>
+                            </div>
+
                             <div>
                                 <label className="text-xs font-medium text-slate-500">Nombre en Cuenta</label>
                                 <p className="text-sm text-slate-900 mt-1">{nomina.nombreCuenta || 'N/A'}</p>
                             </div>
+
                             <div className="col-span-2">
                                 <label className="text-xs font-medium text-slate-500">Cuenta Bancaria</label>
                                 <p className="text-sm text-slate-900 mt-1 flex items-center">
@@ -75,11 +90,13 @@ const ViewNominaFijaModal = ({ isOpen, onClose, nomina }) => {
                             <Calendar className="h-4 w-4 mr-2" />
                             Periodo
                         </h3>
+
                         <div className="grid grid-cols-2 gap-4">
                             <div className="bg-slate-50 p-3 rounded-lg">
                                 <label className="text-xs font-medium text-slate-500">Fecha de Inicio</label>
                                 <p className="text-sm text-slate-900 mt-1 font-semibold">{formatDate(nomina.periodoInicio)}</p>
                             </div>
+
                             <div className="bg-slate-50 p-3 rounded-lg">
                                 <label className="text-xs font-medium text-slate-500">Fecha de Fin</label>
                                 <p className="text-sm text-slate-900 mt-1 font-semibold">{formatDate(nomina.periodoFin)}</p>
@@ -92,15 +109,18 @@ const ViewNominaFijaModal = ({ isOpen, onClose, nomina }) => {
                             <DollarSign className="h-4 w-4 mr-2" />
                             Detalles Financieros
                         </h3>
+
                         <div className="grid grid-cols-3 gap-4">
                             <div>
-                                <label className="text-xs font-medium text-slate-500">Ganancia Base</label>
+                                <label className="text-xs font-medium text-slate-500">Sueldo Base</label>
                                 <p className="text-sm text-slate-900 mt-1 font-semibold">{formatCurrency(nomina.gananciaBase)}</p>
                             </div>
+
                             <div>
                                 <label className="text-xs font-medium text-slate-500">Extra</label>
                                 <p className="text-sm text-green-600 mt-1 font-semibold">{formatCurrency(nomina.extra)}</p>
                             </div>
+
                             <div>
                                 <label className="text-xs font-medium text-slate-500">Deben</label>
                                 <p className="text-sm text-red-600 mt-1 font-semibold">-{formatCurrency(nomina.deben)}</p>
@@ -112,8 +132,9 @@ const ViewNominaFijaModal = ({ isOpen, onClose, nomina }) => {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-medium text-slate-600">Total Neto</p>
-                                <p className="text-xs text-slate-500 mt-0.5">Ganancia Base + Extra - Deben</p>
+                                <p className="text-xs text-slate-500 mt-0.5">Sueldo Base + Extra - Deben</p>
                             </div>
+
                             <p className="text-3xl font-bold text-purple-600">{formatCurrency(totalNeto)}</p>
                         </div>
                     </div>
@@ -124,6 +145,7 @@ const ViewNominaFijaModal = ({ isOpen, onClose, nomina }) => {
                                 <FileText className="h-4 w-4 mr-2" />
                                 Observaciones
                             </h3>
+
                             <div className="bg-slate-50 p-4 rounded-lg">
                                 <p className="text-sm text-slate-700 whitespace-pre-wrap">{nomina.observaciones}</p>
                             </div>
@@ -135,6 +157,7 @@ const ViewNominaFijaModal = ({ isOpen, onClose, nomina }) => {
                             <Hash className="h-4 w-4 mr-2" />
                             Información del Sistema
                         </h3>
+
                         <div className="grid grid-cols-1 gap-4">
                             <div>
                                 <label className="text-xs font-medium text-slate-500">ID de Nómina</label>
