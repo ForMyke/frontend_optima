@@ -32,21 +32,25 @@ const ClientCard = ({ client, onEdit, onDelete, onViewDetails }) => {
   const tieneAtrasos = atrasosCobranza > 0;
   const riesgoAlto = atrasosCobranza >= 3;
 
-  const cardStyle = riesgoAlto
+  const cardClasses = riesgoAlto
     ? "bg-red-50 border-red-300 hover:shadow-red-100"
     : tieneAtrasos
       ? "bg-amber-50 border-amber-300 hover:shadow-amber-100"
       : "bg-white border-slate-200 hover:shadow-md";
 
-  const iconStyle = riesgoAlto
+  const iconClasses = riesgoAlto
     ? "from-red-600 to-red-700"
     : tieneAtrasos
       ? "from-amber-500 to-orange-600"
       : "from-blue-600 to-blue-700";
 
-  const badgeStyle = riesgoAlto
+  const badgeClasses = riesgoAlto
     ? "bg-red-100 text-red-700 border-red-200"
     : "bg-amber-100 text-amber-700 border-amber-200";
+
+  const alertaClasses = riesgoAlto
+    ? "bg-red-100 border-red-200 text-red-700"
+    : "bg-amber-100 border-amber-200 text-amber-700";
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -65,7 +69,7 @@ const ClientCard = ({ client, onEdit, onDelete, onViewDetails }) => {
   }, [showMenu]);
 
   const formatDate = (dateString) => {
-    if (!dateString) return null;
+    if (!dateString) return "N/A";
 
     const date = new Date(
       dateString.includes("T") ? dateString : `${dateString}T12:00:00`
@@ -106,13 +110,27 @@ const ClientCard = ({ client, onEdit, onDelete, onViewDetails }) => {
 
   return (
     <div
-      className={`rounded-xl shadow-sm border transition-all ${cardStyle}`}
+      className={`relative overflow-hidden rounded-xl shadow-sm border transition-all ${cardClasses}`}
     >
-      <div className="p-4 lg:p-6">
+      {tieneAtrasos && (
+        <div
+          className={`absolute top-0 left-0 right-0 px-4 py-1.5 text-center text-xs font-bold tracking-wide ${
+            riesgoAlto
+              ? "bg-red-600 text-white"
+              : "bg-amber-500 text-white"
+          }`}
+        >
+          {riesgoAlto
+            ? `CLIENTE CON RIESGO ALTO · ${atrasosCobranza} ATRASOS`
+            : `CLIENTE CON ${atrasosCobranza} ATRASO${atrasosCobranza === 1 ? "" : "S"}`}
+        </div>
+      )}
+
+      <div className={`p-4 lg:p-6 ${tieneAtrasos ? "pt-10" : ""}`}>
         <div className="flex items-start justify-between mb-3 lg:mb-4">
           <div className="flex items-center space-x-3 lg:space-x-4">
             <div
-              className={`w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${iconStyle} shrink-0`}
+              className={`w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${iconClasses} shrink-0`}
             >
               <Building2 className="h-5 w-5 lg:h-6 lg:w-6 text-white" />
             </div>
@@ -125,10 +143,11 @@ const ClientCard = ({ client, onEdit, onDelete, onViewDetails }) => {
 
                 {tieneAtrasos && (
                   <div
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-full border text-xs font-bold ${badgeStyle}`}
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold ${badgeClasses}`}
                   >
                     <AlertTriangle className="h-3.5 w-3.5" />
-                    {atrasosCobranza} atraso{atrasosCobranza === 1 ? "" : "s"}
+                    {atrasosCobranza} atraso
+                    {atrasosCobranza === 1 ? "" : "s"}
                   </div>
                 )}
               </div>
@@ -198,25 +217,40 @@ const ClientCard = ({ client, onEdit, onDelete, onViewDetails }) => {
         </div>
 
         {tieneAtrasos && (
-          <div
-            className={`mb-4 rounded-xl border px-3 py-2 ${
-              riesgoAlto
-                ? "bg-red-100 border-red-200 text-red-700"
-                : "bg-amber-100 border-amber-200 text-amber-700"
-            }`}
-          >
+          <div className={`mb-4 rounded-xl border px-3 py-3 ${alertaClasses}`}>
             <div className="flex items-start gap-2">
-              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-xs font-bold">
-                  Cliente con atraso de cobranza
+              <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" />
+
+              <div className="flex-1">
+                <p className="text-sm font-bold">
+                  Atraso de cobranza registrado
                 </p>
-                <p className="text-xs mt-0.5">
-                  Se ha atrasado {atrasosCobranza} vez
-                  {atrasosCobranza === 1 ? "" : "es"}
-                  {ultimaFechaPromesaPago &&
-                    ` · Última promesa: ${formatDate(ultimaFechaPromesaPago)}`}
+
+                <p className="text-xs mt-1">
+                  Este cliente ha pedido mover la fecha de pago{" "}
+                  <span className="font-bold">
+                    {atrasosCobranza} vez
+                    {atrasosCobranza === 1 ? "" : "es"}
+                  </span>
+                  .
                 </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+                  <div className="rounded-lg bg-white/70 border border-white px-2.5 py-2">
+                    <p className="text-[11px] opacity-80">Última promesa</p>
+                    <p className="text-xs font-bold">
+                      {formatDate(ultimaFechaPromesaPago)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg bg-white/70 border border-white px-2.5 py-2">
+                    <p className="text-[11px] opacity-80">Último atraso</p>
+                    <p className="text-xs font-bold flex items-center">
+                      <Clock className="h-3.5 w-3.5 mr-1" />
+                      {formatDate(ultimoAtrasoCobranza)}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -225,25 +259,18 @@ const ClientCard = ({ client, onEdit, onDelete, onViewDetails }) => {
         <div className="space-y-2">
           <div className="flex items-center text-xs lg:text-sm text-slate-600">
             <Mail className="h-4 w-4 mr-2 text-slate-400 shrink-0" />
-            <span className="truncate">{client.correo}</span>
+            <span className="truncate">{client.correo || "Sin correo"}</span>
           </div>
 
           <div className="flex items-center text-xs lg:text-sm text-slate-600">
             <Phone className="h-4 w-4 mr-2 text-slate-400 shrink-0" />
-            {client.telefono}
+            {client.telefono || "Sin teléfono"}
           </div>
 
           <div className="flex items-start text-xs lg:text-sm text-slate-600">
             <MapPin className="h-4 w-4 mr-2 text-slate-400 shrink-0 mt-0.5" />
             <span className="line-clamp-2">{formatearDireccion()}</span>
           </div>
-
-          {ultimoAtrasoCobranza && (
-            <div className="flex items-center text-xs lg:text-sm text-slate-600">
-              <Clock className="h-4 w-4 mr-2 text-slate-400 shrink-0" />
-              Último atraso registrado: {formatDate(ultimoAtrasoCobranza)}
-            </div>
-          )}
         </div>
       </div>
     </div>
