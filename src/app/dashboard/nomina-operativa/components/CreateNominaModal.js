@@ -177,7 +177,8 @@ const CreateNominaModal = ({ isOpen, onClose, onSubmit, operadores }) => {
                 setFormData(prev => ({
                     ...prev,
                     alias: operador.alias || '',
-                    cuenta: operador.cuenta || ''
+                    cuenta: operador.cuenta || '',
+                    sueldoBase: Number(operador.sueldoBase || 0).toFixed(2)
                 }))
             }
         }

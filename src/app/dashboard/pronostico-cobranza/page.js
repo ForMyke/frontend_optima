@@ -169,11 +169,13 @@ function getWeekTotal(row, weekDays) {
 function EditPronosticoModal({ open, registro, onClose, onSave, saving }) {
   const [fechaCredito, setFechaCredito] = useState("");
   const [monto, setMonto] = useState("");
+  const [estadoViaje, setEstadoViaje] = useState("FACTURADO");
 
   useEffect(() => {
     if (registro) {
       setFechaCredito(registro.fechaCredito || "");
       setMonto(String(registro.monto ?? ""));
+      setEstadoViaje(registro.estadoViaje || "FACTURADO");
     }
   }, [registro]);
 
@@ -192,9 +194,18 @@ function EditPronosticoModal({ open, registro, onClose, onSave, saving }) {
       return;
     }
 
+    if (estadoViaje === "PAGADA") {
+      const confirmar = window.confirm(
+        `¿Seguro que deseas marcar como PAGADA la factura del viaje #${registro.viajeId}?`
+      );
+
+      if (!confirmar) return;
+    }
+
     await onSave({
       fechaCredito,
       monto: Number(monto),
+      estadoViaje,
     });
   };
 
@@ -203,7 +214,9 @@ function EditPronosticoModal({ open, registro, onClose, onSave, saving }) {
       <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">Editar pronóstico</h3>
+            <h3 className="text-lg font-semibold text-slate-900">
+              Editar pronóstico
+            </h3>
             <p className="text-sm text-slate-500">
               Viaje #{registro.viajeId ?? "N/A"} · Cliente #{registro.clienteId}
             </p>
@@ -244,12 +257,34 @@ function EditPronosticoModal({ open, registro, onClose, onSave, saving }) {
             />
           </div>
 
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              Estado
+            </label>
+            <select
+              value={estadoViaje}
+              onChange={(e) => setEstadoViaje(e.target.value)}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+            >
+              <option value="FACTURADO">FACTURADO</option>
+              <option value="PAGADA">PAGADA</option>
+            </select>
+
+            {estadoViaje === "PAGADA" && (
+              <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700 border border-emerald-200">
+                Al guardar, la factura asociada a este viaje se marcará como pagada automáticamente.
+              </p>
+            )}
+          </div>
+
           <div className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
             <p>
-              <span className="font-medium">Estado:</span> {registro.estadoViaje || "N/A"}
+              <span className="font-medium">Estado actual:</span>{" "}
+              {registro.estadoViaje || "N/A"}
             </p>
             <p>
-              <span className="font-medium">Fecha viaje:</span> {registro.fechaViaje || "N/A"}
+              <span className="font-medium">Fecha viaje:</span>{" "}
+              {registro.fechaViaje || "N/A"}
             </p>
           </div>
 
@@ -289,7 +324,15 @@ function PronosticoCard({ registro, onEdit, onDelete }) {
             Viaje #{registro.viajeId ?? "N/A"}
           </div>
           {registro.estadoViaje && (
-            <div className="text-[11px] text-slate-500">{registro.estadoViaje}</div>
+            <div
+              className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                registro.estadoViaje === "PAGADA"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-blue-100 text-blue-700"
+              }`}
+            >
+              {registro.estadoViaje}
+            </div>
           )}
         </div>
       </div>

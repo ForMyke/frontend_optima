@@ -4,14 +4,14 @@ import { useState, useEffect } from 'react'
 import {
   FileText,
   Search,
-  DollarSign,
   CheckCircle,
   Clock,
   XCircle,
   Filter,
   FileDown,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  User
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { facturaService } from '@/app/services/facturaService'
@@ -24,13 +24,17 @@ const FacturasPage = () => {
   const [filteredFacturas, setFilteredFacturas] = useState([])
   const [clientes, setClientes] = useState([])
   const [loading, setLoading] = useState(true)
+
   const [searchTerm, setSearchTerm] = useState('')
   const [filterEstatus, setFilterEstatus] = useState('TODAS')
+  const [filterCliente, setFilterCliente] = useState('TODOS')
+
   const [showPagarModal, setShowPagarModal] = useState(false)
   const [showPagoParcialModal, setShowPagoParcialModal] = useState(false)
   const [showViewModal, setShowViewModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+
   const [selectedFactura, setSelectedFactura] = useState(null)
   const [facturaToDelete, setFacturaToDelete] = useState(null)
 
@@ -58,7 +62,7 @@ const FacturasPage = () => {
 
   useEffect(() => {
     filterFacturas()
-  }, [searchTerm, filterEstatus, facturas])
+  }, [searchTerm, filterEstatus, filterCliente, facturas, clientes])
 
   const loadInitialData = async () => {
     try {
@@ -83,8 +87,6 @@ const FacturasPage = () => {
         setTotalElements(response.totalElements)
         setCurrentPage(response.number)
 
-        // Calcular estadísticas con los datos disponibles
-        // Nota: Para estadísticas precisas de toda la base de datos, el backend debería proveer un endpoint de stats
         updateStats(response.content, response.totalElements)
       } else {
         const data = Array.isArray(response) ? response : (response.data || [])
@@ -109,7 +111,7 @@ const FacturasPage = () => {
     const totalMonto = data.reduce((sum, f) => sum + (f.monto || 0), 0)
 
     setStats({
-      total: total,
+      total,
       pagadas,
       pendientes,
       vencidas,
@@ -120,24 +122,107 @@ const FacturasPage = () => {
   const loadClientes = async () => {
     try {
       const response = await clientsService.getClients(0, 1000)
-      const clientesData = response.content || []
+      const clientesData = response.content || response || []
       setClientes(clientesData)
     } catch (error) {
       console.error('Error loading clientes:', error)
+      toast.error('Error al cargar clientes')
     }
   }
 
-  const filterFacturas = () => {
-    const filtered = facturas.filter(factura => {
-      const matchesSearch =
-        factura.numeroFactura?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        factura.observaciones?.toLowerCase().includes(searchTerm.toLowerCase())
+  const normalizarTexto = (texto = '') => {
+    return texto
+      .toString()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+  }
 
-      const matchesFilter = filterEstatus === 'TODAS' || factura.estatus === filterEstatus
+  const getClienteId = (cliente) => {
+    return cliente?.id ?? cliente?.clienteId ?? cliente?.cliente_id ?? ''
+  }
 
-      return matchesSearch && matchesFilter
+  const getClienteNombre = (cliente) => {
+    return (
+      cliente?.nombre ||
+      cliente?.razonSocial ||
+      cliente?.nombreCliente ||
+      cliente?.clienteNombre ||
+      `Cliente #${getClienteId(cliente)}`
+    )
+  }
+
+  const getClienteFacturaId = (factura) => {
+    return (
+      factura?.clienteId ??
+      factura?.cliente?.id ??
+      factura?.cliente?.clienteId ??
+      factura?.cliente_id ??
+      factura?.idCliente ??
+      factura?.id_cliente ??
+      ''
+    )
+  }
+
+  const getClienteNombreFactura = (factura) => {
+    const clienteFacturaId = getClienteFacturaId(factura)
+
+    const clienteEncontrado = clientes.find(cliente => {
+      return String(getClienteId(cliente)) === String(clienteFacturaId)
     })
+
+    return (
+      factura?.clienteNombre ||
+      factura?.nombreCliente ||
+      factura?.cliente?.nombre ||
+      factura?.cliente?.razonSocial ||
+      factura?.cliente?.clienteNombre ||
+      getClienteNombre(clienteEncontrado) ||
+      ''
+    )
+  }
+
+  const filterFacturas = () => {
+    const termino = normalizarTexto(searchTerm)
+
+    const filtered = facturas.filter(factura => {
+      const clienteFacturaId = getClienteFacturaId(factura)
+      const clienteNombreFactura = getClienteNombreFactura(factura)
+
+      const selectedCliente = clientes.find(cliente => {
+        return String(getClienteId(cliente)) === String(filterCliente)
+      })
+
+      const selectedClienteNombre = getClienteNombre(selectedCliente)
+
+      const matchesSearch =
+        termino === '' ||
+        normalizarTexto(factura.numeroFactura).includes(termino) ||
+        normalizarTexto(factura.observaciones).includes(termino) ||
+        normalizarTexto(clienteNombreFactura).includes(termino)
+
+      const matchesFilter =
+        filterEstatus === 'TODAS' || factura.estatus === filterEstatus
+
+      const matchesCliente =
+        filterCliente === 'TODOS' ||
+        String(clienteFacturaId) === String(filterCliente) ||
+        (
+          selectedCliente &&
+          normalizarTexto(clienteNombreFactura) === normalizarTexto(selectedClienteNombre)
+        )
+
+      return matchesSearch && matchesFilter && matchesCliente
+    })
+
     setFilteredFacturas(filtered)
+  }
+
+  const limpiarFiltros = () => {
+    setSearchTerm('')
+    setFilterEstatus('TODAS')
+    setFilterCliente('TODOS')
   }
 
   const handlePagarFactura = (factura) => {
@@ -147,14 +232,13 @@ const FacturasPage = () => {
 
   const handleConfirmPago = async (factura, pagoData) => {
     try {
-      // Validar que montoParcial no sea mayor que el monto total
       const nuevoMontoParcial = parseFloat(pagoData.montoParcial) + (factura.montoParcial || 0)
+
       if (nuevoMontoParcial > factura.monto) {
         toast.error('El monto total a pagar no puede ser mayor que el monto de la factura')
         return
       }
 
-      // Registrar el pago (el backend actualiza el estatus automáticamente)
       await facturaService.registrarPago(factura.id, {
         montoParcial: nuevoMontoParcial,
         metodoPago: pagoData.metodoPago,
@@ -162,7 +246,6 @@ const FacturasPage = () => {
         observaciones: pagoData.observaciones
       })
 
-      // Mensaje según el tipo de pago
       if (nuevoMontoParcial === factura.monto) {
         toast.success('¡Factura pagada completamente!')
       } else {
@@ -180,7 +263,6 @@ const FacturasPage = () => {
 
   const handleConfirmPagoParcial = async (factura, pagoData) => {
     try {
-      // Validar que el monto parcial no sea mayor que lo pendiente
       const montoPendiente = (factura.monto || 0) - (factura.montoParcial || 0)
       const montoAbonar = parseFloat(pagoData.montoParcial)
 
@@ -189,10 +271,8 @@ const FacturasPage = () => {
         return
       }
 
-      // Calcular nuevo monto parcial total
       const nuevoMontoParcial = (factura.montoParcial || 0) + montoAbonar
 
-      // Registrar el pago parcial
       await facturaService.registrarPago(factura.id, {
         montoParcial: nuevoMontoParcial,
         metodoPago: pagoData.metodoPago,
@@ -200,7 +280,6 @@ const FacturasPage = () => {
         observaciones: pagoData.observaciones
       })
 
-      // Mensaje según si completó el pago o fue parcial
       if (nuevoMontoParcial >= factura.monto) {
         toast.success('¡Factura pagada completamente!')
       } else {
@@ -222,37 +301,33 @@ const FacturasPage = () => {
   }
 
   const handleEstatusChange = (factura, nuevoEstatus) => {
-  // Validar que solo facturas PAGADAS puedan marcarse como COMPLETADA
-  if (nuevoEstatus === 'COMPLETADA' && factura.estatus !== 'PAGADA') {
-    toast.error('Solo las facturas PAGADAS pueden marcarse como COMPLETADAS')
-    return
-  }
+    if (nuevoEstatus === 'COMPLETADA' && factura.estatus !== 'PAGADA') {
+      toast.error('Solo las facturas PAGADAS pueden marcarse como COMPLETADAS')
+      return
+    }
 
-  // Si cambia a PAGO_PARCIAL o ya está en PAGO_PARCIAL, abrir modal de pago parcial
-  if (nuevoEstatus === 'PAGO_PARCIAL' || factura.estatus === 'PAGO_PARCIAL') {
-    setSelectedFactura(factura)
-    setShowPagoParcialModal(true)
-  } else if (nuevoEstatus === 'PAGADA') {
-    // Si cambia a PAGADA, abrir modal para pago completo
-    handlePagarFactura(factura)
-  } else {
-    // Para PENDIENTE, VENCIDA y COMPLETADA, actualizar directamente sin modal
-    handleUpdateEstatus(factura, nuevoEstatus)
+    if (nuevoEstatus === 'PAGO_PARCIAL' || factura.estatus === 'PAGO_PARCIAL') {
+      setSelectedFactura(factura)
+      setShowPagoParcialModal(true)
+    } else if (nuevoEstatus === 'PAGADA') {
+      handlePagarFactura(factura)
+    } else {
+      handleUpdateEstatus(factura, nuevoEstatus)
+    }
   }
-}
 
   const handleUpdateEstatus = async (factura, nuevoEstatus) => {
-  try {
-    // Solo enviar el estatus, no toda la factura
-    await facturaService.updateFacturaEstatus(factura.id, {
-      estatus: nuevoEstatus
-    })
-    toast.success(`Estado actualizado a ${nuevoEstatus}`)
-    loadFacturas(currentPage)
-  } catch (error) {
-    toast.error(error.message || 'Error al actualizar estado')
+    try {
+      await facturaService.updateFacturaEstatus(factura.id, {
+        estatus: nuevoEstatus
+      })
+
+      toast.success(`Estado actualizado a ${nuevoEstatus}`)
+      loadFacturas(currentPage)
+    } catch (error) {
+      toast.error(error.message || 'Error al actualizar estado')
+    }
   }
-}
 
   const handleViewDetails = (factura) => {
     setSelectedFactura(factura)
@@ -263,6 +338,7 @@ const FacturasPage = () => {
     setSelectedFactura(factura)
     setShowEditModal(true)
   }
+
   const handleConfirmEdit = async (id, updateData) => {
     try {
       await facturaService.updateFactura(id, updateData)
@@ -295,6 +371,11 @@ const FacturasPage = () => {
     }
   }
 
+  const filtrosActivos =
+    searchTerm.trim() !== '' ||
+    filterEstatus !== 'TODAS' ||
+    filterCliente !== 'TODOS'
+
   if (loading && facturas.length === 0) {
     return (
       <div className="p-4 lg:p-6 bg-slate-50 min-h-screen">
@@ -318,6 +399,7 @@ const FacturasPage = () => {
             <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Gestión de facturas</h1>
             <p className="text-sm lg:text-base text-slate-600 mt-1 lg:mt-2">Administra las facturas y pagos</p>
           </div>
+
           <button
             onClick={() => exportFacturasPDF(filteredFacturas, stats)}
             className="flex cursor-pointer items-center justify-center space-x-2 px-4 lg:px-6 py-2.5 lg:py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium shadow-sm"
@@ -337,6 +419,7 @@ const FacturasPage = () => {
           color="bg-blue-600"
           description="Registradas en el sistema"
         />
+
         <StatCard
           title="Pagadas"
           value={stats.pagadas}
@@ -344,6 +427,7 @@ const FacturasPage = () => {
           color="bg-emerald-600"
           description="Facturas liquidadas"
         />
+
         <StatCard
           title="Pendientes"
           value={stats.pendientes}
@@ -351,6 +435,7 @@ const FacturasPage = () => {
           color="bg-orange-600"
           description="Por cobrar"
         />
+
         <StatCard
           title="Vencidas"
           value={stats.vencidas}
@@ -360,35 +445,72 @@ const FacturasPage = () => {
         />
       </div>
 
-      {/* Search and Filter */}
+      {/* Search and Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 lg:p-6 mb-4 lg:mb-6">
-        <div className="flex flex-col lg:flex-row gap-4">
+        <div className="flex flex-col xl:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
+
             <input
               type="text"
-              placeholder="Buscar por número de factura u observaciones..."
+              placeholder="Buscar por número de factura, cliente u observaciones..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-2.5 lg:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-700 placeholder-slate-400"
             />
           </div>
-          <div className="relative lg:w-64">
-            <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
+
+          <div className="relative xl:w-72">
+            <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
+
             <select
-                value={filterEstatus}
-                onChange={(e) => setFilterEstatus(e.target.value)}
-                className="w-full pl-12 pr-4 py-2.5 lg:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-700 appearance-none cursor-pointer"
-                >
-                <option value="TODAS">Todas las facturas</option>
-                <option value="PENDIENTE">Pendientes</option>
-                <option value="COMPLETADA">Completadas</option>
-                <option value="PAGO_PARCIAL">Pago parcial</option>
-                <option value="PAGADA">Pagadas</option>
-                <option value="VENCIDA">Vencidas</option>
-              </select>
+              value={filterCliente}
+              onChange={(e) => setFilterCliente(e.target.value)}
+              className="w-full pl-12 pr-4 py-2.5 lg:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-700 appearance-none cursor-pointer"
+            >
+              <option value="TODOS">Todos los clientes</option>
+
+              {clientes.map((cliente) => (
+                <option key={getClienteId(cliente)} value={getClienteId(cliente)}>
+                  {getClienteNombre(cliente)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="relative xl:w-64">
+            <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
+
+            <select
+              value={filterEstatus}
+              onChange={(e) => setFilterEstatus(e.target.value)}
+              className="w-full pl-12 pr-4 py-2.5 lg:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-700 appearance-none cursor-pointer"
+            >
+              <option value="TODAS">Todas las facturas</option>
+              <option value="PENDIENTE">Pendientes</option>
+              <option value="COMPLETADA">Completadas</option>
+              <option value="PAGO_PARCIAL">Pago parcial</option>
+              <option value="PAGADA">Pagadas</option>
+              <option value="VENCIDA">Vencidas</option>
+            </select>
           </div>
         </div>
+
+        {filtrosActivos && (
+          <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+            <p className="text-sm text-blue-700">
+              Filtros activos. Mostrando resultados según búsqueda, cliente o estatus.
+            </p>
+
+            <button
+              type="button"
+              onClick={limpiarFiltros}
+              className="px-4 py-2 bg-white text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium border border-blue-200"
+            >
+              Limpiar filtros
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Results count */}
@@ -424,7 +546,7 @@ const FacturasPage = () => {
       )}
 
       {/* Pagination Controls */}
-      {totalPages > 1 && !searchTerm.trim() && filterEstatus === 'TODAS' && (
+      {totalPages > 1 && !filtrosActivos && (
         <div className="flex items-center justify-between border-t border-slate-200 bg-white px-4 py-3 sm:px-6 rounded-xl shadow-sm mt-6">
           <div className="flex flex-1 justify-between sm:hidden">
             <button
@@ -434,6 +556,7 @@ const FacturasPage = () => {
             >
               Anterior
             </button>
+
             <button
               onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
               disabled={currentPage === totalPages - 1}
@@ -442,6 +565,7 @@ const FacturasPage = () => {
               Siguiente
             </button>
           </div>
+
           <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
             <div>
               <p className="text-sm text-slate-700">
@@ -452,6 +576,7 @@ const FacturasPage = () => {
                 de <span className="font-medium">{totalElements}</span> resultados
               </p>
             </div>
+
             <div>
               <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
                 <button
@@ -462,6 +587,7 @@ const FacturasPage = () => {
                   <span className="sr-only">Anterior</span>
                   <ChevronLeft className="h-5 w-5" aria-hidden="true" />
                 </button>
+
                 {[...Array(totalPages)].map((_, index) => {
                   if (
                     index === 0 ||
@@ -473,15 +599,18 @@ const FacturasPage = () => {
                         key={index}
                         onClick={() => setCurrentPage(index)}
                         aria-current={currentPage === index ? 'page' : undefined}
-                        className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${currentPage === index
-                          ? 'z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
-                          : 'text-slate-900 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0'
-                          }`}
+                        className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                          currentPage === index
+                            ? 'z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
+                            : 'text-slate-900 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0'
+                        }`}
                       >
                         {index + 1}
                       </button>
                     )
-                  } else if (
+                  }
+
+                  if (
                     index === currentPage - 2 ||
                     index === currentPage + 2
                   ) {
@@ -494,8 +623,10 @@ const FacturasPage = () => {
                       </span>
                     )
                   }
+
                   return null
                 })}
+
                 <button
                   onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
                   disabled={currentPage === totalPages - 1}
@@ -557,10 +688,12 @@ const FacturasPage = () => {
         <div className="fixed inset-0 backdrop-blur-xs bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-slate-900 mb-4">Confirmar eliminación</h3>
+
             <p className="text-slate-600 mb-6">
               ¿Estás seguro de que deseas eliminar la factura <strong>{facturaToDelete?.numeroFactura}</strong>?
               Esta acción no se puede deshacer.
             </p>
+
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => {
@@ -571,6 +704,7 @@ const FacturasPage = () => {
               >
                 Cancelar
               </button>
+
               <button
                 onClick={confirmDelete}
                 className="px-4 cursor-pointer py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
