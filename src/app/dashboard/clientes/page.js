@@ -43,11 +43,16 @@ const ClientesPage = () => {
     if (searchTerm.trim() === '') {
       setFilteredClients(clients)
     } else {
-      const filtered = clients.filter(client =>
-        client.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.rfc?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.correo?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      const filtered = clients.filter(client => {
+  const atrasos = Number(client.atrasosCobranza ?? client.atrasos_cobranza ?? 0)
+
+  return (
+    client.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.rfc?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.correo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (searchTerm.toLowerCase().includes('atraso') && atrasos > 0)
+  )
+})
       setFilteredClients(filtered)
     }
   }, [searchTerm, clients])

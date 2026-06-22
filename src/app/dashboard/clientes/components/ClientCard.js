@@ -11,11 +11,42 @@ import {
   Phone,
   MapPin,
   Calendar,
+  AlertTriangle,
+  Clock,
 } from "lucide-react";
 
 const ClientCard = ({ client, onEdit, onDelete, onViewDetails }) => {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
+
+  const atrasosCobranza = Number(
+    client.atrasosCobranza ?? client.atrasos_cobranza ?? 0
+  );
+
+  const ultimaFechaPromesaPago =
+    client.ultimaFechaPromesaPago ?? client.ultima_fecha_promesa_pago ?? null;
+
+  const ultimoAtrasoCobranza =
+    client.ultimoAtrasoCobranza ?? client.ultimo_atraso_cobranza ?? null;
+
+  const tieneAtrasos = atrasosCobranza > 0;
+  const riesgoAlto = atrasosCobranza >= 3;
+
+  const cardStyle = riesgoAlto
+    ? "bg-red-50 border-red-300 hover:shadow-red-100"
+    : tieneAtrasos
+      ? "bg-amber-50 border-amber-300 hover:shadow-amber-100"
+      : "bg-white border-slate-200 hover:shadow-md";
+
+  const iconStyle = riesgoAlto
+    ? "from-red-600 to-red-700"
+    : tieneAtrasos
+      ? "from-amber-500 to-orange-600"
+      : "from-blue-600 to-blue-700";
+
+  const badgeStyle = riesgoAlto
+    ? "bg-red-100 text-red-700 border-red-200"
+    : "bg-amber-100 text-amber-700 border-amber-200";
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -33,7 +64,20 @@ const ClientCard = ({ client, onEdit, onDelete, onViewDetails }) => {
     };
   }, [showMenu]);
 
-  // NUEVO: Función para formatear la dirección desde JSON o string
+  const formatDate = (dateString) => {
+    if (!dateString) return null;
+
+    const date = new Date(
+      dateString.includes("T") ? dateString : `${dateString}T12:00:00`
+    );
+
+    return date.toLocaleDateString("es-MX", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
   const formatearDireccion = () => {
     if (!client.direccion) return "Sin dirección";
 
@@ -43,7 +87,6 @@ const ClientCard = ({ client, onEdit, onDelete, onViewDetails }) => {
           ? JSON.parse(client.direccion)
           : client.direccion;
 
-      // Construir dirección compacta para el card
       const partes = [];
 
       if (direccion.calle && direccion.numeroExterior) {
@@ -57,27 +100,44 @@ const ClientCard = ({ client, onEdit, onDelete, onViewDetails }) => {
 
       return partes.join(", ") || "Sin dirección";
     } catch (e) {
-      // Si no es JSON, retornar el string tal cual (retrocompatibilidad)
       return client.direccion;
     }
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-all">
+    <div
+      className={`rounded-xl shadow-sm border transition-all ${cardStyle}`}
+    >
       <div className="p-4 lg:p-6">
         <div className="flex items-start justify-between mb-3 lg:mb-4">
           <div className="flex items-center space-x-3 lg:space-x-4">
-            <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-blue-600 to-blue-700 shrink-0">
+            <div
+              className={`w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${iconStyle} shrink-0`}
+            >
               <Building2 className="h-5 w-5 lg:h-6 lg:w-6 text-white" />
             </div>
+
             <div className="flex-1">
-              <h3 className="text-base lg:text-lg font-semibold text-slate-900">
-                {client.nombre}
-              </h3>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-base lg:text-lg font-semibold text-slate-900">
+                  {client.nombre}
+                </h3>
+
+                {tieneAtrasos && (
+                  <div
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-full border text-xs font-bold ${badgeStyle}`}
+                  >
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    {atrasosCobranza} atraso{atrasosCobranza === 1 ? "" : "s"}
+                  </div>
+                )}
+              </div>
+
               <div className="flex items-center gap-3 mt-1 flex-wrap">
                 <p className="text-xs lg:text-sm text-slate-500">
                   RFC: {client.rfc || "N/A"}
                 </p>
+
                 <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 border border-blue-200 rounded-md">
                   <Calendar className="h-3.5 w-3.5 text-blue-600" />
                   <span className="text-xs font-semibold text-blue-700">
@@ -87,13 +147,15 @@ const ClientCard = ({ client, onEdit, onDelete, onViewDetails }) => {
               </div>
             </div>
           </div>
+
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="p-2 cursor-pointer text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-all"
+              className="p-2 cursor-pointer text-slate-400 hover:text-slate-600 hover:bg-white/70 rounded-lg transition-all"
             >
               <MoreVertical className="h-5 w-5" />
             </button>
+
             {showMenu && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-10">
                 <button
@@ -106,6 +168,7 @@ const ClientCard = ({ client, onEdit, onDelete, onViewDetails }) => {
                   <Eye className="h-4 w-4 mr-3 text-slate-400" />
                   Ver detalles
                 </button>
+
                 <button
                   onClick={() => {
                     onEdit(client);
@@ -116,7 +179,9 @@ const ClientCard = ({ client, onEdit, onDelete, onViewDetails }) => {
                   <Edit2 className="h-4 w-4 mr-3 text-slate-400" />
                   Editar
                 </button>
+
                 <hr className="my-2 border-slate-100" />
+
                 <button
                   onClick={() => {
                     onDelete(client);
@@ -132,19 +197,53 @@ const ClientCard = ({ client, onEdit, onDelete, onViewDetails }) => {
           </div>
         </div>
 
+        {tieneAtrasos && (
+          <div
+            className={`mb-4 rounded-xl border px-3 py-2 ${
+              riesgoAlto
+                ? "bg-red-100 border-red-200 text-red-700"
+                : "bg-amber-100 border-amber-200 text-amber-700"
+            }`}
+          >
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs font-bold">
+                  Cliente con atraso de cobranza
+                </p>
+                <p className="text-xs mt-0.5">
+                  Se ha atrasado {atrasosCobranza} vez
+                  {atrasosCobranza === 1 ? "" : "es"}
+                  {ultimaFechaPromesaPago &&
+                    ` · Última promesa: ${formatDate(ultimaFechaPromesaPago)}`}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-2">
           <div className="flex items-center text-xs lg:text-sm text-slate-600">
             <Mail className="h-4 w-4 mr-2 text-slate-400 shrink-0" />
             <span className="truncate">{client.correo}</span>
           </div>
+
           <div className="flex items-center text-xs lg:text-sm text-slate-600">
             <Phone className="h-4 w-4 mr-2 text-slate-400 shrink-0" />
             {client.telefono}
           </div>
+
           <div className="flex items-start text-xs lg:text-sm text-slate-600">
             <MapPin className="h-4 w-4 mr-2 text-slate-400 shrink-0 mt-0.5" />
             <span className="line-clamp-2">{formatearDireccion()}</span>
           </div>
+
+          {ultimoAtrasoCobranza && (
+            <div className="flex items-center text-xs lg:text-sm text-slate-600">
+              <Clock className="h-4 w-4 mr-2 text-slate-400 shrink-0" />
+              Último atraso registrado: {formatDate(ultimoAtrasoCobranza)}
+            </div>
+          )}
         </div>
       </div>
     </div>
