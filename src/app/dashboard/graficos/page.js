@@ -27,7 +27,9 @@ import {
   BarChart3,
   Activity,
   Filter,
-  Download
+  Download,
+  UserCheck,
+  Wallet
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { viajesService } from '@/app/services/viajesService'
@@ -93,6 +95,27 @@ const CustomTooltip = ({ active, payload, label }) => {
   }
   return null
 }
+const CustomMoneyTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-3 rounded-lg shadow-lg border border-slate-200">
+        <p className="font-bold text-slate-900 mb-1">{label}</p>
+
+        {payload.map((entry, index) => (
+          <p key={index} className="text-sm font-semibold" style={{ color: entry.color }}>
+            {entry.name}: {Number(entry.value || 0).toLocaleString('es-MX', {
+              style: 'currency',
+              currency: 'MXN',
+              minimumFractionDigits: 2
+            })}
+          </p>
+        ))}
+      </div>
+    )
+  }
+
+  return null
+}
 
 export default function GraficosPage() {
   const [viajes, setViajes] = useState([])
@@ -106,6 +129,203 @@ export default function GraficosPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [selectedPeriod, setSelectedPeriod] = useState('6m') // diario, semanal, 1m, 3m, 6m, 1a
   const [userRole, setUserRole] = useState(null)
+
+  const toNumber = (value) => {
+  const number = Number(value)
+  return Number.isFinite(number) ? number : 0
+}
+
+const parseDateLocal = (dateValue) => {
+  if (!dateValue) return null
+
+  const text = String(dateValue)
+
+  if (text.includes('T')) {
+    return new Date(text)
+  }
+
+  return new Date(`${text}T12:00:00`)
+}
+
+const getInicioDia = (date = new Date()) => {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+const getFinDia = (date = new Date()) => {
+  const d = new Date(date)
+  d.setHours(23, 59, 59, 999)
+  return d
+}
+
+const getSemanaOperativaActual = () => {
+  const hoy = new Date()
+  const inicio = getInicioDia(hoy)
+
+  // getDay(): domingo=0, lunes=1, ..., viernes=5
+  // Queremos que la semana inicie en viernes.
+  const dia = inicio.getDay()
+  const diasDesdeViernes = dia >= 5 ? dia - 5 : dia + 2
+
+  inicio.setDate(inicio.getDate() - diasDesdeViernes)
+
+  const fin = getFinDia(inicio)
+  fin.setDate(inicio.getDate() + 6)
+
+  return {
+    inicio,
+    fin
+  }
+}
+
+const getOperadorIdFromViaje = (viaje) => {
+  return (
+    viaje.operadorId ??
+    viaje.operador?.id ??
+    viaje.operador_id ??
+    viaje.idOperador ??
+    viaje.id_operador ??
+    null
+  )
+}
+
+const getOperadorNombreFromViaje = (viaje) => {
+  return (
+    viaje.operadorNombre ??
+    viaje.operador?.nombre ??
+    viaje.nombreOperador ??
+    'Sin operador'
+  )
+}
+
+const getOperadorById = (operadorId) => {
+  if (!operadorId) return null
+
+  return operadores.find((operador) => {
+    return String(operador.id) === String(operadorId)
+  })
+}
+
+const getSueldoBaseOperador = (operadorId) => {
+  const operador = getOperadorById(operadorId)
+
+  return toNumber(
+    operador?.sueldoBase ??
+    operador?.sueldo_base ??
+    operador?.sueldo ??
+    0
+  )
+}
+
+const getGastoDirectoViaje = (viaje) => {
+  const diesel = toNumber(
+    viaje.dieselLitros ??
+    viaje.diesel_litros ??
+    viaje.diesel ??
+    0
+  )
+
+  const casetas = toNumber(
+    viaje.casetas ??
+    viaje.iave ??
+    viaje.casetasIave ??
+    0
+  )
+
+  const comision = toNumber(
+    viaje.comisionOperador ??
+    viaje.comision_operador ??
+    viaje.comision ??
+    0
+  )
+
+  const gastosExtras = toNumber(
+    viaje.gastosExtras ??
+    viaje.gastos_extras ??
+    0
+  )
+
+  return diesel + casetas + comision + gastosExtras
+}
+
+const viajeEstaEnRango = (viaje, inicio, fin) => {
+  const fechaViaje = parseDateLocal(
+    viaje.fechaSalida ??
+    viaje.fecha_salida ??
+    viaje.fechaViaje ??
+    viaje.fecha
+  )
+
+  if (!fechaViaje) return false
+
+  return fechaViaje >= inicio && fechaViaje <= fin
+}
+
+const getRentabilidadOperadores = (inicio, fin, diasSalario = 1) => {
+  if (!Array.isArray(viajes) || viajes.length === 0) return []
+
+  const operadoresMap = {}
+
+  viajes.forEach((viaje) => {
+    if (!viajeEstaEnRango(viaje, inicio, fin)) return
+
+    const operadorId = getOperadorIdFromViaje(viaje)
+    const operadorNombre = getOperadorNombreFromViaje(viaje)
+    const key = operadorId ? String(operadorId) : operadorNombre
+
+    if (!operadoresMap[key]) {
+      operadoresMap[key] = {
+        operadorId,
+        operador: operadorNombre,
+        ingresos: 0,
+        gastosViajes: 0,
+        sueldoBase: getSueldoBaseOperador(operadorId),
+        numeroViajes: 0
+      }
+    }
+
+    operadoresMap[key].ingresos += toNumber(viaje.tarifa)
+    operadoresMap[key].gastosViajes += getGastoDirectoViaje(viaje)
+    operadoresMap[key].numeroViajes += 1
+  })
+
+  return Object.values(operadoresMap)
+    .map((item) => {
+      const sueldoPeriodo = (item.sueldoBase / 7) * diasSalario
+      const gastos = item.gastosViajes + sueldoPeriodo
+      const utilidad = item.ingresos - gastos
+
+      return {
+        operador: item.operador,
+        ingresos: Math.round(item.ingresos),
+        gastos: Math.round(gastos),
+        utilidad: Math.round(utilidad),
+        numeroViajes: item.numeroViajes
+      }
+    })
+    .sort((a, b) => b.utilidad - a.utilidad)
+}
+
+const getRentabilidadDiariaOperadores = () => {
+  const hoy = new Date()
+  return getRentabilidadOperadores(getInicioDia(hoy), getFinDia(hoy), 1)
+}
+
+const getRentabilidadSemanalOperadores = () => {
+  const semana = getSemanaOperativaActual()
+
+  // Semana operativa completa: viernes a jueves = 7 días.
+  return getRentabilidadOperadores(semana.inicio, semana.fin, 7)
+}
+
+const formatFechaCorta = (date) => {
+  return date.toLocaleDateString('es-MX', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  })
+}
 
   // Función para obtener la cantidad de datos a mostrar según el período
   const getDataLimit = () => {
@@ -819,6 +1039,172 @@ export default function GraficosPage() {
             />
           )}
         </div>
+        {/* Rentabilidad por operador */}
+<div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+  {/* Rentabilidad diaria por operador */}
+  <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
+    <div className="flex items-center justify-between mb-6">
+      <div>
+        <h3 className="text-lg font-bold text-slate-900">
+          Ganancia, pérdida y utilidad por operador
+        </h3>
+        <p className="text-sm text-slate-600">
+          Diario · Hoy
+        </p>
+      </div>
+
+      <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center">
+        <UserCheck className="h-6 w-6 text-blue-600" />
+      </div>
+    </div>
+
+    {getRentabilidadDiariaOperadores().length === 0 ? (
+      <div className="h-[320px] flex items-center justify-center text-sm text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+        No hay viajes registrados hoy para calcular rentabilidad por operador.
+      </div>
+    ) : (
+      <ResponsiveContainer width="100%" height={320}>
+        <BarChart data={getRentabilidadDiariaOperadores()}>
+          <defs>
+            <linearGradient id="gananciaDiariaOp" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#10b981" stopOpacity={0.9} />
+              <stop offset="95%" stopColor="#10b981" stopOpacity={0.45} />
+            </linearGradient>
+
+            <linearGradient id="perdidaDiariaOp" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#ef4444" stopOpacity={0.9} />
+              <stop offset="95%" stopColor="#ef4444" stopOpacity={0.45} />
+            </linearGradient>
+
+            <linearGradient id="utilidadDiariaOp" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.9} />
+              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.45} />
+            </linearGradient>
+          </defs>
+
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+          <XAxis
+            dataKey="operador"
+            stroke="#334155"
+            style={{ fontSize: '11px' }}
+            interval={0}
+            angle={-15}
+            textAnchor="end"
+            height={70}
+          />
+          <YAxis stroke="#334155" style={{ fontSize: '12px' }} />
+          <Tooltip content={<CustomMoneyTooltip />} cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }} />
+          <Legend />
+
+          <Bar
+            dataKey="ingresos"
+            name="Ganancia"
+            fill="url(#gananciaDiariaOp)"
+            radius={[8, 8, 0, 0]}
+          />
+
+          <Bar
+            dataKey="gastos"
+            name="Pérdida"
+            fill="url(#perdidaDiariaOp)"
+            radius={[8, 8, 0, 0]}
+          />
+
+          <Bar
+            dataKey="utilidad"
+            name="Utilidad"
+            fill="url(#utilidadDiariaOp)"
+            radius={[8, 8, 0, 0]}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    )}
+  </div>
+
+  {/* Rentabilidad semanal por operador */}
+  <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
+    <div className="flex items-center justify-between mb-6">
+      <div>
+        <h3 className="text-lg font-bold text-slate-900">
+          Ganancia, pérdida y utilidad por operador
+        </h3>
+        <p className="text-sm text-slate-600">
+          Semanal · Viernes a jueves
+          {' '}
+          <span className="font-medium text-slate-700">
+            ({formatFechaCorta(getSemanaOperativaActual().inicio)} - {formatFechaCorta(getSemanaOperativaActual().fin)})
+          </span>
+        </p>
+      </div>
+
+      <div className="h-10 w-10 rounded-xl bg-purple-50 flex items-center justify-center">
+        <Wallet className="h-6 w-6 text-purple-600" />
+      </div>
+    </div>
+
+    {getRentabilidadSemanalOperadores().length === 0 ? (
+      <div className="h-[320px] flex items-center justify-center text-sm text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+        No hay viajes registrados en la semana operativa actual.
+      </div>
+    ) : (
+      <ResponsiveContainer width="100%" height={320}>
+        <BarChart data={getRentabilidadSemanalOperadores()}>
+          <defs>
+            <linearGradient id="gananciaSemanalOp" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#10b981" stopOpacity={0.9} />
+              <stop offset="95%" stopColor="#10b981" stopOpacity={0.45} />
+            </linearGradient>
+
+            <linearGradient id="perdidaSemanalOp" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#ef4444" stopOpacity={0.9} />
+              <stop offset="95%" stopColor="#ef4444" stopOpacity={0.45} />
+            </linearGradient>
+
+            <linearGradient id="utilidadSemanalOp" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.9} />
+              <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.45} />
+            </linearGradient>
+          </defs>
+
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+          <XAxis
+            dataKey="operador"
+            stroke="#334155"
+            style={{ fontSize: '11px' }}
+            interval={0}
+            angle={-15}
+            textAnchor="end"
+            height={70}
+          />
+          <YAxis stroke="#334155" style={{ fontSize: '12px' }} />
+          <Tooltip content={<CustomMoneyTooltip />} cursor={{ fill: 'rgba(139, 92, 246, 0.05)' }} />
+          <Legend />
+
+          <Bar
+            dataKey="ingresos"
+            name="Ganancia"
+            fill="url(#gananciaSemanalOp)"
+            radius={[8, 8, 0, 0]}
+          />
+
+          <Bar
+            dataKey="gastos"
+            name="Pérdida"
+            fill="url(#perdidaSemanalOp)"
+            radius={[8, 8, 0, 0]}
+          />
+
+          <Bar
+            dataKey="utilidad"
+            name="Utilidad"
+            fill="url(#utilidadSemanalOp)"
+            radius={[8, 8, 0, 0]}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    )}
+  </div>
+</div>
 
         {/* Gráficos principales */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
