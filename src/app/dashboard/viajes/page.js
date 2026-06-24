@@ -59,65 +59,68 @@ const getMonthName = (monthIndex) => {
 }
 
 const getWeekTabs = (date) => {
-  const tabs = [];
-  const year = date.getFullYear();
-  const month = date.getMonth(); // 0-11
-  const day = date.getDate();
+  const tabs = []
 
-  // Rule: If currently in first week (day <= 7), include last week of previous month
-  if (day <= 7) {
-    const prevMonthDate = new Date(year, month - 1, 1);
-    const pmYear = prevMonthDate.getFullYear();
-    const pmMonth = prevMonthDate.getMonth();
-    const daysInPrevMonth = new Date(year, month, 0).getDate(); // last day of prev month
-
-    const startDay = 22;
-    const endDay = daysInPrevMonth;
-
-    tabs.push({
-      id: `prev-last`,
-      label: `Semana 4 ${getMonthName(pmMonth)} (${startDay}-${endDay})`,
-      start: new Date(pmYear, pmMonth, startDay),
-      end: new Date(pmYear, pmMonth, endDay, 23, 59, 59)
-    });
+  const getStartOfDay = (value) => {
+    const d = new Date(value)
+    d.setHours(0, 0, 0, 0)
+    return d
   }
 
-  // Current Month Weeks
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const getEndOfDay = (value) => {
+    const d = new Date(value)
+    d.setHours(23, 59, 59, 999)
+    return d
+  }
 
-  // Week 1
-  tabs.push({
-    id: `curr-1`,
-    label: `Semana 1 ${getMonthName(month)} (1-7)`,
-    start: new Date(year, month, 1),
-    end: new Date(year, month, 7, 23, 59, 59)
-  });
+  const formatRange = (start, end) => {
+    const startText = start.toLocaleDateString('es-MX', {
+      day: '2-digit',
+      month: 'short'
+    })
 
-  // Week 2
-  tabs.push({
-    id: `curr-2`,
-    label: `Semana 2 ${getMonthName(month)} (8-14)`,
-    start: new Date(year, month, 8),
-    end: new Date(year, month, 14, 23, 59, 59)
-  });
+    const endText = end.toLocaleDateString('es-MX', {
+      day: '2-digit',
+      month: 'short'
+    })
 
-  // Week 3
-  tabs.push({
-    id: `curr-3`,
-    label: `Semana 3 ${getMonthName(month)} (15-21)`,
-    start: new Date(year, month, 15),
-    end: new Date(year, month, 21, 23, 59, 59)
-  });
+    return `${startText} - ${endText}`
+  }
 
-  // Week 4 (22-End)
-  tabs.push({
-    id: `curr-4`,
-    label: `Semana 4 ${getMonthName(month)} (22-${daysInMonth})`,
-    start: new Date(year, month, 22),
-    end: new Date(year, month, daysInMonth, 23, 59, 59)
-  });
+  const baseDate = getStartOfDay(date)
 
-  return tabs;
+  // Domingo = 0, Lunes = 1, Martes = 2, Miércoles = 3,
+  // Jueves = 4, Viernes = 5, Sábado = 6.
+  // La semana operativa inicia en viernes y termina en jueves.
+  const day = baseDate.getDay()
+  const daysSinceFriday = day >= 5 ? day - 5 : day + 2
+
+  const currentFriday = getStartOfDay(baseDate)
+  currentFriday.setDate(baseDate.getDate() - daysSinceFriday)
+
+  // Mostramos 5 semanas:
+  // 4 anteriores y la semana actual.
+  for (let i = -4; i <= 0; i++) {
+    const start = getStartOfDay(currentFriday)
+    start.setDate(currentFriday.getDate() + (i * 7))
+
+    const end = getEndOfDay(start)
+    end.setDate(start.getDate() + 6)
+
+    const label =
+      i === 0
+        ? `Semana actual (${formatRange(start, end)})`
+        : `Semana ${Math.abs(i)} ant. (${formatRange(start, end)})`
+
+    tabs.push({
+      id: `week-${i}`,
+      label,
+      start,
+      end
+    })
+  }
+
+  return tabs
 }
 
 const getMonthTabs = (date) => {

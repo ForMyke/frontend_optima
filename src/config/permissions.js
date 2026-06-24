@@ -76,6 +76,7 @@ export const PERMISSIONS = {
       '/dashboard/resumen-gastos',
       '/dashboard/pronostico-cobranza',
       '/dashboard/administrativos',
+      '/dashboard/operadores',
     ],
     displayName: 'Nomina'
   },

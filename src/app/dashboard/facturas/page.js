@@ -11,7 +11,8 @@ import {
   FileDown,
   ChevronLeft,
   ChevronRight,
-  User
+  User,
+  CalendarDays
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { facturaService } from '@/app/services/facturaService'
@@ -28,6 +29,7 @@ const FacturasPage = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterEstatus, setFilterEstatus] = useState('TODAS')
   const [filterCliente, setFilterCliente] = useState('TODOS')
+  const [filterSemana, setFilterSemana] = useState('TODAS')
 
   const [showPagarModal, setShowPagarModal] = useState(false)
   const [showPagoParcialModal, setShowPagoParcialModal] = useState(false)
@@ -38,7 +40,6 @@ const FacturasPage = () => {
   const [selectedFactura, setSelectedFactura] = useState(null)
   const [facturaToDelete, setFacturaToDelete] = useState(null)
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [totalElements, setTotalElements] = useState(0)
@@ -52,37 +53,57 @@ const FacturasPage = () => {
     totalMonto: 0
   })
 
+  const filtrosActivos =
+    searchTerm.trim() !== '' ||
+    filterEstatus !== 'TODAS' ||
+    filterCliente !== 'TODOS' ||
+    filterSemana !== 'TODAS'
+
   useEffect(() => {
-    loadInitialData()
+    loadClientes()
   }, [])
 
   useEffect(() => {
     loadFacturas(currentPage)
-  }, [currentPage])
+  }, [currentPage, searchTerm, filterEstatus, filterCliente, filterSemana])
 
-  useEffect(() => {
-    filterFacturas()
-  }, [searchTerm, filterEstatus, filterCliente, facturas, clientes])
-
-  const loadInitialData = async () => {
+  const loadClientes = async () => {
     try {
-      setLoading(true)
-      await Promise.all([loadFacturas(0), loadClientes()])
+      const response = await clientsService.getClients(0, 1000)
+      const clientesData = response.content || response || []
+      setClientes(clientesData)
     } catch (error) {
-      console.error('Error loading initial data:', error)
-      toast.error('Error al cargar datos iniciales')
-    } finally {
-      setLoading(false)
+      console.error('Error loading clientes:', error)
+      toast.error('Error al cargar clientes')
     }
   }
 
   const loadFacturas = async (page = 0) => {
     try {
       setLoading(true)
+
+      if (filtrosActivos) {
+        const todasLasFacturas = await obtenerTodasLasFacturas()
+        const facturasFiltradas = filtrarFacturasLocal(todasLasFacturas)
+
+        setFacturas(todasLasFacturas)
+        setFilteredFacturas(facturasFiltradas)
+        setTotalPages(1)
+        setTotalElements(facturasFiltradas.length)
+
+        if (currentPage !== 0) {
+          setCurrentPage(0)
+        }
+
+        updateStats(facturasFiltradas, facturasFiltradas.length)
+        return
+      }
+
       const response = await facturaService.getFacturas(page, pageSize)
 
       if (response.content) {
         setFacturas(response.content)
+        setFilteredFacturas(response.content)
         setTotalPages(response.totalPages)
         setTotalElements(response.totalElements)
         setCurrentPage(response.number)
@@ -90,18 +111,55 @@ const FacturasPage = () => {
         updateStats(response.content, response.totalElements)
       } else {
         const data = Array.isArray(response) ? response : (response.data || [])
+
         setFacturas(data)
+        setFilteredFacturas(data)
         setTotalPages(1)
         setTotalElements(data.length)
+
         updateStats(data, data.length)
       }
     } catch (error) {
       console.error('Error loading facturas:', error)
       toast.error('Error al cargar facturas')
       setFacturas([])
+      setFilteredFacturas([])
     } finally {
       setLoading(false)
     }
+  }
+
+  const obtenerTodasLasFacturas = async () => {
+    let page = 0
+    const size = 100
+    let totalPagesTemp = 1
+    let todasLasFacturas = []
+
+    do {
+      const response = await facturaService.getFacturas(page, size)
+
+      if (response.content) {
+        todasLasFacturas = [
+          ...todasLasFacturas,
+          ...response.content
+        ]
+
+        totalPagesTemp = response.totalPages || 1
+      } else {
+        const data = Array.isArray(response) ? response : (response.data || [])
+
+        todasLasFacturas = [
+          ...todasLasFacturas,
+          ...data
+        ]
+
+        totalPagesTemp = 1
+      }
+
+      page++
+    } while (page < totalPagesTemp)
+
+    return todasLasFacturas
   }
 
   const updateStats = (data, total) => {
@@ -119,17 +177,6 @@ const FacturasPage = () => {
     })
   }
 
-  const loadClientes = async () => {
-    try {
-      const response = await clientsService.getClients(0, 1000)
-      const clientesData = response.content || response || []
-      setClientes(clientesData)
-    } catch (error) {
-      console.error('Error loading clientes:', error)
-      toast.error('Error al cargar clientes')
-    }
-  }
-
   const normalizarTexto = (texto = '') => {
     return texto
       .toString()
@@ -137,6 +184,98 @@ const FacturasPage = () => {
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .trim()
+  }
+
+  const parseFechaLocal = (fecha) => {
+    if (!fecha) return null
+
+    const texto = String(fecha)
+
+    return new Date(
+      texto.includes('T')
+        ? texto
+        : `${texto}T12:00:00`
+    )
+  }
+
+  const getInicioDia = (date = new Date()) => {
+    const d = new Date(date)
+    d.setHours(0, 0, 0, 0)
+    return d
+  }
+
+  const getFinDia = (date = new Date()) => {
+    const d = new Date(date)
+    d.setHours(23, 59, 59, 999)
+    return d
+  }
+
+  const getSemanaOperativa = (offsetSemanas = 0) => {
+    const hoy = new Date()
+    const inicio = getInicioDia(hoy)
+
+    // Domingo = 0, lunes = 1, martes = 2, miércoles = 3,
+    // jueves = 4, viernes = 5, sábado = 6.
+    // Semana operativa: viernes, sábado, domingo, lunes, martes, miércoles y jueves.
+    const dia = inicio.getDay()
+    const diasDesdeViernes = dia >= 5 ? dia - 5 : dia + 2
+
+    inicio.setDate(inicio.getDate() - diasDesdeViernes + (offsetSemanas * 7))
+
+    const fin = getFinDia(inicio)
+    fin.setDate(inicio.getDate() + 6)
+
+    return {
+      inicio,
+      fin
+    }
+  }
+
+  const getSemanaSeleccionada = () => {
+    const semanas = {
+      ACTUAL: 0,
+      ANTERIOR: -1,
+      HACE_2: -2,
+      HACE_3: -3,
+      HACE_4: -4
+    }
+
+    if (filterSemana === 'TODAS') return null
+
+    return getSemanaOperativa(semanas[filterSemana] ?? 0)
+  }
+
+  const formatFechaCorta = (date) => {
+    if (!date) return 'N/A'
+
+    return date.toLocaleDateString('es-MX', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    })
+  }
+
+  const getFechaFactura = (factura) => {
+    return (
+      factura?.fechaEmision ||
+      factura?.fechaFactura ||
+      factura?.fechaCreacion ||
+      factura?.createdAt ||
+      factura?.fechaPago ||
+      null
+    )
+  }
+
+  const facturaEstaEnSemana = (factura) => {
+    if (filterSemana === 'TODAS') return true
+
+    const semana = getSemanaSeleccionada()
+    if (!semana) return true
+
+    const fechaFactura = parseFechaLocal(getFechaFactura(factura))
+    if (!fechaFactura) return false
+
+    return fechaFactura >= semana.inicio && fechaFactura <= semana.fin
   }
 
   const getClienteId = (cliente) => {
@@ -183,10 +322,10 @@ const FacturasPage = () => {
     )
   }
 
-  const filterFacturas = () => {
+  const filtrarFacturasLocal = (listaFacturas = []) => {
     const termino = normalizarTexto(searchTerm)
 
-    const filtered = facturas.filter(factura => {
+    return listaFacturas.filter(factura => {
       const clienteFacturaId = getClienteFacturaId(factura)
       const clienteNombreFactura = getClienteNombreFactura(factura)
 
@@ -213,16 +352,17 @@ const FacturasPage = () => {
           normalizarTexto(clienteNombreFactura) === normalizarTexto(selectedClienteNombre)
         )
 
-      return matchesSearch && matchesFilter && matchesCliente
-    })
+      const matchesSemana = facturaEstaEnSemana(factura)
 
-    setFilteredFacturas(filtered)
+      return matchesSearch && matchesFilter && matchesCliente && matchesSemana
+    })
   }
 
   const limpiarFiltros = () => {
     setSearchTerm('')
     setFilterEstatus('TODAS')
     setFilterCliente('TODOS')
+    setFilterSemana('TODAS')
   }
 
   const handlePagarFactura = (factura) => {
@@ -371,10 +511,11 @@ const FacturasPage = () => {
     }
   }
 
-  const filtrosActivos =
-    searchTerm.trim() !== '' ||
-    filterEstatus !== 'TODAS' ||
-    filterCliente !== 'TODOS'
+  const semanaActual = getSemanaOperativa(0)
+  const semanaAnterior = getSemanaOperativa(-1)
+  const semanaHace2 = getSemanaOperativa(-2)
+  const semanaHace3 = getSemanaOperativa(-3)
+  const semanaHace4 = getSemanaOperativa(-4)
 
   if (loading && facturas.length === 0) {
     return (
@@ -396,8 +537,12 @@ const FacturasPage = () => {
       <div className="mb-6 lg:mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Gestión de facturas</h1>
-            <p className="text-sm lg:text-base text-slate-600 mt-1 lg:mt-2">Administra las facturas y pagos</p>
+            <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">
+              Gestión de facturas
+            </h1>
+            <p className="text-sm lg:text-base text-slate-600 mt-1 lg:mt-2">
+              Administra las facturas y pagos
+            </p>
           </div>
 
           <button
@@ -447,20 +592,20 @@ const FacturasPage = () => {
 
       {/* Search and Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 lg:p-6 mb-4 lg:mb-6">
-        <div className="flex flex-col xl:flex-row gap-4">
-          <div className="relative flex-1">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
+          <div className="relative xl:col-span-1">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
 
             <input
               type="text"
-              placeholder="Buscar por número de factura, cliente u observaciones..."
+              placeholder="Buscar factura, cliente u observaciones..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-2.5 lg:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-700 placeholder-slate-400"
             />
           </div>
 
-          <div className="relative xl:w-72">
+          <div className="relative">
             <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
 
             <select
@@ -478,7 +623,34 @@ const FacturasPage = () => {
             </select>
           </div>
 
-          <div className="relative xl:w-64">
+          <div className="relative">
+            <CalendarDays className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
+
+            <select
+              value={filterSemana}
+              onChange={(e) => setFilterSemana(e.target.value)}
+              className="w-full pl-12 pr-4 py-2.5 lg:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-700 appearance-none cursor-pointer"
+            >
+              <option value="TODAS">Todas las semanas</option>
+              <option value="ACTUAL">
+                Actual: {formatFechaCorta(semanaActual.inicio)} - {formatFechaCorta(semanaActual.fin)}
+              </option>
+              <option value="ANTERIOR">
+                Anterior: {formatFechaCorta(semanaAnterior.inicio)} - {formatFechaCorta(semanaAnterior.fin)}
+              </option>
+              <option value="HACE_2">
+                Hace 2 semanas: {formatFechaCorta(semanaHace2.inicio)} - {formatFechaCorta(semanaHace2.fin)}
+              </option>
+              <option value="HACE_3">
+                Hace 3 semanas: {formatFechaCorta(semanaHace3.inicio)} - {formatFechaCorta(semanaHace3.fin)}
+              </option>
+              <option value="HACE_4">
+                Hace 4 semanas: {formatFechaCorta(semanaHace4.inicio)} - {formatFechaCorta(semanaHace4.fin)}
+              </option>
+            </select>
+          </div>
+
+          <div className="relative">
             <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
 
             <select
@@ -499,7 +671,7 @@ const FacturasPage = () => {
         {filtrosActivos && (
           <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
             <p className="text-sm text-blue-700">
-              Filtros activos. Mostrando resultados según búsqueda, cliente o estatus.
+              Filtros activos. Se están consultando todas las páginas de facturas y filtrando en frontend.
             </p>
 
             <button
@@ -519,6 +691,15 @@ const FacturasPage = () => {
           Mostrando <span className="font-semibold text-slate-900">{filteredFacturas.length}</span> de{' '}
           <span className="font-semibold text-slate-900">{totalElements}</span> facturas
         </p>
+
+        {filterSemana !== 'TODAS' && getSemanaSeleccionada() && (
+          <p className="text-sm text-slate-500">
+            Semana operativa:{' '}
+            <span className="font-medium text-slate-700">
+              {formatFechaCorta(getSemanaSeleccionada().inicio)} - {formatFechaCorta(getSemanaSeleccionada().fin)}
+            </span>
+          </p>
+        )}
       </div>
 
       {/* Facturas Grid */}
@@ -683,7 +864,6 @@ const FacturasPage = () => {
         clientes={clientes}
       />
 
-      {/* Modal de confirmación de eliminación */}
       {showDeleteModal && (
         <div className="fixed inset-0 backdrop-blur-xs bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
