@@ -671,7 +671,7 @@ const FacturasPage = () => {
         {filtrosActivos && (
           <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
             <p className="text-sm text-blue-700">
-              Filtros activos. Se están consultando todas las páginas de facturas y filtrando en frontend.
+              Filtros activos. Se están consultando todas las páginas de facturas.
             </p>
 
             <button
