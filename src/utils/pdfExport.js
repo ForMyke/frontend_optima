@@ -560,12 +560,39 @@ const addProfessionalHeader = (doc, title, subtitle) => {
 }
 
 // Exportar Recibo de Nómina Operativa
+// Exportar Recibo de Nómina Operativa
 export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
   const doc = new jsPDF(commonConfig);
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const bottomLimit = pageHeight - 22; // Reservamos espacio para footer
 
   const operadorNombre = nomina.nombre || operador?.nombre || 'Operador desconocido';
   const operadorAlias = nomina.alias || operador?.alias || '';
+
+  const toNumber = (value) => Number.parseFloat(value || 0) || 0;
+
+  const money = (value) => `$${toNumber(value).toLocaleString('es-MX', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })}`;
+
+  const safeDate = (value) => {
+    return value ? new Date(value).toLocaleDateString('es-MX') : 'N/A';
+  };
+
+  const addNominaPage = () => {
+    doc.addPage();
+    addProfessionalHeader(doc, 'Recibo de Nómina', 'Operador');
+    return 45;
+  };
+
+  const ensureSpace = (y, neededHeight) => {
+    if (y + neededHeight > bottomLimit) {
+      return addNominaPage();
+    }
+    return y;
+  };
 
   // Header
   addProfessionalHeader(doc, 'Recibo de Nómina', 'Operador');
@@ -577,6 +604,7 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
   // Column 1: Operator Info
   doc.setFontSize(10);
   doc.setTextColor(...LIGHT_TEXT_COLOR);
+  doc.setFont('helvetica', 'normal');
   doc.text('OPERADOR', 20, 48);
 
   doc.setFontSize(12);
@@ -594,12 +622,14 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
   // Column 2: Period Info & Details
   doc.setFontSize(10);
   doc.setTextColor(...LIGHT_TEXT_COLOR);
+  doc.setFont('helvetica', 'normal');
   doc.text('PERIODO', pageWidth / 2, 48);
 
   doc.setFontSize(11);
   doc.setTextColor(...TEXT_COLOR);
-  doc.setFont('helvetica', 'medium');
-  const periodoStr = `${new Date(nomina.periodoInicio).toLocaleDateString('es-MX')} - ${new Date(nomina.periodoFin).toLocaleDateString('es-MX')}`;
+  doc.setFont('helvetica', 'normal');
+
+  const periodoStr = `${safeDate(nomina.periodoInicio)} - ${safeDate(nomina.periodoFin)}`;
   doc.text(periodoStr, pageWidth / 2, 55);
 
   if (nomina.cuenta) {
@@ -615,137 +645,217 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
 
   doc.setFontSize(10);
   doc.setTextColor(...TEXT_COLOR);
-  doc.text(`Viajes: ${nomina.numeroViajes || 0}`, pageWidth - 60, 55);
+  doc.text(`Viajes: ${nomina.numeroViajes || viajes.length || 0}`, pageWidth - 60, 55);
 
-
-  // Financial Details Table
+  // Financial Details
   const startY = 75;
+
   const totalNeto = (
-    parseFloat(nomina.sueldoBase || 0) +
-    parseFloat(nomina.comisionViajes || 0) +
-    parseFloat(nomina.bono || 0) +
-    parseFloat(nomina.compensacion || 0) -
-    parseFloat(nomina.descuentos || 0)
+    toNumber(nomina.sueldoBase) +
+    toNumber(nomina.comisionViajes) +
+    toNumber(nomina.bono) +
+    toNumber(nomina.compensacion) -
+    toNumber(nomina.descuentos)
   );
 
   const conceptos = [
-    ['Sueldo Base', `$${(nomina.sueldoBase || 0).toLocaleString('es-MX')}`],
-    ['Comisión por Viajes', `$${(nomina.comisionViajes || 0).toLocaleString('es-MX')}`],
-    ['Bonos', `$${(nomina.bono || 0).toLocaleString('es-MX')}`],
-    ['Compensación', `$${(nomina.compensacion || 0).toLocaleString('es-MX')}`],
-    ['Descuentos', `-$${(nomina.descuentos || 0).toLocaleString('es-MX')}`]
+    ['Sueldo Base', money(nomina.sueldoBase)],
+    ['Comisión por Viajes', money(nomina.comisionViajes)],
+    ['Bonos', money(nomina.bono)],
+    ['Compensación', money(nomina.compensacion)],
+    ['Descuentos', `-${money(nomina.descuentos)}`]
   ];
 
-  // Main Layout: Split view if trips exist
-  // Left side: Conceptos
-  // Right side: Viajes List
-
+  doc.setFontSize(10);
+  doc.setTextColor(...TEXT_COLOR);
+  doc.setFont('helvetica', 'bold');
   doc.text('Desglose de Conceptos', 15, startY - 2);
 
+  // Tabla de conceptos
   autoTable(doc, {
     head: [['Concepto', 'Monto']],
     body: conceptos,
-    startY: startY,
+    startY,
     theme: 'grid',
-    styles: { fontSize: 9, cellPadding: 4, textColor: TEXT_COLOR },
-    headStyles: { fillColor: COMPANY_COLOR, textColor: 255, fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: BG_COLOR },
-    margin: { left: 15, right: pageWidth / 2 + 5 }, // Left half
-    columnStyles: {
-      0: { cellWidth: 'auto' },
-      1: { halign: 'right', fontStyle: 'bold', cellWidth: 40 }
+    styles: {
+      fontSize: 9,
+      cellPadding: 3,
+      textColor: TEXT_COLOR,
+      overflow: 'linebreak'
     },
-    tableWidth: (pageWidth / 2) - 20
+    headStyles: {
+      fillColor: COMPANY_COLOR,
+      textColor: 255,
+      fontStyle: 'bold'
+    },
+    alternateRowStyles: {
+      fillColor: BG_COLOR
+    },
+    margin: {
+      left: 15,
+      right: pageWidth - 150,
+      bottom: 20
+    },
+    tableWidth: 135,
+    columnStyles: {
+      0: { cellWidth: 85 },
+      1: { cellWidth: 45, halign: 'right', fontStyle: 'bold' }
+    }
   });
 
-  const finalYConcepts = doc.lastAutoTable.finalY + 5;
+  const finalYConcepts = doc.lastAutoTable.finalY;
 
-  // Total Box
+  // Total Box separado
   doc.setFillColor(...BG_COLOR);
-  doc.rect(15, finalYConcepts, (pageWidth / 2) - 20, 15, 'F');
+  doc.roundedRect(pageWidth - 95, startY, 80, 30, 3, 3, 'F');
 
-  doc.setFontSize(11);
-  doc.setTextColor(...TEXT_COLOR);
+  doc.setDrawColor(...COMPANY_COLOR);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(pageWidth - 95, startY, 80, 30, 3, 3, 'S');
+
+  doc.setFontSize(10);
+  doc.setTextColor(...LIGHT_TEXT_COLOR);
   doc.setFont('helvetica', 'bold');
-  doc.text('TOTAL NETO A PAGAR', 20, finalYConcepts + 10);
+  doc.text('TOTAL NETO A PAGAR', pageWidth - 55, startY + 10, { align: 'center' });
 
-  doc.setFontSize(14);
+  doc.setFontSize(16);
   doc.setTextColor(...COMPANY_COLOR);
-  doc.text(`$${totalNeto.toLocaleString('es-MX')}`, (pageWidth / 2) - 10, finalYConcepts + 10, { align: 'right' });
+  doc.setFont('helvetica', 'bold');
+  doc.text(money(totalNeto), pageWidth - 55, startY + 22, { align: 'center' });
 
+  let currentY = Math.max(finalYConcepts, startY + 30) + 12;
 
-  // Viajes Table (Right Side)
+  // Viajes abajo y a todo el ancho
   if (viajes && viajes.length > 0) {
+    currentY = ensureSpace(currentY, 35);
+
     doc.setFontSize(10);
     doc.setTextColor(...TEXT_COLOR);
-    doc.text('Detalle de Viajes', (pageWidth / 2) + 5, startY - 2);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Detalle de Viajes', 15, currentY);
 
-    const viajesData = viajes.map(v => [
-      v.folio || v.viajeId || '-',
-      v.ruta || '-',
-      `$${(v.comision || 0).toLocaleString('es-MX')}`
-    ]);
+    const viajesData = viajes.map(v => {
+      const rutaObj = v.rutaComisiones || (typeof v.ruta === 'object' ? v.ruta : null);
+
+      const rutaTexto = typeof v.ruta === 'string'
+        ? v.ruta
+        : [rutaObj?.origen || v.origen, rutaObj?.destino || v.destino]
+            .filter(Boolean)
+            .join(' - ') || '-';
+
+      return [
+        v.folio || v.viajeId || v.id || '-',
+        rutaTexto,
+        money(v.comision)
+      ];
+    });
 
     autoTable(doc, {
       head: [['Folio', 'Ruta', 'Comisión']],
       body: viajesData,
-      startY: startY,
+      startY: currentY + 3,
       theme: 'striped',
-      styles: { fontSize: 8, cellPadding: 2, textColor: TEXT_COLOR },
-      headStyles: { fillColor: [100, 116, 139], textColor: 255 },
-      margin: { left: (pageWidth / 2) + 5, right: 15 },
-      columnStyles: {
-        1: { cellWidth: 'auto' },
-        2: { halign: 'right' }
+      styles: {
+        fontSize: 8,
+        cellPadding: 2.5,
+        textColor: TEXT_COLOR,
+        overflow: 'linebreak'
       },
-      tableWidth: (pageWidth / 2) - 20
+      headStyles: {
+        fillColor: [100, 116, 139],
+        textColor: 255,
+        fontStyle: 'bold'
+      },
+      alternateRowStyles: {
+        fillColor: BG_COLOR
+      },
+      margin: {
+        left: 15,
+        right: 15,
+        top: 45,
+        bottom: 22
+      },
+      tableWidth: pageWidth - 30,
+      columnStyles: {
+        0: { cellWidth: 35 },
+        1: { cellWidth: pageWidth - 105 },
+        2: { cellWidth: 35, halign: 'right', fontStyle: 'bold' }
+      },
+      didDrawPage: (data) => {
+        if (data.pageNumber > 1) {
+          addProfessionalHeader(doc, 'Recibo de Nómina', 'Operador');
+        }
+      }
     });
+
+    currentY = doc.lastAutoTable.finalY + 12;
   }
 
-  // Observaciones Area
-  let obsY = Math.max(finalYConcepts + 25, (doc.lastAutoTable?.finalY || 0) + 15);
-
+  // Observaciones dinámicas
   if (nomina.observaciones) {
+    currentY = ensureSpace(currentY, 35);
+
     doc.setFontSize(9);
     doc.setTextColor(...COMPANY_COLOR);
     doc.setFont('helvetica', 'bold');
-    doc.text('OBSERVACIONES', 15, obsY);
+    doc.text('OBSERVACIONES', 15, currentY);
 
-    doc.setDrawColor(200, 200, 200);
-    doc.rect(15, obsY + 2, pageWidth - 30, 15);
+    autoTable(doc, {
+      body: [[nomina.observaciones]],
+      startY: currentY + 3,
+      theme: 'grid',
+      styles: {
+        fontSize: 9,
+        cellPadding: 4,
+        textColor: TEXT_COLOR,
+        lineColor: [200, 200, 200],
+        lineWidth: 0.2,
+        overflow: 'linebreak'
+      },
+      margin: {
+        left: 15,
+        right: 15,
+        top: 45,
+        bottom: 22
+      },
+      tableWidth: pageWidth - 30,
+      didDrawPage: (data) => {
+        if (data.pageNumber > 1) {
+          addProfessionalHeader(doc, 'Recibo de Nómina', 'Operador');
+        }
+      }
+    });
 
-    doc.setFontSize(9);
-    doc.setTextColor(...TEXT_COLOR);
-    doc.setFont('helvetica', 'normal');
-    const splitText = doc.splitTextToSize(nomina.observaciones, pageWidth - 40);
-    doc.text(splitText, 18, obsY + 7);
-    obsY += 25;
+    currentY = doc.lastAutoTable.finalY + 18;
   } else {
-    obsY += 10;
+    currentY += 10;
   }
 
-  // Signatures
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const signY = pageHeight - 35;
+  // Firmas: ya no van forzadas al fondo
+  currentY = ensureSpace(currentY, 40);
+
+  const signY = currentY + 15;
 
   doc.setDrawColor(...LIGHT_TEXT_COLOR);
   doc.setLineWidth(0.5);
 
-  // Signature Lines
-  doc.line(40, signY, 100, signY);
-  doc.line(pageWidth - 100, signY, pageWidth - 40, signY);
+  doc.line(40, signY, 105, signY);
+  doc.line(pageWidth - 105, signY, pageWidth - 40, signY);
 
   doc.setFontSize(8);
   doc.setTextColor(...LIGHT_TEXT_COLOR);
-  doc.text(operadorNombre.toUpperCase(), 70, signY + 5, { align: 'center' });
-  doc.text('FIRMA CONFORMIDAD', 70, signY + 10, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
 
-  doc.text('AUTORIZADO POR', pageWidth - 70, signY + 5, { align: 'center' });
-  doc.text('FMPMEX', pageWidth - 70, signY + 10, { align: 'center' });
+  doc.text(operadorNombre.toUpperCase(), 72.5, signY + 5, { align: 'center' });
+  doc.text('FIRMA DE CONFORMIDAD', 72.5, signY + 10, { align: 'center' });
+
+  doc.text('AUTORIZADO POR', pageWidth - 72.5, signY + 5, { align: 'center' });
+  doc.text('FMPMEX', pageWidth - 72.5, signY + 10, { align: 'center' });
 
   addFooter(doc);
+
   doc.save(`Nomina_${operadorNombre.replace(/\s+/g, '_')}_${Date.now()}.pdf`);
-}
+};
 
 // Exportar Recibo de Nómina Fija
 export const exportNominaFijaPDF = (nomina) => {
