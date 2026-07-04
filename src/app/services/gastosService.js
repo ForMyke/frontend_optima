@@ -82,7 +82,24 @@ const gastosService = {
       console.error('Error al obtener gastos generados:', error)
       throw new Error(error.response?.data?.message || 'Error al obtener gastos generados')
     }
+  },
+
+  /**
+   * Obtener resumen mensual de ingresos, gastos y utilidad
+   */
+  async getResumenMensual(mes) {
+    try {
+      const response = await apiClient.get('/api/finanzas/mensual', {
+        params: { mes }
+      })
+
+      return response.data
+    } catch (error) {
+      console.error('Error al obtener resumen mensual:', error)
+      throw new Error(error.response?.data?.message || 'Error al obtener resumen mensual')
+    }
   }
+  
 }
 
 export default gastosService

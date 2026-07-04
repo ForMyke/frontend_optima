@@ -137,6 +137,7 @@ export default function GraficosPage() {
   const [refacciones, setRefacciones] = useState([])
   const [gastosGenerados, setGastosGenerados] = useState(null)
   const [gastosSemanales, setGastosSemanales] = useState([])
+  const [resumenesMensuales, setResumenesMensuales] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedPeriod, setSelectedPeriod] = useState('6m')
   const [userRole, setUserRole] = useState(null)
@@ -159,6 +160,50 @@ export default function GraficosPage() {
         return 6
     }
   }
+  const getMesesResumenMensual = () => {
+  const hoy = new Date()
+  const mesActual = hoy.getMonth() + 1
+
+  let cantidadMeses = 6
+
+  switch (selectedPeriod) {
+    case '1m':
+      cantidadMeses = 1
+      break
+    case '3m':
+      cantidadMeses = 3
+      break
+    case '6m':
+      cantidadMeses = 6
+      break
+    case '1a':
+      cantidadMeses = 12
+      break
+    default:
+      cantidadMeses = 6
+      break
+  }
+
+  // Como tu backend recibe solo mes y toma el año actual,
+  // evitamos pedir meses del año anterior.
+  cantidadMeses = Math.min(cantidadMeses, mesActual)
+
+  const mesInicio = mesActual - cantidadMeses + 1
+
+  return Array.from({ length: cantidadMeses }, (_, index) => {
+    const mesNumero = mesInicio + index
+    const fecha = new Date(hoy.getFullYear(), mesNumero - 1, 1)
+
+    return {
+      mesNumero,
+      mes: fecha.toLocaleDateString('es-MX', {
+        month: 'short',
+        year: '2-digit'
+      }),
+      orden: fecha.getTime()
+    }
+  })
+}
 
   useEffect(() => {
     const user = authService.getUser()
@@ -169,6 +214,38 @@ export default function GraficosPage() {
 
     loadData()
   }, [])
+
+  useEffect(() => {
+  const loadResumenesMensuales = async () => {
+    try {
+      const meses = getMesesResumenMensual()
+
+      const data = await Promise.all(
+        meses.map(async (item) => {
+          const resumen = await gastosService.getResumenMensual(item.mesNumero)
+
+          return {
+            mes: item.mes,
+            ingresos: Math.round(toNumber(resumen.ingresos)),
+            gastos: Math.round(toNumber(resumen.gastos)),
+            utilidad: Math.round(toNumber(resumen.utilidad)),
+            orden: item.orden
+          }
+        })
+      )
+
+      setResumenesMensuales(
+        data.sort((a, b) => a.orden - b.orden)
+      )
+    } catch (error) {
+      console.error('Error al cargar resumen mensual:', error)
+      toast.error('Error al cargar resumen mensual')
+      setResumenesMensuales([])
+    }
+  }
+
+  loadResumenesMensuales()
+}, [selectedPeriod])
 
   const loadData = async () => {
     setIsLoading(true)
@@ -667,134 +744,17 @@ export default function GraficosPage() {
   }
 
   const getIngresoVsGasto = () => {
-    if (
-      (!Array.isArray(viajes) || viajes.length === 0) &&
-      (!Array.isArray(bitacoras) || bitacoras.length === 0) &&
-      (!Array.isArray(gastosSemanales) || gastosSemanales.length === 0)
-    ) return []
-
-    const periodos = {}
-
-    if (Array.isArray(viajes)) {
-      viajes.forEach(viaje => {
-        if (viaje.fechaSalida && viaje.tarifa) {
-          const fecha = new Date(viaje.fechaSalida)
-          let clave, nombrePeriodo
-
-          if (selectedPeriod === 'diario') {
-            clave = fecha.toISOString().split('T')[0]
-            nombrePeriodo = fecha.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
-          } else if (selectedPeriod === 'semanal') {
-            const inicioSemana = new Date(fecha)
-            inicioSemana.setDate(fecha.getDate() - fecha.getDay())
-            clave = inicioSemana.toISOString().split('T')[0]
-            nombrePeriodo = `Sem ${inicioSemana.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}`
-          } else {
-            const anio = fecha.getFullYear()
-            const mes = fecha.getMonth()
-            clave = `${anio}-${String(mes + 1).padStart(2, '0')}`
-            nombrePeriodo = fecha.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' })
-          }
-
-          if (!periodos[clave]) {
-            periodos[clave] = {
-              mes: nombrePeriodo,
-              ingresos: 0,
-              gastos: 0,
-              orden: fecha.getTime()
-            }
-          }
-
-          periodos[clave].ingresos += parseFloat(viaje.tarifa)
-        }
-      })
-    }
-
-    if (Array.isArray(gastosSemanales) && gastosSemanales.length > 0) {
-      gastosSemanales.forEach(gasto => {
-        if (gasto.semanaInicio) {
-          const fecha = new Date(gasto.semanaInicio)
-          let clave, nombrePeriodo
-
-          if (selectedPeriod === 'diario') {
-            clave = fecha.toISOString().split('T')[0]
-            nombrePeriodo = fecha.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
-          } else if (selectedPeriod === 'semanal') {
-            clave = fecha.toISOString().split('T')[0]
-            nombrePeriodo = `Sem ${fecha.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}`
-          } else {
-            const anio = fecha.getFullYear()
-            const mes = fecha.getMonth()
-            clave = `${anio}-${String(mes + 1).padStart(2, '0')}`
-            nombrePeriodo = fecha.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' })
-          }
-
-          if (!periodos[clave]) {
-            periodos[clave] = {
-              mes: nombrePeriodo,
-              ingresos: 0,
-              gastos: 0,
-              orden: fecha.getTime()
-            }
-          }
-
-          periodos[clave].gastos += parseFloat(gasto.totalGastos || 0)
-        }
-      })
-    } else if (Array.isArray(bitacoras)) {
-      bitacoras.forEach(bitacora => {
-        if (bitacora.fechaCarga || bitacora.fechaHoraInicio) {
-          const fecha = new Date(bitacora.fechaCarga || bitacora.fechaHoraInicio)
-          let clave, nombrePeriodo
-
-          if (selectedPeriod === 'diario') {
-            clave = fecha.toISOString().split('T')[0]
-            nombrePeriodo = fecha.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
-          } else if (selectedPeriod === 'semanal') {
-            const inicioSemana = new Date(fecha)
-            inicioSemana.setDate(fecha.getDate() - fecha.getDay())
-            clave = inicioSemana.toISOString().split('T')[0]
-            nombrePeriodo = `Sem ${inicioSemana.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}`
-          } else {
-            const anio = fecha.getFullYear()
-            const mes = fecha.getMonth()
-            clave = `${anio}-${String(mes + 1).padStart(2, '0')}`
-            nombrePeriodo = fecha.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' })
-          }
-
-          if (!periodos[clave]) {
-            periodos[clave] = {
-              mes: nombrePeriodo,
-              ingresos: 0,
-              gastos: 0,
-              orden: fecha.getTime()
-            }
-          }
-
-          const gastoTotal = (
-            parseFloat(bitacora.dieselLitros || 0) +
-            parseFloat(bitacora.casetas || 0) +
-            parseFloat(bitacora.gastosExtras || 0) +
-            parseFloat(bitacora.comisionOperador || 0)
-          )
-
-          periodos[clave].gastos += gastoTotal
-        }
-      })
-    }
-
-    const limit = getDataLimit()
-
-    return Object.values(periodos)
-      .sort((a, b) => a.orden - b.orden)
-      .slice(-limit)
-      .map(item => ({
-        mes: item.mes,
-        ingresos: Math.round(item.ingresos),
-        gastos: Math.round(item.gastos),
-        utilidad: Math.round(item.ingresos - item.gastos)
-      }))
+  if (!Array.isArray(resumenesMensuales) || resumenesMensuales.length === 0) {
+    return []
   }
+
+  return resumenesMensuales.map(item => ({
+    mes: item.mes,
+    ingresos: Math.round(toNumber(item.ingresos)),
+    gastos: Math.round(toNumber(item.gastos)),
+    utilidad: Math.round(toNumber(item.utilidad))
+  }))
+}
 
   const getKilometrajePorUnidad = () => {
     if (!Array.isArray(unidades) || unidades.length === 0) return []
@@ -1280,55 +1240,93 @@ export default function GraficosPage() {
         {/* Gráficos principales */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Ingresos vs Gastos */}
-          {canViewChart(userRole, 'ingresos-vs-gastos') && (
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900">
-                    Ingresos vs Gastos
-                  </h3>
-                  <p className="text-sm text-slate-600">Comparativa mensual</p>
-                </div>
-                <BarChart3 className="h-6 w-6 text-blue-600" />
-              </div>
+{canViewChart(userRole, 'ingresos-vs-gastos') && (
+  <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
+    <div className="flex items-center justify-between mb-6">
+      <div>
+        <h3 className="text-lg font-bold text-slate-900">
+          Ingresos, Gastos y Utilidad
+        </h3>
+        <p className="text-sm text-slate-600">
+          Comparativa mensual
+        </p>
+      </div>
+      <BarChart3 className="h-6 w-6 text-blue-600" />
+    </div>
 
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={getIngresoVsGasto()}>
-                  <defs>
-                    <linearGradient id="colorIngresos" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.4} />
-                    </linearGradient>
+    <ResponsiveContainer width="100%" height={330}>
+      <BarChart
+        data={getIngresoVsGasto()}
+        margin={{ top: 10, right: 20, left: 10, bottom: 10 }}
+      >
+        <defs>
+          <linearGradient id="colorIngresos" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+            <stop offset="95%" stopColor="#10b981" stopOpacity={0.4} />
+          </linearGradient>
 
-                    <linearGradient id="colorGastos" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8} />
-                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0.4} />
-                    </linearGradient>
-                  </defs>
+          <linearGradient id="colorGastos" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8} />
+            <stop offset="95%" stopColor="#ef4444" stopOpacity={0.4} />
+          </linearGradient>
 
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                  <XAxis dataKey="mes" stroke="#334155" style={{ fontSize: '12px' }} />
-                  <YAxis stroke="#334155" style={{ fontSize: '12px' }} />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }} />
-                  <Legend />
+          <linearGradient id="colorUtilidad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.4} />
+          </linearGradient>
+        </defs>
 
-                  <Bar
-                    dataKey="ingresos"
-                    name="Ingresos"
-                    fill="url(#colorIngresos)"
-                    radius={[8, 8, 0, 0]}
-                  />
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="#e2e8f0"
+          vertical={false}
+        />
 
-                  <Bar
-                    dataKey="gastos"
-                    name="Gastos"
-                    fill="url(#colorGastos)"
-                    radius={[8, 8, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+        <XAxis
+          dataKey="mes"
+          stroke="#334155"
+          style={{ fontSize: '12px' }}
+        />
+
+        <YAxis
+          stroke="#334155"
+          style={{ fontSize: '12px' }}
+          tickFormatter={(value) =>
+            `$${Number(value || 0).toLocaleString('es-MX')}`
+          }
+        />
+
+        <Tooltip
+          content={<CustomMoneyTooltip />}
+          cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }}
+        />
+
+        <Legend />
+
+        <Bar
+          dataKey="ingresos"
+          name="Ingresos"
+          fill="url(#colorIngresos)"
+          radius={[8, 8, 0, 0]}
+        />
+
+        <Bar
+          dataKey="gastos"
+          name="Gastos"
+          fill="url(#colorGastos)"
+          radius={[8, 8, 0, 0]}
+        />
+
+        <Bar
+          dataKey="utilidad"
+          name="Utilidad"
+          fill="url(#colorUtilidad)"
+          radius={[8, 8, 0, 0]}
+        />
+      </BarChart>
+    </ResponsiveContainer>
+  </div>
+)}
 
           {/* Gastos por categoría */}
           {canViewChart(userRole, 'gastos-categoria') && (
