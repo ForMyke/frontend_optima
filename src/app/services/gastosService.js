@@ -74,15 +74,36 @@ const gastosService = {
    * Obtener gastos generados automáticamente por el sistema
    * Devuelve los datos calculados de la semana actual
    */
-  async getGastosGenerados() {
-    try {
-      const response = await apiClient.get('/api/gastos-semanales/generado')
-      return response.data
-    } catch (error) {
-      console.error('Error al obtener gastos generados:', error)
-      throw new Error(error.response?.data?.message || 'Error al obtener gastos generados')
+  async getGastosGenerados(fechaInicio, fechaFin = fechaInicio) {
+  try {
+    if (!fechaInicio) {
+      throw new Error('La fecha inicial es requerida')
     }
-  },
+
+    const response = await apiClient.get(
+      '/api/gastos-semanales/generado',
+      {
+        params: {
+          fechaInicio,
+          fechaFin: fechaFin || fechaInicio
+        }
+      }
+    )
+
+    return response.data
+  } catch (error) {
+    console.error(
+      'Error al obtener gastos generados:',
+      error
+    )
+
+    throw new Error(
+      error.response?.data?.message ||
+      error.message ||
+      'Error al obtener gastos generados'
+    )
+  }
+},
 
   /**
    * Obtener resumen mensual de ingresos, gastos y utilidad
