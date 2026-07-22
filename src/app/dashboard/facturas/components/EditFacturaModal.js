@@ -175,7 +175,7 @@ const EditFacturaModal = ({ isOpen, onClose, onConfirm, factura, clientes = [] }
                     className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
                   />
                   <p className="mt-1 text-xs text-blue-600">
-                    Al capturar o cambiar esta fecha, el backend marcará la factura como FACTURADA.
+                    Al capturar o cambiar esta fecha, se marcará la factura como FACTURADA.
                   </p>
                 </div>
 
