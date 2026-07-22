@@ -6,36 +6,33 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Pencil,
-  Trash2,
+  CreditCard,
+  Eye,
   RefreshCw,
-  Users,
-  X,
-  Save,
+  Truck,
   Wallet,
+  X,
 } from "lucide-react";
-import { clientsService } from "@/app/services/clientsService";
 import pronosticoCobranzaDetalleService from "@/app/services/pronosticoCobranzaDetalleService";
 
-function getMonday(date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
+function addDays(date, days) {
+  const copy = new Date(date);
+  copy.setDate(copy.getDate() + days);
+  return copy;
 }
 
-function addDays(date, days) {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
+function startOfFridayWeek(date) {
+  const copy = new Date(date);
+  copy.setHours(0, 0, 0, 0);
+  const daysSinceFriday = (copy.getDay() - 5 + 7) % 7;
+  copy.setDate(copy.getDate() - daysSinceFriday);
+  return copy;
 }
 
 function formatIsoDate(date) {
   const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
@@ -46,40 +43,40 @@ function formatHumanDate(date) {
   }).format(date);
 }
 
-function formatCurrency(amount) {
+function formatMoney(value) {
   return new Intl.NumberFormat("es-MX", {
     style: "currency",
     currency: "MXN",
     maximumFractionDigits: 2,
-  }).format(Number(amount || 0));
+  }).format(Number(value || 0));
 }
 
-function getDayName(date) {
-  const names = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-  return names[date.getDay()];
+function dayName(date) {
+  return ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][
+    date.getDay()
+  ];
 }
 
-function buildSixWeeks(baseDate = new Date()) {
-  const start = getMonday(baseDate);
-
-  const weeks = Array.from({ length: 6 }, (_, index) => {
-    const weekStart = addDays(start, index * 7);
-    const weekDays = Array.from({ length: 7 }, (_, dayIndex) => {
-      const current = addDays(weekStart, dayIndex);
+function buildSixWeeks(baseDate) {
+  const start = startOfFridayWeek(baseDate);
+  const weeks = Array.from({ length: 6 }, (_, weekIndex) => {
+    const weekStart = addDays(start, weekIndex * 7);
+    const days = Array.from({ length: 7 }, (_, dayIndex) => {
+      const date = addDays(weekStart, dayIndex);
       return {
-        key: formatIsoDate(current),
-        date: current,
-        label: getDayName(current),
-        shortDate: formatHumanDate(current),
+        key: formatIsoDate(date),
+        date,
+        label: dayName(date),
+        shortDate: formatHumanDate(date),
       };
     });
 
     return {
-      index,
-      title: `Semana ${index + 1}`,
+      index: weekIndex,
+      title: `Semana ${weekIndex + 1}`,
       start: formatIsoDate(weekStart),
       end: formatIsoDate(addDays(weekStart, 6)),
-      days: weekDays,
+      days,
     };
   });
 
@@ -87,223 +84,189 @@ function buildSixWeeks(baseDate = new Date()) {
     start,
     end: addDays(start, 41),
     weeks,
-    allDays: weeks.flatMap((week) => week.days),
   };
 }
 
-function normalizeClients(rawClients) {
-  return rawClients.map((client) => ({
-    id: Number(client.id),
-    nombre: client.nombre || `Cliente ${client.id}`,
-  }));
-}
-
-function normalizePronosticos(rawItems) {
-  return rawItems.map((item) => ({
-    id: Number(item.id),
-    viajeId: item.viajeId != null ? Number(item.viajeId) : null,
-    clienteId: item.clienteId != null ? Number(item.clienteId) : null,
+function normalizeResumen(items) {
+  return (items || []).map((item) => ({
+    clienteId: Number(item.clienteId),
+    clienteNombre: item.clienteNombre || `Cliente ${item.clienteId}`,
     fechaCredito: item.fechaCredito,
-    monto: Number(item.monto || 0),
-    estadoViaje: item.estadoViaje || "",
-    fechaViaje: item.fechaViaje || null,
-    fechaBase: item.fechaBase || null,
-    diasCredito: item.diasCredito ?? null,
+    saldoTotal: Number(item.saldoTotal || 0),
+    cantidadViajes: Number(item.cantidadViajes || 0),
   }));
 }
 
-function buildRows(clients, pronosticos, allDayKeys) {
-  const rowsMap = new Map();
+function buildRows(resumen) {
+  const map = new Map();
 
-  for (const client of clients) {
-    const dias = {};
-    for (const dayKey of allDayKeys) {
-      dias[dayKey] = [];
-    }
-
-    rowsMap.set(client.id, {
-      clienteId: client.id,
-      clienteNombre: client.nombre,
-      dias,
-    });
-  }
-
-  for (const item of pronosticos) {
-    if (!item.clienteId || !item.fechaCredito) continue;
-
-    if (!rowsMap.has(item.clienteId)) {
-      const dias = {};
-      for (const dayKey of allDayKeys) {
-        dias[dayKey] = [];
-      }
-
-      rowsMap.set(item.clienteId, {
-        clienteId: item.clienteId,
-        clienteNombre: `Cliente ${item.clienteId}`,
-        dias,
+  for (const group of resumen) {
+    if (!map.has(group.clienteId)) {
+      map.set(group.clienteId, {
+        clienteId: group.clienteId,
+        clienteNombre: group.clienteNombre,
+        fechas: {},
       });
     }
 
-    const row = rowsMap.get(item.clienteId);
-    if (row.dias[item.fechaCredito]) {
-      row.dias[item.fechaCredito].push(item);
-    }
+    map.get(group.clienteId).fechas[group.fechaCredito] = group;
   }
 
-  return Array.from(rowsMap.values()).sort((a, b) =>
-    a.clienteNombre.localeCompare(b.clienteNombre, "es", { sensitivity: "base" })
+  return [...map.values()].sort((a, b) =>
+    a.clienteNombre.localeCompare(b.clienteNombre, "es", {
+      sensitivity: "base",
+    }),
   );
 }
 
-function getCellTotal(registros) {
-  return registros.reduce((acc, item) => acc + Number(item.monto || 0), 0);
-}
+function PaymentModal({ mode, group, detail, onClose, onSubmit }) {
+  const isGlobal = mode === "GLOBAL";
+  const maxAmount = isGlobal
+    ? Number(group?.saldoTotal || 0)
+    : Number(detail?.saldoPendiente || 0);
 
-function getWeekTotal(row, weekDays) {
-  return weekDays.reduce((acc, day) => {
-    const registros = row.dias[day.key] || [];
-    return acc + getCellTotal(registros);
-  }, 0);
-}
-
-function EditPronosticoModal({ open, registro, onClose, onSave, saving }) {
-  const [fechaCredito, setFechaCredito] = useState("");
-  const [monto, setMonto] = useState("");
-  const [estadoViaje, setEstadoViaje] = useState("FACTURADO");
+  const [form, setForm] = useState({
+    monto: String(maxAmount),
+    fechaPago: formatIsoDate(new Date()),
+    metodoPago: "",
+    referencia: "",
+    observaciones: "",
+  });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (registro) {
-      setFechaCredito(registro.fechaCredito || "");
-      setMonto(String(registro.monto ?? ""));
-      setEstadoViaje(registro.estadoViaje || "FACTURADO");
-    }
-  }, [registro]);
-
-  if (!open || !registro) return null;
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!fechaCredito) {
-      toast.error("La fecha es obligatoria");
-      return;
-    }
-
-    if (monto === "" || Number.isNaN(Number(monto))) {
-      toast.error("El monto no es válido");
-      return;
-    }
-
-    if (estadoViaje === "PAGADA") {
-      const confirmar = window.confirm(
-        `¿Seguro que deseas marcar como PAGADA la factura del viaje #${registro.viajeId}?`
-      );
-
-      if (!confirmar) return;
-    }
-
-    await onSave({
-      fechaCredito,
-      monto: Number(monto),
-      estadoViaje,
+    setForm({
+      monto: String(maxAmount),
+      fechaPago: formatIsoDate(new Date()),
+      metodoPago: "",
+      referencia: "",
+      observaciones: "",
     });
+  }, [maxAmount, mode]);
+
+  if (!mode) return null;
+
+  const submit = async (event) => {
+    event.preventDefault();
+    const amount = Number(form.monto);
+
+    if (!Number.isFinite(amount) || amount <= 0 || amount > maxAmount) {
+      toast.error("El monto del pago no es válido");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await onSubmit({ ...form, monto: amount });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-slate-200 p-5">
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">
-              Editar pronóstico
+            <h3 className="text-lg font-bold text-slate-900">
+              {isGlobal ? "Registrar abono global" : "Pagar viaje completo"}
             </h3>
             <p className="text-sm text-slate-500">
-              Viaje #{registro.viajeId ?? "N/A"} · Cliente #{registro.clienteId}
+              Saldo disponible: {formatMoney(maxAmount)}
             </p>
           </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-          >
+          <button onClick={onClose} className="rounded-lg p-2 hover:bg-slate-100">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">
-              Fecha de crédito
-            </label>
-            <input
-              type="date"
-              value={fechaCredito}
-              onChange={(e) => setFechaCredito(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+        <form onSubmit={submit} className="space-y-4 p-5">
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-slate-700">
               Monto
-            </label>
+            </span>
             <input
               type="number"
+              min="0.01"
+              max={maxAmount}
               step="0.01"
-              value={monto}
-              onChange={(e) => setMonto(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+              disabled={!isGlobal}
+              value={form.monto}
+              onChange={(e) => setForm({ ...form, monto: e.target.value })}
+              className="w-full rounded-xl border border-slate-300 px-3 py-2.5 disabled:bg-slate-100"
+              required
             />
-          </div>
+          </label>
 
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">
-              Estado
-            </label>
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-slate-700">
+              Fecha de pago
+            </span>
+            <input
+              type="date"
+              max={formatIsoDate(new Date())}
+              value={form.fechaPago}
+              onChange={(e) => setForm({ ...form, fechaPago: e.target.value })}
+              className="w-full rounded-xl border border-slate-300 px-3 py-2.5"
+              required
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-slate-700">
+              Método de pago
+            </span>
             <select
-              value={estadoViaje}
-              onChange={(e) => setEstadoViaje(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+              value={form.metodoPago}
+              onChange={(e) => setForm({ ...form, metodoPago: e.target.value })}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"
+              required
             >
-              <option value="FACTURADO">FACTURADO</option>
-              <option value="PAGADA">PAGADA</option>
+              <option value="">Selecciona</option>
+              <option value="EFECTIVO">Efectivo</option>
+              <option value="TRANSFERENCIA">Transferencia</option>
+              <option value="CHEQUE">Cheque</option>
+              <option value="TARJETA_CREDITO">Tarjeta de crédito</option>
+              <option value="TARJETA_DEBITO">Tarjeta de débito</option>
             </select>
+          </label>
 
-            {estadoViaje === "PAGADA" && (
-              <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700 border border-emerald-200">
-                Al guardar, la factura asociada a este viaje se marcará como pagada automáticamente.
-              </p>
-            )}
-          </div>
+          <input
+            value={form.referencia}
+            onChange={(e) => setForm({ ...form, referencia: e.target.value })}
+            placeholder="Referencia opcional"
+            className="w-full rounded-xl border border-slate-300 px-3 py-2.5"
+          />
 
-          <div className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
-            <p>
-              <span className="font-medium">Estado actual:</span>{" "}
-              {registro.estadoViaje || "N/A"}
-            </p>
-            <p>
-              <span className="font-medium">Fecha viaje:</span>{" "}
-              {registro.fechaViaje || "N/A"}
-            </p>
-          </div>
+          <textarea
+            rows={3}
+            value={form.observaciones}
+            onChange={(e) => setForm({ ...form, observaciones: e.target.value })}
+            placeholder="Observaciones"
+            className="w-full rounded-xl border border-slate-300 px-3 py-2.5"
+          />
 
-          <div className="flex items-center justify-end gap-2 pt-2">
+          {isGlobal && Number(form.monto || 0) < maxAmount && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+              Es un abono parcial global. El saldo restante se moverá a la
+              siguiente fecha del cliente o a fecha de pago + días de crédito.
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-medium"
             >
               Cancelar
             </button>
-
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+              className="flex-1 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"
             >
-              <Save className="h-4 w-4" />
-              {saving ? "Guardando..." : "Guardar"}
+              {saving ? "Procesando..." : "Confirmar pago"}
             </button>
           </div>
         </form>
@@ -312,263 +275,292 @@ function EditPronosticoModal({ open, registro, onClose, onSave, saving }) {
   );
 }
 
-function PronosticoCard({ registro, onEdit, onDelete }) {
+function DetailsModal({ group, details, loading, onClose, onGlobal, onIndividual }) {
+  if (!group) return null;
+
+  const total = details.reduce(
+    (sum, detail) => sum + Number(detail.saldoPendiente || 0),
+    0,
+  );
+
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <div className="text-xs font-semibold text-slate-900">
-            {formatCurrency(registro.monto)}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+      <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white p-5">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">
+              {group.clienteNombre}
+            </h2>
+            <p className="text-sm text-slate-500">
+              Cobro programado: {group.fechaCredito}
+            </p>
           </div>
-          <div className="text-[11px] text-slate-500">
-            Viaje #{registro.viajeId ?? "N/A"}
-          </div>
-          {registro.estadoViaje && (
-            <div
-              className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                registro.estadoViaje === "PAGADA"
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-blue-100 text-blue-700"
-              }`}
+          <button onClick={onClose} className="rounded-lg p-2 hover:bg-slate-100">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="p-5">
+          <div className="mb-5 grid gap-3 md:grid-cols-3">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs text-slate-500">Saldo pendiente</p>
+              <p className="mt-1 text-xl font-bold text-slate-900">
+                {formatMoney(total)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs text-slate-500">Viajes incluidos</p>
+              <p className="mt-1 text-xl font-bold text-slate-900">
+                {details.length}
+              </p>
+            </div>
+            <button
+              onClick={onGlobal}
+              disabled={loading || total <= 0}
+              className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 p-4 font-semibold text-white disabled:opacity-50"
             >
-              {registro.estadoViaje}
+              <CreditCard className="h-5 w-5" />
+              Registrar abono global
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="p-10 text-center text-sm text-slate-500">
+              Cargando viajes...
+            </div>
+          ) : details.length === 0 ? (
+            <div className="p-10 text-center text-sm text-slate-500">
+              El grupo ya no tiene saldo pendiente.
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="min-w-[900px] w-full border-collapse">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Viaje</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Ruta</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Monto</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Pagado</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Pendiente</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">Estado</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {details.map((detail) => (
+                    <tr key={detail.detalleId} className="border-t border-slate-200">
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-slate-900">
+                          {detail.folio || `#${detail.viajeId}`}
+                        </p>
+                        <p className="text-xs text-slate-500">{detail.fechaViaje || "Sin fecha"}</p>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-600">
+                        {detail.origen || "—"} → {detail.destino || "—"}
+                      </td>
+                      <td className="px-4 py-3 text-right text-sm">{formatMoney(detail.monto)}</td>
+                      <td className="px-4 py-3 text-right text-sm text-emerald-700">{formatMoney(detail.montoPagado)}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-orange-700">{formatMoney(detail.saldoPendiente)}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-700">
+                          {detail.estadoCobranza}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={() => onIndividual(detail)}
+                          className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white"
+                        >
+                          Pagar viaje
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
-      </div>
-
-      <div className="mt-2 flex items-center gap-1">
-        <button
-          onClick={() => onEdit(registro)}
-          className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-700 hover:bg-amber-100"
-        >
-          <Pencil className="h-3 w-3" />
-          Editar
-        </button>
-
-        <button
-          onClick={() => onDelete(registro)}
-          className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[11px] font-medium text-red-700 hover:bg-red-100"
-        >
-          <Trash2 className="h-3 w-3" />
-          Eliminar
-        </button>
       </div>
     </div>
   );
 }
 
-function WeekTable({ week, rows, onEdit, onDelete }) {
+function GroupCard({ group, onDetails }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex flex-col gap-2 border-b border-slate-200 px-4 py-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">{week.title}</h2>
-          <p className="text-sm text-slate-500">
-            {week.start} al {week.end}
-          </p>
-        </div>
+    <div className="rounded-xl border border-blue-200 bg-blue-50 p-3">
+      <p className="text-lg font-bold text-slate-900">
+        {formatMoney(group.saldoTotal)}
+      </p>
+      <p className="mt-1 text-xs text-slate-600">
+        {group.cantidadViajes} viaje{group.cantidadViajes === 1 ? "" : "s"}
+      </p>
+      <button
+        onClick={() => onDetails(group)}
+        className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-blue-700 shadow-sm ring-1 ring-blue-200"
+      >
+        <Eye className="h-4 w-4" /> Ver detalles
+      </button>
+    </div>
+  );
+}
 
-        <div className="inline-flex items-center gap-2 rounded-xl bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700">
-          <CalendarDays className="h-4 w-4" />
-          7 días + total semanal
-        </div>
+function WeekTable({ week, rows, onDetails }) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 px-4 py-4">
+        <h2 className="font-semibold text-slate-900">{week.title}</h2>
+        <p className="text-sm text-slate-500">
+          Viernes {week.start} a jueves {week.end}
+        </p>
       </div>
-
       <div className="overflow-x-auto">
-        <table className="min-w-[1600px] border-collapse">
-          <thead>
-            <tr className="bg-slate-50">
-              <th className="sticky left-0 z-20 min-w-[220px] border-b border-r border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-slate-800">
+        <table className="min-w-[1500px] w-full border-collapse">
+          <thead className="bg-slate-50">
+            <tr>
+              <th className="sticky left-0 z-20 min-w-[220px] border-b border-r border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-semibold">
                 Cliente
               </th>
-
               {week.days.map((day) => (
-                <th
-                  key={day.key}
-                  className="min-w-[180px] border-b border-r border-slate-200 px-3 py-3 text-center"
-                >
-                  <div className="text-sm font-semibold text-slate-700">{day.label}</div>
+                <th key={day.key} className="min-w-[175px] border-b border-r border-slate-200 px-3 py-3 text-center">
+                  <div className="text-sm font-semibold">{day.label}</div>
                   <div className="text-xs text-slate-500">{day.shortDate}</div>
                 </th>
               ))}
-
-              <th className="min-w-[170px] border-b border-slate-200 bg-slate-100 px-3 py-3 text-center">
-                <div className="text-sm font-semibold text-slate-700">Total semana</div>
-                <div className="text-xs text-slate-500">Cliente</div>
-              </th>
             </tr>
           </thead>
-
           <tbody>
-            {rows.map((row) => {
-              const totalSemana = getWeekTotal(row, week.days);
-
-              return (
-                <tr key={`${week.index}-${row.clienteId}`} className="align-top">
-                  <td className="sticky left-0 z-10 border-b border-r border-slate-200 bg-white px-4 py-3">
-                    <div className="text-sm font-semibold text-slate-900">
-                      {row.clienteNombre}
-                    </div>
-                    <div className="text-xs text-slate-500">ID: {row.clienteId}</div>
-                  </td>
-
-                  {week.days.map((day) => {
-                    const registros = row.dias[day.key] || [];
-                    const totalDia = getCellTotal(registros);
-
-                    return (
-                      <td
-                        key={`${row.clienteId}-${day.key}`}
-                        className="border-b border-r border-slate-200 px-2 py-2 align-top"
-                      >
-                        <div className="min-h-[150px] space-y-2">
-                          {registros.length > 0 && (
-                            <div className="rounded-lg bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
-                              Total día: {formatCurrency(totalDia)}
-                            </div>
-                          )}
-
-                          {registros.length === 0 ? (
-                            <div className="pt-8 text-center text-xs text-slate-300">—</div>
-                          ) : (
-                            registros.map((registro) => (
-                              <PronosticoCard
-                                key={registro.id}
-                                registro={registro}
-                                onEdit={onEdit}
-                                onDelete={onDelete}
-                              />
-                            ))
-                          )}
-                        </div>
-                      </td>
-                    );
-                  })}
-
-                  <td className="border-b border-slate-200 bg-slate-50 px-3 py-3 align-top">
-                    <div className="flex min-h-[150px] flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-3 text-center shadow-sm">
-                      <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
-                        <Wallet className="h-5 w-5 text-emerald-700" />
-                      </div>
-                      <div className="mt-3 text-xs font-medium text-slate-500">
-                        Total de la semana
-                      </div>
-                      <div className="mt-1 text-base font-bold text-slate-900">
-                        {formatCurrency(totalSemana)}
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
+            {rows.map((row) => (
+              <tr key={`${week.index}-${row.clienteId}`} className="align-top">
+                <td className="sticky left-0 z-10 border-b border-r border-slate-200 bg-white px-4 py-3">
+                  <p className="text-sm font-semibold text-slate-900">{row.clienteNombre}</p>
+                </td>
+                {week.days.map((day) => {
+                  const group = row.fechas[day.key];
+                  return (
+                    <td key={`${row.clienteId}-${day.key}`} className="h-[150px] border-b border-r border-slate-200 p-2 align-top">
+                      {group ? (
+                        <GroupCard group={group} onDetails={onDetails} />
+                      ) : (
+                        <div className="pt-12 text-center text-xs text-slate-300">—</div>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
   );
 }
 
 export default function PronosticoCobranzaPage() {
   const [baseDate, setBaseDate] = useState(new Date());
-  const [clients, setClients] = useState([]);
-  const [pronosticos, setPronosticos] = useState([]);
+  const [resumen, setResumen] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [details, setDetails] = useState([]);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [paymentMode, setPaymentMode] = useState(null);
+  const [selectedDetail, setSelectedDetail] = useState(null);
 
-  const [editOpen, setEditOpen] = useState(false);
-  const [selectedRegistro, setSelectedRegistro] = useState(null);
+  const calendar = useMemo(() => buildSixWeeks(baseDate), [baseDate]);
+  const rows = useMemo(() => buildRows(resumen), [resumen]);
+  const totalPeriod = useMemo(
+    () => resumen.reduce((sum, item) => sum + item.saldoTotal, 0),
+    [resumen],
+  );
 
-  const sixWeeks = useMemo(() => buildSixWeeks(baseDate), [baseDate]);
-  const allDayKeys = useMemo(() => sixWeeks.allDays.map((d) => d.key), [sixWeeks.allDays]);
-
-  const loadData = useCallback(async () => {
+  const loadSummary = useCallback(async () => {
     try {
       setLoading(true);
-
-      const inicio = formatIsoDate(sixWeeks.start);
-      const fin = formatIsoDate(sixWeeks.end);
-
-      const [clientsData, pronosticosData] = await Promise.all([
-        clientsService.getAllClients(200),
-        pronosticoCobranzaDetalleService.getByRange(inicio, fin),
-      ]);
-
-      setClients(normalizeClients(clientsData));
-      setPronosticos(normalizePronosticos(pronosticosData));
+      const data = await pronosticoCobranzaDetalleService.getResumen(
+        formatIsoDate(calendar.start),
+        formatIsoDate(calendar.end),
+      );
+      setResumen(normalizeResumen(data));
     } catch (error) {
       console.error(error);
-      toast.error("Error al cargar la proyección de cobranza");
+      toast.error("No se pudo cargar el pronóstico de cobranza");
     } finally {
       setLoading(false);
     }
-  }, [sixWeeks.start, sixWeeks.end]);
+  }, [calendar.start, calendar.end]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    loadSummary();
+  }, [loadSummary]);
 
-  const rows = useMemo(() => {
-    return buildRows(clients, pronosticos, allDayKeys);
-  }, [clients, pronosticos, allDayKeys]);
-
-  const totalGeneralPeriodo = useMemo(() => {
-    return pronosticos.reduce((acc, item) => acc + Number(item.monto || 0), 0);
-  }, [pronosticos]);
-
-  const handlePrev6Weeks = () => {
-    setBaseDate((prev) => addDays(prev, -42));
-  };
-
-  const handleNext6Weeks = () => {
-    setBaseDate((prev) => addDays(prev, 42));
-  };
-
-  const handleToday = () => {
-    setBaseDate(new Date());
-  };
-
-  const openEdit = (registro) => {
-    setSelectedRegistro(registro);
-    setEditOpen(true);
-  };
-
-  const closeEdit = () => {
-    setSelectedRegistro(null);
-    setEditOpen(false);
-  };
-
-  const handleSaveEdit = async (payload) => {
-    if (!selectedRegistro) return;
-
+  const loadDetails = async (group) => {
     try {
-      setSaving(true);
-      await pronosticoCobranzaDetalleService.update(selectedRegistro.id, payload);
-      toast.success("Pronóstico actualizado");
-      closeEdit();
-      await loadData();
+      setDetailsLoading(true);
+      const data = await pronosticoCobranzaDetalleService.getDetalles(
+        group.clienteId,
+        group.fechaCredito,
+      );
+      setDetails(data || []);
     } catch (error) {
       console.error(error);
-      toast.error("No se pudo actualizar el pronóstico");
+      toast.error("No se pudieron cargar los viajes");
     } finally {
-      setSaving(false);
+      setDetailsLoading(false);
     }
   };
 
-  const handleDelete = async (registro) => {
-    const ok = window.confirm(
-      `¿Eliminar el pronóstico del viaje #${registro.viajeId ?? registro.id}?`
-    );
+  const openDetails = async (group) => {
+    setSelectedGroup(group);
+    setDetails([]);
+    await loadDetails(group);
+  };
 
-    if (!ok) return;
+  const refreshAfterPayment = async () => {
+    await loadSummary();
+    if (selectedGroup) {
+      await loadDetails(selectedGroup);
+    }
+  };
 
+  const submitPayment = async (form) => {
     try {
-      await pronosticoCobranzaDetalleService.remove(registro.id);
-      toast.success("Pronóstico eliminado");
-      await loadData();
+      let result;
+
+      if (paymentMode === "GLOBAL") {
+        result = await pronosticoCobranzaDetalleService.registrarPagoGlobal({
+          clienteId: selectedGroup.clienteId,
+          fechaCredito: selectedGroup.fechaCredito,
+          fechaPago: form.fechaPago,
+          monto: form.monto,
+          metodoPago: form.metodoPago,
+          referencia: form.referencia || null,
+          observaciones: form.observaciones || null,
+        });
+      } else {
+        result = await pronosticoCobranzaDetalleService.pagarViajeCompleto(
+          selectedDetail.detalleId,
+          {
+            monto: Number(selectedDetail.saldoPendiente),
+            fechaPago: form.fechaPago,
+            metodoPago: form.metodoPago,
+            referencia: form.referencia || null,
+            observaciones: form.observaciones || null,
+          },
+        );
+      }
+
+      toast.success(result.mensaje || "Pago registrado");
+      setPaymentMode(null);
+      setSelectedDetail(null);
+      await refreshAfterPayment();
     } catch (error) {
       console.error(error);
-      toast.error("No se pudo eliminar el pronóstico");
+      toast.error(
+        error.response?.data?.message ||
+          error.response?.data ||
+          error.message ||
+          "No se pudo registrar el pago",
+      );
     }
   };
 
@@ -578,110 +570,77 @@ export default function PronosticoCobranzaPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Pronóstico de cobranza</h1>
           <p className="text-sm text-slate-600">
-            Vista distribuida por semanas, clientes y días con edición por registro.
+            Solo muestra el saldo pendiente agrupado por cliente y fecha.
           </p>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={handlePrev6Weeks}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            6 semanas antes
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => setBaseDate((date) => addDays(date, -42))} className="inline-flex items-center gap-2 rounded-xl border bg-white px-3 py-2 text-sm">
+            <ChevronLeft className="h-4 w-4" /> 6 semanas antes
           </button>
-
-          <button
-            onClick={handleToday}
-            className="rounded-xl bg-slate-800 px-3 py-2 text-sm font-medium text-white hover:bg-slate-900"
-          >
-            Hoy
+          <button onClick={() => setBaseDate(new Date())} className="rounded-xl bg-slate-900 px-3 py-2 text-sm text-white">Hoy</button>
+          <button onClick={() => setBaseDate((date) => addDays(date, 42))} className="inline-flex items-center gap-2 rounded-xl border bg-white px-3 py-2 text-sm">
+            6 semanas después <ChevronRight className="h-4 w-4" />
           </button>
-
-          <button
-            onClick={handleNext6Weeks}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            6 semanas después
-            <ChevronRight className="h-4 w-4" />
-          </button>
-
-          <button
-            onClick={loadData}
-            className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Recargar
+          <button onClick={loadSummary} className="inline-flex items-center gap-2 rounded-xl bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 ring-1 ring-blue-200">
+            <RefreshCw className="h-4 w-4" /> Recargar
           </button>
         </div>
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-4">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 text-slate-600">
-            <CalendarDays className="h-4 w-4" />
-            <span className="text-sm font-medium">Rango</span>
-          </div>
-          <p className="mt-2 text-sm text-slate-900">
-            {formatIsoDate(sixWeeks.start)} al {formatIsoDate(sixWeeks.end)}
-          </p>
+      <div className="mb-6 grid gap-3 md:grid-cols-3">
+        <div className="rounded-2xl border bg-white p-4 shadow-sm">
+          <CalendarDays className="h-5 w-5 text-slate-500" />
+          <p className="mt-2 text-sm text-slate-500">Rango</p>
+          <p className="font-semibold">{formatIsoDate(calendar.start)} al {formatIsoDate(calendar.end)}</p>
         </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 text-slate-600">
-            <Users className="h-4 w-4" />
-            <span className="text-sm font-medium">Clientes</span>
-          </div>
-          <p className="mt-2 text-sm text-slate-900">{rows.length}</p>
+        <div className="rounded-2xl border bg-white p-4 shadow-sm">
+          <Truck className="h-5 w-5 text-slate-500" />
+          <p className="mt-2 text-sm text-slate-500">Grupos de cobro</p>
+          <p className="text-xl font-bold">{resumen.length}</p>
         </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 text-slate-600">
-            <RefreshCw className="h-4 w-4" />
-            <span className="text-sm font-medium">Registros</span>
-          </div>
-          <p className="mt-2 text-sm text-slate-900">{pronosticos.length}</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 text-slate-600">
-            <Wallet className="h-4 w-4" />
-            <span className="text-sm font-medium">Total periodo</span>
-          </div>
-          <p className="mt-2 text-sm font-semibold text-slate-900">
-            {formatCurrency(totalGeneralPeriodo)}
-          </p>
+        <div className="rounded-2xl border bg-white p-4 shadow-sm">
+          <Wallet className="h-5 w-5 text-slate-500" />
+          <p className="mt-2 text-sm text-slate-500">Saldo del periodo</p>
+          <p className="text-xl font-bold">{formatMoney(totalPeriod)}</p>
         </div>
       </div>
 
       {loading ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500 shadow-sm">
-          Cargando proyección...
-        </div>
+        <div className="rounded-2xl border bg-white p-10 text-center text-sm text-slate-500">Cargando...</div>
       ) : rows.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500 shadow-sm">
-          No hay clientes ni registros para este rango.
-        </div>
+        <div className="rounded-2xl border bg-white p-10 text-center text-sm text-slate-500">No hay saldos pendientes en este rango.</div>
       ) : (
         <div className="space-y-6">
-          {sixWeeks.weeks.map((week) => (
-            <WeekTable
-              key={`${week.start}-${week.end}`}
-              week={week}
-              rows={rows}
-              onEdit={openEdit}
-              onDelete={handleDelete}
-            />
+          {calendar.weeks.map((week) => (
+            <WeekTable key={week.start} week={week} rows={rows} onDetails={openDetails} />
           ))}
         </div>
       )}
 
-      <EditPronosticoModal
-        open={editOpen}
-        registro={selectedRegistro}
-        onClose={closeEdit}
-        onSave={handleSaveEdit}
-        saving={saving}
+      <DetailsModal
+        group={selectedGroup}
+        details={details}
+        loading={detailsLoading}
+        onClose={() => {
+          setSelectedGroup(null);
+          setDetails([]);
+        }}
+        onGlobal={() => setPaymentMode("GLOBAL")}
+        onIndividual={(detail) => {
+          setSelectedDetail(detail);
+          setPaymentMode("INDIVIDUAL");
+        }}
+      />
+
+      <PaymentModal
+        mode={paymentMode}
+        group={selectedGroup}
+        detail={selectedDetail}
+        onClose={() => {
+          setPaymentMode(null);
+          setSelectedDetail(null);
+        }}
+        onSubmit={submitPayment}
       />
     </div>
   );

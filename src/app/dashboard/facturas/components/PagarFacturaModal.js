@@ -1,178 +1,185 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { CheckCircle, Calendar, CreditCard, AlertCircle } from 'lucide-react'
+import { useEffect, useMemo, useState } from "react";
+import { AlertCircle, Calendar, CheckCircle, CreditCard } from "lucide-react";
 
-const PagarFacturaModal = ({ isOpen, onClose, onConfirm, factura }) => {
+const hoyIso = () => new Date().toISOString().split("T")[0];
+
+export default function PagarFacturaModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  factura,
+}) {
   const [formData, setFormData] = useState({
-    fechaPago: new Date().toISOString().split('T')[0],
-    metodoPago: '',
-    montoParcial: '',
-    observaciones: ''
-  })
-  const [isLoading, setIsLoading] = useState(false)
+    fechaPago: hoyIso(),
+    metodoPago: "",
+    montoParcial: "",
+    referencia: "",
+    observaciones: "",
+  });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setIsLoading(true)
+  const saldo = useMemo(() => {
+    if (!factura) return 0;
+    return Math.max(
+      0,
+      Number(factura.monto || 0) - Number(factura.montoParcial || 0),
+    );
+  }, [factura]);
+
+  useEffect(() => {
+    if (isOpen && factura) {
+      setFormData({
+        fechaPago: hoyIso(),
+        metodoPago: "",
+        montoParcial: String(saldo),
+        referencia: "",
+        observaciones: "",
+      });
+    }
+  }, [isOpen, factura, saldo]);
+
+  if (!isOpen || !factura) return null;
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const abono = Number(formData.montoParcial);
+
+    if (!Number.isFinite(abono) || abono <= 0 || abono > saldo) return;
 
     try {
-      await onConfirm(factura, formData)
-      setFormData({
-        fechaPago: new Date().toISOString().split('T')[0],
-        metodoPago: '',
-        montoParcial: '',
-        observaciones: ''
-      })
-      onClose()
-    } catch (error) {
-      console.error('Error al procesar pago:', error)
+      setIsLoading(true);
+      await onConfirm(factura, formData);
+      onClose();
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
-
-  if (!isOpen || !factura) return null
+  };
 
   return (
-    <div className="fixed inset-0 backdrop-blur-xs bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-slate-200">
-          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-emerald-100 mx-auto mb-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white shadow-2xl">
+        <div className="border-b border-slate-200 p-6 text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
             <CheckCircle className="h-6 w-6 text-emerald-600" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 text-center">Registrar pago</h2>
-          <p className="text-sm text-slate-600 text-center mt-2">
-            Factura: <span className="font-semibold">{factura.numeroFactura}</span>
+          <h2 className="text-xl font-bold text-slate-900">Registrar abono</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            {factura.numeroFactura || `Factura #${factura.id}`}
           </p>
-          <div className="mt-3 bg-slate-50 rounded-lg p-3">
-            <div className="flex justify-between text-sm mb-1">
-              <span className="text-slate-600">Monto total:</span>
-              <span className="font-bold text-slate-900">
-                ${(factura.monto || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-600">Pagado hasta ahora:</span>
-              <span className="font-semibold text-emerald-600">
-                ${(factura.montoParcial || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm mt-1 pt-2 border-t border-slate-200">
-              <span className="text-slate-600">Por pagar:</span>
-              <span className="font-bold text-orange-600">
-                ${((factura.monto || 0) - (factura.montoParcial || 0)).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-              </span>
+          <div className="mt-4 rounded-xl bg-slate-50 p-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-slate-600">Saldo pendiente</span>
+              <strong className="text-orange-600">
+                {saldo.toLocaleString("es-MX", {
+                  style: "currency",
+                  currency: "MXN",
+                })}
+              </strong>
             </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6">
-          <div className="space-y-4">
-            <div>
-              <label className="flex items-center text-sm font-medium text-slate-700 mb-2">
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Monto a pagar *
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0.01"
-                max={factura.monto}
-                value={formData.montoParcial}
-                onChange={(e) => setFormData({ ...formData, montoParcial: e.target.value })}
-                placeholder={`Máximo: $${(factura.monto || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`}
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-slate-900"
-                required
-              />
-              <p className="text-xs text-slate-500 mt-1">
-                Ingresa el monto del pago que estás registrando
-              </p>
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4 p-6">
+          <label className="block">
+            <span className="mb-2 block text-sm font-medium text-slate-700">
+              Monto del nuevo abono
+            </span>
+            <input
+              type="number"
+              min="0.01"
+              max={saldo}
+              step="0.01"
+              value={formData.montoParcial}
+              onChange={(e) =>
+                setFormData({ ...formData, montoParcial: e.target.value })
+              }
+              className="w-full rounded-xl border border-slate-300 px-4 py-3"
+              required
+            />
+          </label>
 
-            <div>
-              <label className="flex items-center text-sm font-medium text-slate-700 mb-2">
-                <Calendar className="h-4 w-4 mr-2" />
-                Fecha de pago *
-              </label>
-              <input
-                type="date"
-                value={formData.fechaPago}
-                onChange={(e) => setFormData({ ...formData, fechaPago: e.target.value })}
-                max={new Date().toISOString().split('T')[0]}
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-slate-900"
-                required
-              />
-            </div>
+          <label className="block">
+            <span className="mb-2 flex items-center text-sm font-medium text-slate-700">
+              <Calendar className="mr-2 h-4 w-4" /> Fecha de pago
+            </span>
+            <input
+              type="date"
+              max={hoyIso()}
+              value={formData.fechaPago}
+              onChange={(e) =>
+                setFormData({ ...formData, fechaPago: e.target.value })
+              }
+              className="w-full rounded-xl border border-slate-300 px-4 py-3"
+              required
+            />
+          </label>
 
-            <div>
-              <label className="flex items-center text-sm font-medium text-slate-700 mb-2">
-                <CreditCard className="h-4 w-4 mr-2" />
-                Método de pago *
-              </label>
-              <select
-                value={formData.metodoPago}
-                onChange={(e) => setFormData({ ...formData, metodoPago: e.target.value })}
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-slate-900"
-                required
-              >
-                <option value="">Selecciona un método</option>
-                <option value="EFECTIVO">Efectivo</option>
-                <option value="TRANSFERENCIA">Transferencia</option>
-                <option value="CHEQUE">Cheque</option>
-                <option value="TARJETA_CREDITO">Tarjeta de crédito</option>
-                <option value="TARJETA_DEBITO">Tarjeta de débito</option>
-              </select>
-            </div>
+          <label className="block">
+            <span className="mb-2 flex items-center text-sm font-medium text-slate-700">
+              <CreditCard className="mr-2 h-4 w-4" /> Método
+            </span>
+            <select
+              value={formData.metodoPago}
+              onChange={(e) =>
+                setFormData({ ...formData, metodoPago: e.target.value })
+              }
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3"
+              required
+            >
+              <option value="">Selecciona</option>
+              <option value="EFECTIVO">Efectivo</option>
+              <option value="TRANSFERENCIA">Transferencia</option>
+              <option value="CHEQUE">Cheque</option>
+              <option value="TARJETA_CREDITO">Tarjeta de crédito</option>
+              <option value="TARJETA_DEBITO">Tarjeta de débito</option>
+            </select>
+          </label>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Observaciones
-              </label>
-              <textarea
-                value={formData.observaciones}
-                onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
-                placeholder="Ej: Primer pago - 50%"
-                rows={3}
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-slate-900"
-              />
-            </div>
+          <input
+            type="text"
+            placeholder="Referencia opcional"
+            value={formData.referencia}
+            onChange={(e) =>
+              setFormData({ ...formData, referencia: e.target.value })
+            }
+            className="w-full rounded-xl border border-slate-300 px-4 py-3"
+          />
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start">
-                <AlertCircle className="h-5 w-5 text-blue-600 mr-3 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-blue-900">Información importante</p>
-                  <p className="text-xs text-blue-700 mt-1">
-                    • Si pagas con <strong>Efectivo</strong>, la factura se marcará como SIN_FACTURA<br />
-                    • Si el monto parcial es igual al total, se marcará como PAGADA automáticamente<br />
-                    • Si es menor, quedará como PAGO_PARCIAL
-                  </p>
-                </div>
-              </div>
-            </div>
+          <textarea
+            rows={3}
+            placeholder="Observaciones"
+            value={formData.observaciones}
+            onChange={(e) =>
+              setFormData({ ...formData, observaciones: e.target.value })
+            }
+            className="w-full rounded-xl border border-slate-300 px-4 py-3"
+          />
+
+          <div className="flex gap-3 rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800">
+            <AlertCircle className="h-5 w-5 shrink-0" />
+            El backend sumará este abono al monto ya pagado. No reemplazará el acumulado.
           </div>
 
-          <div className="flex space-x-3 mt-6">
+          <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 cursor-pointer px-6 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+              className="flex-1 rounded-xl bg-slate-100 px-4 py-3 font-medium text-slate-700"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="flex-1 cursor-pointer px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 font-medium text-white disabled:opacity-50"
             >
-              {isLoading ? 'Procesando...' : 'Confirmar pago'}
+              {isLoading ? "Procesando..." : "Registrar"}
             </button>
           </div>
         </form>
       </div>
     </div>
-  )
+  );
 }
-
-export default PagarFacturaModal

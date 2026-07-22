@@ -150,8 +150,8 @@ const EditFacturaModal = ({ isOpen, onClose, onConfirm, factura, clientes = [] }
                   >
                     <option value="">Seleccionar tipo</option>
                     <option value="VIAJE">Viaje</option>
-                    <option value="FACTURADO">Facturado</option>
-                    <option value="SIN_FACTURA">Sin Factura</option>
+                    <option value="EXTRA">Extra</option>
+                    <option value="OTRA">Otra</option>
                   </select>
                 </div>
               </div>
@@ -174,11 +174,14 @@ const EditFacturaModal = ({ isOpen, onClose, onConfirm, factura, clientes = [] }
                     onChange={(e) => setFormData({ ...formData, fechaEmision: e.target.value })}
                     className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
                   />
+                  <p className="mt-1 text-xs text-blue-600">
+                    Al capturar o cambiar esta fecha, el backend marcará la factura como FACTURADA.
+                  </p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Fecha de Vencimiento
+                    Fecha de Vencimiento (opcional)
                   </label>
                   <input
                     type="date"
@@ -186,6 +189,9 @@ const EditFacturaModal = ({ isOpen, onClose, onConfirm, factura, clientes = [] }
                     onChange={(e) => setFormData({ ...formData, fechaVencimiento: e.target.value })}
                     className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900"
                   />
+                  <p className="mt-1 text-xs text-slate-500">
+                    Si la dejas vacía, se calcula con fecha de emisión + días de crédito del cliente.
+                  </p>
                 </div>
 
                 <div>

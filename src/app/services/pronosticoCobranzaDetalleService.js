@@ -1,46 +1,40 @@
 import { apiClient } from "./authService";
 
 export const pronosticoCobranzaDetalleService = {
-  async getByRange(inicio, fin) {
-    try {
-      const response = await apiClient.get("/api/pronostico-cobranza-detalle/rango", {
-        params: { inicio, fin },
-      });
-      return response.data;
-    } catch (error) {
-      console.error("Error al obtener pronóstico por rango:", error);
-      throw error;
-    }
+  async getResumen(inicio, fin) {
+    const response = await apiClient.get(
+      "/api/pronostico-cobranza-detalle/resumen",
+      { params: { inicio, fin } },
+    );
+    return response.data;
   },
 
-  async getById(id) {
-    try {
-      const response = await apiClient.get(`/api/pronostico-cobranza-detalle/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error("Error al obtener pronóstico por id:", error);
-      throw error;
-    }
+  async getDetalles(clienteId, fechaCredito) {
+    const response = await apiClient.get(
+      "/api/pronostico-cobranza-detalle/detalles",
+      { params: { clienteId, fechaCredito } },
+    );
+    return response.data;
   },
 
-  async update(id, payload) {
-    try {
-      const response = await apiClient.put(`/api/pronostico-cobranza-detalle/${id}`, payload);
-      return response.data;
-    } catch (error) {
-      console.error("Error al actualizar pronóstico:", error);
-      throw error;
-    }
+  async registrarPagoGlobal(payload) {
+    const response = await apiClient.post(
+      "/api/pronostico-cobranza-detalle/pagos/global",
+      payload,
+    );
+    return response.data;
   },
 
-  async remove(id) {
-    try {
-      const response = await apiClient.delete(`/api/pronostico-cobranza-detalle/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error("Error al eliminar pronóstico:", error);
-      throw error;
-    }
+  async pagarViajeCompleto(detalleId, payload) {
+    const response = await apiClient.post(
+      `/api/pronostico-cobranza-detalle/detalles/${detalleId}/pagar-completo`,
+      payload,
+    );
+    return response.data;
+  },
+
+  async rebuild() {
+    await apiClient.post("/api/pronostico-cobranza-detalle/rebuild");
   },
 };
 
