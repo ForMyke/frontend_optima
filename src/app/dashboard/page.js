@@ -695,25 +695,33 @@ const loadDiaActualData = async () => {
   try {
     setLoadingDiaActual(true)
 
-    const fechaAyer = obtenerFechaAyer()
+    /*
+     * Esta tarjeta usa el endpoint del día actual,
+     * no el resumen de ayer.
+     */
+    const data = await finanzasService.getDiaActual()
 
-    const data = await finanzasService.getFinanzasDiario(fechaAyer)
+    console.log('DATOS DEL DÍA ACTUAL:', data)
 
     setDiaActualData({
       ingresos: Number(data?.ingresos ?? 0),
-      egresos: Number(data?.gastos ?? 0),
+      egresos: Number(
+        data?.egresos ??
+        data?.gastos ??
+        0
+      ),
       utilidad: Number(data?.utilidad ?? 0),
       totalViajes: Number(data?.totalViajes ?? 0),
-      fecha: data?.fecha ?? fechaAyer
+      fecha: data?.fecha ?? ''
     })
   } catch (error) {
     console.error(
-      'Error al cargar las finanzas del día anterior:',
+      'Error al cargar las finanzas del día actual:',
       error
     )
 
     toast.error(
-      'Error al cargar las finanzas del día anterior'
+      'Error al cargar las finanzas del día actual'
     )
   } finally {
     setLoadingDiaActual(false)
