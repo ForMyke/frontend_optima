@@ -76,22 +76,6 @@ const ClienteCard = ({
     });
   };
 
-  const formatearFechaLocal = (fecha) => {
-  const anio = fecha.getFullYear()
-  const mes = String(fecha.getMonth() + 1).padStart(2, '0')
-  const dia = String(fecha.getDate()).padStart(2, '0')
-
-  return `${anio}-${mes}-${dia}`
-}
-
-const obtenerFechaAyer = () => {
-  const ayer = new Date()
-
-  ayer.setDate(ayer.getDate() - 1)
-
-  return formatearFechaLocal(ayer)
-}
-
   return (
     <div
       className={`${bgColor} rounded-lg shadow-sm border ${borderColor} hover:shadow-md transition-all`}
@@ -246,6 +230,7 @@ const FacturasSection = ({
       currency: "MXN",
     }).format(amount);
   };
+  
 
   return (
     <div className={`${bgColor} rounded-lg shadow-sm border ${borderColor}`}>
@@ -624,6 +609,22 @@ const [loadingFinanzas, setLoadingFinanzas] = useState(false);
     }
   }, [activeTab, userRole]);
 
+    const formatearFechaLocal = (fecha) => {
+  const anio = fecha.getFullYear()
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0')
+  const dia = String(fecha.getDate()).padStart(2, '0')
+
+  return `${anio}-${mes}-${dia}`
+}
+
+const obtenerFechaAyer = () => {
+  const ayer = new Date()
+
+  ayer.setDate(ayer.getDate() - 1)
+
+  return formatearFechaLocal(ayer)
+}
+
   const loadFinanzasData = async () => {
   try {
     setLoadingFinanzas(true);
@@ -637,11 +638,11 @@ const [loadingFinanzas, setLoadingFinanzas] = useState(false);
 
     switch (activeTab) {
       case "diario": {
-  const fechaAyer = obtenerFechaAyer()
+        const fechaAyer = obtenerFechaAyer()
 
-  dataPromise = finanzasService.getFinanzasDiario(fechaAyer)
-  break
-}
+        dataPromise = finanzasService.getFinanzasDiario(fechaAyer)
+        break
+      }
       case "semanal":
         dataPromise = finanzasService.getFinanzasSemanal();
         break;
