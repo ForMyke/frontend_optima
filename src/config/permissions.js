@@ -11,7 +11,8 @@ export const ROLES = {
   ADMIN: 'ADMIN',
   ALMACEN: 'ALMACEN',
   NOMINA: 'NOMINA',
-  LOGISTICA: 'LOGISTICA'
+  LOGISTICA: 'LOGISTICA',
+  FACTURACION: 'FACTURACION'
   // Agrega más roles aquí según los vayas creando
 }
 
@@ -95,7 +96,24 @@ export const PERMISSIONS = {
       '/dashboard/pronostico-cobranza',
     ],
     displayName: 'Logística de asignación de viajes'
-  }
+  },
+
+  [ROLES.FACTURACION]: {
+    allowedRoutes: [
+      '/dashboard',
+      '/dashboard/facturas',
+      '/dashboard/facturas/extra',
+       '/dashboard/liquidacion_efectivo',
+      '/dashboard/gastos',
+      '/dashboard/graficos',
+      '/dashboard/resumen-gastos',
+      '/dashboard/pronostico-cobranza',
+      '/dashboard/tarifas-comisiones',
+      '/dashboard/viajes',
+      '/dashboard/bitacora',
+    ],
+    displayName: 'Facturacion'
+  },
 }
 
 /**
@@ -281,7 +299,24 @@ export const GRAFICOS_PERMISSIONS = {
       'unidades-estado',
       'kilometraje-unidad',
     ]
-  }
+  },
+  [ROLES.FACTURACION]: {
+    allowedCharts: [
+      // Gastos y finanzas
+      'gastos-mensuales',
+      'gastos-categoria',
+      // Operadores
+      'viajes-operador',
+      // Facturas
+      'facturas-estatus',
+      'facturas-mensuales',
+      'viajes-mes',
+      'viajes-estado',
+      // Clientes
+      'viajes-cliente',
+      'ingresos-cliente',
+    ]
+  },
 }
 
 /**
@@ -376,7 +411,22 @@ export const STATCARDS_PERMISSIONS = {
       // Tarjetas de unidades
       'unidades-activas',
     ]
-  }
+  },
+
+   [ROLES.FACTURACION]: {
+    allowedStatCards: [
+
+      // Finanzas
+      'gastos-totales',
+      // Operadores
+      'facturas-pendientes',
+      'monto-por-cobrar',
+      'total-viajes',
+      'viajes-activos',
+      // Clientes
+      'total-clientes',
+    ]
+  },
 }
 
 /**
@@ -474,7 +524,28 @@ export const DASHBOARD_PERMISSIONS = {
       'action-nuevo-cliente',
       'action-ver-reportes'
     ]
-  }
+  },
+
+  [ROLES.FACTURACION]: {
+    allowedElements: [
+      // StatCards
+      'stat-viajes-activos',
+      // Widgets
+      'widget-alertas-tareas',
+      // Acciones rápidas
+      'action-ver-reportes',
+      // StatCards
+      'stat-viajes-activos',
+      'stat-viajes-completados',
+      // Widgets
+      'widget-estado-viajes',
+      'widget-viajes-recientes',
+      // Acciones rápidas
+      'action-nuevo-viaje',
+      'action-bitacora',
+      'action-ver-reportes'
+    ]
+  },
 }
 
 /**
