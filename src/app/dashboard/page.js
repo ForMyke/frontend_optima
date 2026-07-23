@@ -19,6 +19,7 @@ import { authService } from "@/app/services/authService";
 import toast from "react-hot-toast";
 import { ROLES, normalizeRole } from "@/config/permissions";
 
+
 // Componente para las tarjetas superiores (placeholder para futuras implementaciones)
 const StatCard = ({
   title,
