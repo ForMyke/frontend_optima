@@ -76,6 +76,22 @@ const ClienteCard = ({
     });
   };
 
+  const formatearFechaLocal = (fecha) => {
+  const anio = fecha.getFullYear()
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0')
+  const dia = String(fecha.getDate()).padStart(2, '0')
+
+  return `${anio}-${mes}-${dia}`
+}
+
+const obtenerFechaAyer = () => {
+  const ayer = new Date()
+
+  ayer.setDate(ayer.getDate() - 1)
+
+  return formatearFechaLocal(ayer)
+}
+
   return (
     <div
       className={`${bgColor} rounded-lg shadow-sm border ${borderColor} hover:shadow-md transition-all`}
@@ -620,9 +636,12 @@ const [loadingFinanzas, setLoadingFinanzas] = useState(false);
     const previousMonth = currentMonth === 1 ? 12 : currentMonth - 1;
 
     switch (activeTab) {
-      case "diario":
-        dataPromise = finanzasService.getFinanzasDiario();
-        break;
+      case "diario": {
+  const fechaAyer = obtenerFechaAyer()
+
+  dataPromise = finanzasService.getFinanzasDiario(fechaAyer)
+  break
+}
       case "semanal":
         dataPromise = finanzasService.getFinanzasSemanal();
         break;
@@ -674,18 +693,26 @@ const loadDiaActualData = async () => {
   try {
     setLoadingDiaActual(true)
 
-    const data = await finanzasService.getDiaActual()
+    const fechaAyer = obtenerFechaAyer()
+
+    const data = await finanzasService.getFinanzasDiario(fechaAyer)
 
     setDiaActualData({
       ingresos: Number(data?.ingresos ?? 0),
-      egresos: Number(data?.egresos ?? 0),
+      egresos: Number(data?.gastos ?? 0),
       utilidad: Number(data?.utilidad ?? 0),
       totalViajes: Number(data?.totalViajes ?? 0),
-      fecha: data?.fecha ?? ''
+      fecha: data?.fecha ?? fechaAyer
     })
   } catch (error) {
-    console.error('Error al cargar día actual:', error)
-    toast.error('Error al cargar datos del día actual')
+    console.error(
+      'Error al cargar las finanzas del día anterior:',
+      error
+    )
+
+    toast.error(
+      'Error al cargar las finanzas del día anterior'
+    )
   } finally {
     setLoadingDiaActual(false)
   }

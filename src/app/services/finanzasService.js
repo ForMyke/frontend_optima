@@ -4,15 +4,22 @@ const finanzasService = {
     /**
      * Obtener finanzas del día actual
      */
-    async getFinanzasDiario() {
-        try {
-            const response = await apiClient.get('/api/finanzas/diario')
-            return response.data
-        } catch (error) {
-            console.error('Error al obtener finanzas diarias:', error)
-            throw new Error(error.response?.data?.message || 'Error al obtener finanzas diarias')
-        }
-    },
+    async getFinanzasDiario(fecha = 'hoy') {
+  try {
+    const response = await apiClient.get('/api/finanzas/diario', {
+      params: { fecha }
+    })
+
+    return response.data
+  } catch (error) {
+    console.error('Error al obtener finanzas diarias:', error)
+
+    throw new Error(
+      error.response?.data?.message ||
+      'Error al obtener finanzas diarias'
+    )
+  }
+},
 
     async getDiaActual() {
     try {
