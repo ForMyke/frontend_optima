@@ -28,7 +28,6 @@ import {
   Activity,
   Filter,
   Download,
-  UserCheck,
   Wallet
 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -339,6 +338,19 @@ export default function GraficosPage() {
     }
   }
 
+
+  const getMesActualAcumulado = () => {
+    const hoy = new Date()
+    const inicio = getInicioDia(new Date(hoy.getFullYear(), hoy.getMonth(), 1))
+    const fin = getFinDia(hoy)
+
+    return {
+      inicio,
+      fin,
+      diasTranscurridos: hoy.getDate()
+    }
+  }
+
   const getOperadorIdFromViaje = (viaje) => {
     return (
       viaje.operadorId ??
@@ -497,9 +509,14 @@ export default function GraficosPage() {
       .sort((a, b) => b.utilidad - a.utilidad)
   }
 
-  const getRentabilidadDiariaOperadores = () => {
-    const hoy = new Date()
-    return getRentabilidadOperadores(getInicioDia(hoy), getFinDia(hoy), 1)
+  const getRentabilidadMensualOperadores = () => {
+    const mes = getMesActualAcumulado()
+
+    return getRentabilidadOperadores(
+      mes.inicio,
+      mes.fin,
+      mes.diasTranscurridos
+    )
   }
 
   const getRentabilidadSemanalOperadores = () => {
@@ -903,8 +920,8 @@ export default function GraficosPage() {
     ).length
   }
 
-  const rentabilidadDiaria = getRentabilidadDiariaOperadores()
   const rentabilidadSemanal = getRentabilidadSemanalOperadores()
+  const rentabilidadMensual = getRentabilidadMensualOperadores()
 
   if (isLoading) {
     return (
@@ -1003,121 +1020,6 @@ export default function GraficosPage() {
 
         {/* Rentabilidad por operador */}
         <div className="space-y-6 mb-6">
-          {/* Rentabilidad diaria */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-6">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">
-                  Ganancia, pérdida y utilidad por operador
-                </h3>
-                <p className="text-sm text-slate-600">
-                  Diario · Hoy · Se muestran todos los operadores
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-2 text-blue-700">
-                <UserCheck className="h-5 w-5" />
-                <span className="text-sm font-semibold">
-                  {rentabilidadDiaria.length} operador
-                  {rentabilidadDiaria.length === 1 ? '' : 'es'}
-                </span>
-              </div>
-            </div>
-
-            {rentabilidadDiaria.length === 0 ? (
-              <div className="h-[320px] flex items-center justify-center text-sm text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                No hay operadores registrados para calcular rentabilidad.
-              </div>
-            ) : (
-              <div className="w-full overflow-x-auto">
-                <div style={{ minWidth: '900px' }}>
-                  <ResponsiveContainer
-                    width="100%"
-                    height={getAlturaGraficaOperadores(rentabilidadDiaria)}
-                  >
-                    <BarChart
-                      data={rentabilidadDiaria}
-                      layout="vertical"
-                      margin={{ top: 10, right: 40, left: 40, bottom: 10 }}
-                      barCategoryGap={12}
-                    >
-                      <defs>
-                        <linearGradient id="gananciaDiariaOp" x1="0" y1="0" x2="1" y2="0">
-                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.9} />
-                          <stop offset="95%" stopColor="#10b981" stopOpacity={0.55} />
-                        </linearGradient>
-
-                        <linearGradient id="perdidaDiariaOp" x1="0" y1="0" x2="1" y2="0">
-                          <stop offset="5%" stopColor="#ef4444" stopOpacity={0.9} />
-                          <stop offset="95%" stopColor="#ef4444" stopOpacity={0.55} />
-                        </linearGradient>
-
-                        <linearGradient id="utilidadDiariaOp" x1="0" y1="0" x2="1" y2="0">
-                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.9} />
-                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.55} />
-                        </linearGradient>
-                      </defs>
-
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="#e2e8f0"
-                        horizontal={false}
-                      />
-
-                      <XAxis
-                        type="number"
-                        stroke="#334155"
-                        style={{ fontSize: '12px' }}
-                        tickFormatter={(value) =>
-                          `$${Number(value || 0).toLocaleString('es-MX')}`
-                        }
-                      />
-
-                      <YAxis
-                        type="category"
-                        dataKey="operador"
-                        stroke="#334155"
-                        style={{ fontSize: '12px', fontWeight: 600 }}
-                        width={190}
-                      />
-
-                      <Tooltip
-                        content={<CustomMoneyTooltip />}
-                        cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }}
-                      />
-
-                      <Legend />
-
-                      <Bar
-                        dataKey="ingresos"
-                        name="Ganancia"
-                        fill="url(#gananciaDiariaOp)"
-                        radius={[0, 8, 8, 0]}
-                        barSize={14}
-                      />
-
-                      <Bar
-                        dataKey="gastos"
-                        name="Pérdida"
-                        fill="url(#perdidaDiariaOp)"
-                        radius={[0, 8, 8, 0]}
-                        barSize={14}
-                      />
-
-                      <Bar
-                        dataKey="utilidad"
-                        name="Utilidad"
-                        fill="url(#utilidadDiariaOp)"
-                        radius={[0, 8, 8, 0]}
-                        barSize={14}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            )}
-          </div>
-
           {/* Rentabilidad semanal */}
           <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-6">
@@ -1226,6 +1128,125 @@ export default function GraficosPage() {
                         dataKey="utilidad"
                         name="Utilidad"
                         fill="url(#utilidadSemanalOp)"
+                        radius={[0, 8, 8, 0]}
+                        barSize={14}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+          </div>
+
+
+          {/* Rentabilidad mensual */}
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-6">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">
+                  Ganancia, pérdida y utilidad por operador
+                </h3>
+                <p className="text-sm text-slate-600">
+                  Mensual · Mes actual acumulado{' '}
+                  <span className="font-medium text-slate-700">
+                    ({formatFechaCorta(getMesActualAcumulado().inicio)} - {formatFechaCorta(getMesActualAcumulado().fin)})
+                  </span>
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-2 text-blue-700">
+                <Calendar className="h-5 w-5" />
+                <span className="text-sm font-semibold">
+                  {rentabilidadMensual.length} operador
+                  {rentabilidadMensual.length === 1 ? '' : 'es'}
+                </span>
+              </div>
+            </div>
+
+            {rentabilidadMensual.length === 0 ? (
+              <div className="h-[320px] flex items-center justify-center text-sm text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                No hay operadores registrados para calcular rentabilidad mensual.
+              </div>
+            ) : (
+              <div className="w-full overflow-x-auto">
+                <div style={{ minWidth: '900px' }}>
+                  <ResponsiveContainer
+                    width="100%"
+                    height={getAlturaGraficaOperadores(rentabilidadMensual)}
+                  >
+                    <BarChart
+                      data={rentabilidadMensual}
+                      layout="vertical"
+                      margin={{ top: 10, right: 40, left: 40, bottom: 10 }}
+                      barCategoryGap={12}
+                    >
+                      <defs>
+                        <linearGradient id="gananciaMensualOp" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.9} />
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0.55} />
+                        </linearGradient>
+
+                        <linearGradient id="perdidaMensualOp" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="5%" stopColor="#ef4444" stopOpacity={0.9} />
+                          <stop offset="95%" stopColor="#ef4444" stopOpacity={0.55} />
+                        </linearGradient>
+
+                        <linearGradient id="utilidadMensualOp" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.9} />
+                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.55} />
+                        </linearGradient>
+                      </defs>
+
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="#e2e8f0"
+                        horizontal={false}
+                      />
+
+                      <XAxis
+                        type="number"
+                        stroke="#334155"
+                        style={{ fontSize: '12px' }}
+                        tickFormatter={(value) =>
+                          `$${Number(value || 0).toLocaleString('es-MX')}`
+                        }
+                      />
+
+                      <YAxis
+                        type="category"
+                        dataKey="operador"
+                        stroke="#334155"
+                        style={{ fontSize: '12px', fontWeight: 600 }}
+                        width={190}
+                      />
+
+                      <Tooltip
+                        content={<CustomMoneyTooltip />}
+                        cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }}
+                      />
+
+                      <Legend />
+
+                      <Bar
+                        dataKey="ingresos"
+                        name="Ganancia"
+                        fill="url(#gananciaMensualOp)"
+                        radius={[0, 8, 8, 0]}
+                        barSize={14}
+                      />
+
+                      <Bar
+                        dataKey="gastos"
+                        name="Pérdida"
+                        fill="url(#perdidaMensualOp)"
+                        radius={[0, 8, 8, 0]}
+                        barSize={14}
+                      />
+
+                      <Bar
+                        dataKey="utilidad"
+                        name="Utilidad"
+                        fill="url(#utilidadMensualOp)"
                         radius={[0, 8, 8, 0]}
                         barSize={14}
                       />
