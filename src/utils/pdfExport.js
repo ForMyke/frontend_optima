@@ -735,20 +735,95 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
     doc.text('Detalle de Viajes', 15, currentY);
 
     const viajesData = viajes.map(v => {
-      const rutaObj = v.rutaComisiones || (typeof v.ruta === 'object' ? v.ruta : null);
+  const rutaObj =
+    v.rutaComisiones ||
+    (typeof v.ruta === 'object' ? v.ruta : null);
 
-      const rutaTexto = typeof v.ruta === 'string'
-        ? v.ruta
-        : [rutaObj?.origen || v.origen, rutaObj?.destino || v.destino]
-            .filter(Boolean)
-            .join(' - ') || '-';
+  const rutaTexto =
+    typeof v.ruta === 'string'
+      ? v.ruta
+      : [rutaObj?.origen || v.origen, rutaObj?.destino || v.destino]
+          .filter(Boolean)
+          .join(' - ') || '-';
 
-      return [
-        v.folio || v.viajeId || v.id || '-',
-        rutaTexto,
-        money(v.comision)
-      ];
-    });
+  // Fecha en la que se realizó el viaje
+  const fechaViaje =
+    v.fechaSalida ||
+    v.fechaViaje ||
+    v.fecha ||
+    null;
+
+  return [
+    v.folio || v.viajeId || v.id || '-',
+    safeDate(fechaViaje),
+    rutaTexto,
+    money(v.comision)
+  ];
+});
+
+autoTable(doc, {
+  head: [['Folio', 'Fecha', 'Ruta', 'Comisión']],
+  body: viajesData,
+  startY: currentY + 3,
+  theme: 'striped',
+
+  styles: {
+    fontSize: 8,
+    cellPadding: 2.5,
+    textColor: TEXT_COLOR,
+    overflow: 'linebreak'
+  },
+
+  headStyles: {
+    fillColor: [100, 116, 139],
+    textColor: 255,
+    fontStyle: 'bold'
+  },
+
+  alternateRowStyles: {
+    fillColor: BG_COLOR
+  },
+
+  margin: {
+    left: 15,
+    right: 15,
+    top: 45,
+    bottom: 22
+  },
+
+  tableWidth: pageWidth - 30,
+
+  columnStyles: {
+    0: {
+      cellWidth: 35
+    },
+
+    1: {
+      cellWidth: 30,
+      halign: 'center'
+    },
+
+    2: {
+      cellWidth: pageWidth - 130
+    },
+
+    3: {
+      cellWidth: 35,
+      halign: 'right',
+      fontStyle: 'bold'
+    }
+  },
+
+  didDrawPage: (data) => {
+    if (data.pageNumber > 1) {
+      addProfessionalHeader(
+        doc,
+        'Recibo de Nómina',
+        'Operador'
+      );
+    }
+  }
+});
 
     autoTable(doc, {
       head: [['Folio', 'Ruta', 'Comisión']],
