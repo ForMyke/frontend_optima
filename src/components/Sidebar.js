@@ -113,16 +113,6 @@ const menuItems = [
         ]
     },
     {
-        title: 'Resumen de gastos',
-        icon: DollarSign,
-        href: '/dashboard/resumen-gastos',
-    },
-    {
-        title: 'Histórico',
-        icon: BarChart,
-        href: '/dashboard/historico',
-    },
-    {
         title: 'Tarifas y comisiones',
         icon: Calculator,
         href: '/dashboard/tarifas-comisiones',
