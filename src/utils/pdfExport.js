@@ -825,44 +825,6 @@ autoTable(doc, {
   }
 });
 
-    autoTable(doc, {
-      head: [['Folio', 'Ruta', 'Comisión']],
-      body: viajesData,
-      startY: currentY + 3,
-      theme: 'striped',
-      styles: {
-        fontSize: 8,
-        cellPadding: 2.5,
-        textColor: TEXT_COLOR,
-        overflow: 'linebreak'
-      },
-      headStyles: {
-        fillColor: [100, 116, 139],
-        textColor: 255,
-        fontStyle: 'bold'
-      },
-      alternateRowStyles: {
-        fillColor: BG_COLOR
-      },
-      margin: {
-        left: 15,
-        right: 15,
-        top: 45,
-        bottom: 22
-      },
-      tableWidth: pageWidth - 30,
-      columnStyles: {
-        0: { cellWidth: 35 },
-        1: { cellWidth: pageWidth - 105 },
-        2: { cellWidth: 35, halign: 'right', fontStyle: 'bold' }
-      },
-      didDrawPage: (data) => {
-        if (data.pageNumber > 1) {
-          addProfessionalHeader(doc, 'Recibo de Nómina', 'Operador');
-        }
-      }
-    });
-
     currentY = doc.lastAutoTable.finalY + 12;
   }
 
