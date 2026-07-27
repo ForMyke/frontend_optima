@@ -563,335 +563,700 @@ const addProfessionalHeader = (doc, title, subtitle) => {
 // Exportar Recibo de Nómina Operativa
 export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
   const doc = new jsPDF(commonConfig);
+
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const bottomLimit = pageHeight - 22; // Reservamos espacio para footer
 
-  const operadorNombre = nomina.nombre || operador?.nombre || 'Operador desconocido';
-  const operadorAlias = nomina.alias || operador?.alias || '';
+  const operadorNombre =
+    nomina.nombre ||
+    operador?.nombre ||
+    'Operador desconocido';
 
-  const toNumber = (value) => Number.parseFloat(value || 0) || 0;
+  const operadorAlias =
+    nomina.alias ||
+    operador?.alias ||
+    '';
 
-  const money = (value) => `$${toNumber(value).toLocaleString('es-MX', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  })}`;
+  // =========================
+  // HELPERS
+  // =========================
+
+  const toNumber = (value) =>
+    Number.parseFloat(value || 0) || 0;
+
+  const money = (value) =>
+    `$${toNumber(value).toLocaleString('es-MX', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}`;
 
   const safeDate = (value) => {
-    return value ? new Date(value).toLocaleDateString('es-MX') : 'N/A';
-  };
+    if (!value) return 'N/A';
 
-  const addNominaPage = () => {
-    doc.addPage();
-    addProfessionalHeader(doc, 'Recibo de Nómina', 'Operador');
-    return 45;
-  };
-
-  const ensureSpace = (y, neededHeight) => {
-    if (y + neededHeight > bottomLimit) {
-      return addNominaPage();
+    try {
+      return new Date(value).toLocaleDateString('es-MX');
+    } catch {
+      return 'N/A';
     }
-    return y;
   };
 
-  // Header
-  addProfessionalHeader(doc, 'Recibo de Nómina', 'Operador');
+  const drawHeader = () => {
+    addProfessionalHeader(
+      doc,
+      'Recibo de Nómina',
+      'Operador'
+    );
+  };
 
-  // Info Card
-  doc.setFillColor(...BG_COLOR);
-  doc.roundedRect(15, 40, pageWidth - 30, 25, 3, 3, 'F');
+  const drawSignatures = (signY) => {
+    doc.setDrawColor(...LIGHT_TEXT_COLOR);
+    doc.setLineWidth(0.4);
 
-  // Column 1: Operator Info
-  doc.setFontSize(10);
-  doc.setTextColor(...LIGHT_TEXT_COLOR);
-  doc.setFont('helvetica', 'normal');
-  doc.text('OPERADOR', 20, 48);
+    // Firma operador
+    doc.line(
+      40,
+      signY,
+      105,
+      signY
+    );
 
-  doc.setFontSize(12);
-  doc.setTextColor(...TEXT_COLOR);
-  doc.setFont('helvetica', 'bold');
-  doc.text(operadorNombre, 20, 55);
+    // Firma autorización
+    doc.line(
+      pageWidth - 105,
+      signY,
+      pageWidth - 40,
+      signY
+    );
 
-  if (operadorAlias) {
-    doc.setFontSize(9);
+    doc.setFontSize(7.5);
     doc.setTextColor(...LIGHT_TEXT_COLOR);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Alias: ${operadorAlias}`, 20, 60);
-  }
 
-  // Column 2: Period Info & Details
-  doc.setFontSize(10);
+    doc.text(
+      operadorNombre.toUpperCase(),
+      72.5,
+      signY + 4,
+      {
+        align: 'center',
+        maxWidth: 65
+      }
+    );
+
+    doc.text(
+      'FIRMA DE CONFORMIDAD',
+      72.5,
+      signY + 8,
+      {
+        align: 'center'
+      }
+    );
+
+    doc.text(
+      'AUTORIZADO POR',
+      pageWidth - 72.5,
+      signY + 4,
+      {
+        align: 'center'
+      }
+    );
+
+    doc.text(
+      'FMPMEX',
+      pageWidth - 72.5,
+      signY + 8,
+      {
+        align: 'center'
+      }
+    );
+  };
+
+  // =========================
+  // HEADER
+  // =========================
+
+  drawHeader();
+
+  // =========================
+  // INFORMACIÓN DEL OPERADOR
+  // =========================
+
+  doc.setFillColor(...BG_COLOR);
+
+  doc.roundedRect(
+    15,
+    39,
+    pageWidth - 30,
+    23,
+    3,
+    3,
+    'F'
+  );
+
+  // OPERADOR
+  doc.setFontSize(8.5);
   doc.setTextColor(...LIGHT_TEXT_COLOR);
   doc.setFont('helvetica', 'normal');
-  doc.text('PERIODO', pageWidth / 2, 48);
+
+  doc.text(
+    'OPERADOR',
+    20,
+    46
+  );
 
   doc.setFontSize(11);
   doc.setTextColor(...TEXT_COLOR);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('helvetica', 'bold');
 
-  const periodoStr = `${safeDate(nomina.periodoInicio)} - ${safeDate(nomina.periodoFin)}`;
-  doc.text(periodoStr, pageWidth / 2, 55);
+  doc.text(
+    operadorNombre,
+    20,
+    52
+  );
 
-  if (nomina.cuenta) {
-    doc.setFontSize(9);
+  if (operadorAlias) {
+    doc.setFontSize(8);
     doc.setTextColor(...LIGHT_TEXT_COLOR);
-    doc.text(`Cuenta: ${nomina.cuenta}`, pageWidth / 2, 60);
+    doc.setFont('helvetica', 'normal');
+
+    doc.text(
+      `Alias: ${operadorAlias}`,
+      20,
+      57.5
+    );
   }
 
-  // Column 3: Stats
-  doc.setFontSize(10);
+  // PERIODO
+  doc.setFontSize(8.5);
   doc.setTextColor(...LIGHT_TEXT_COLOR);
-  doc.text('RESUMEN', pageWidth - 60, 48);
+
+  doc.text(
+    'PERIODO',
+    pageWidth / 2,
+    46
+  );
 
   doc.setFontSize(10);
   doc.setTextColor(...TEXT_COLOR);
-  doc.text(`Viajes: ${nomina.numeroViajes || viajes.length || 0}`, pageWidth - 60, 55);
 
-  // Financial Details
-  const startY = 75;
+  const periodoStr =
+    `${safeDate(nomina.periodoInicio)} - ${safeDate(nomina.periodoFin)}`;
 
-  const totalNeto = (
+  doc.text(
+    periodoStr,
+    pageWidth / 2,
+    52
+  );
+
+  if (nomina.cuenta) {
+    doc.setFontSize(8);
+    doc.setTextColor(...LIGHT_TEXT_COLOR);
+
+    doc.text(
+      `Cuenta: ${nomina.cuenta}`,
+      pageWidth / 2,
+      57.5
+    );
+  }
+
+  // RESUMEN
+  doc.setFontSize(8.5);
+  doc.setTextColor(...LIGHT_TEXT_COLOR);
+
+  doc.text(
+    'RESUMEN',
+    pageWidth - 60,
+    46
+  );
+
+  doc.setFontSize(9.5);
+  doc.setTextColor(...TEXT_COLOR);
+
+  doc.text(
+    `Viajes: ${nomina.numeroViajes || viajes.length || 0}`,
+    pageWidth - 60,
+    52
+  );
+
+  // =========================
+  // TOTALES
+  // =========================
+
+  const totalNeto =
     toNumber(nomina.sueldoBase) +
     toNumber(nomina.comisionViajes) +
     toNumber(nomina.bono) +
     toNumber(nomina.compensacion) -
-    toNumber(nomina.descuentos)
-  );
+    toNumber(nomina.descuentos);
 
   const conceptos = [
-    ['Sueldo Base', money(nomina.sueldoBase)],
-    ['Comisión por Viajes', money(nomina.comisionViajes)],
-    ['Bonos', money(nomina.bono)],
-    ['Compensación', money(nomina.compensacion)],
-    ['Descuentos', `-${money(nomina.descuentos)}`]
+    [
+      'Sueldo Base',
+      money(nomina.sueldoBase)
+    ],
+    [
+      'Comisión por Viajes',
+      money(nomina.comisionViajes)
+    ],
+    [
+      'Bonos',
+      money(nomina.bono)
+    ],
+    [
+      'Compensación',
+      money(nomina.compensacion)
+    ],
+    [
+      'Descuentos',
+      `-${money(nomina.descuentos)}`
+    ]
   ];
 
-  doc.setFontSize(10);
+  const conceptosY = 70;
+
+  doc.setFontSize(9);
   doc.setTextColor(...TEXT_COLOR);
   doc.setFont('helvetica', 'bold');
-  doc.text('Desglose de Conceptos', 15, startY - 2);
 
-  // Tabla de conceptos
+  doc.text(
+    'Desglose de Conceptos',
+    15,
+    conceptosY - 2
+  );
+
+  // =========================
+  // TABLA DE CONCEPTOS
+  // =========================
+
   autoTable(doc, {
-    head: [['Concepto', 'Monto']],
+    head: [
+      ['Concepto', 'Monto']
+    ],
+
     body: conceptos,
-    startY,
+
+    startY: conceptosY,
+
     theme: 'grid',
+
     styles: {
-      fontSize: 9,
-      cellPadding: 3,
+      fontSize: 8,
+      cellPadding: 2,
       textColor: TEXT_COLOR,
-      overflow: 'linebreak'
+      overflow: 'linebreak',
+      minCellHeight: 6
     },
+
     headStyles: {
       fillColor: COMPANY_COLOR,
       textColor: 255,
-      fontStyle: 'bold'
+      fontStyle: 'bold',
+      minCellHeight: 7
     },
+
     alternateRowStyles: {
       fillColor: BG_COLOR
     },
+
     margin: {
       left: 15,
-      right: pageWidth - 150,
-      bottom: 20
+      right: pageWidth - 150
     },
+
     tableWidth: 135,
+
     columnStyles: {
-      0: { cellWidth: 85 },
-      1: { cellWidth: 45, halign: 'right', fontStyle: 'bold' }
+      0: {
+        cellWidth: 85
+      },
+
+      1: {
+        cellWidth: 45,
+        halign: 'right',
+        fontStyle: 'bold'
+      }
     }
   });
 
-  const finalYConcepts = doc.lastAutoTable.finalY;
+  const conceptsFinalY =
+    doc.lastAutoTable.finalY;
 
-  // Total Box separado
+  // =========================
+  // TOTAL NETO
+  // =========================
+
   doc.setFillColor(...BG_COLOR);
-  doc.roundedRect(pageWidth - 95, startY, 80, 30, 3, 3, 'F');
-
   doc.setDrawColor(...COMPANY_COLOR);
   doc.setLineWidth(0.3);
-  doc.roundedRect(pageWidth - 95, startY, 80, 30, 3, 3, 'S');
 
-  doc.setFontSize(10);
+  doc.roundedRect(
+    pageWidth - 95,
+    conceptosY,
+    80,
+    25,
+    3,
+    3,
+    'FD'
+  );
+
+  doc.setFontSize(9);
   doc.setTextColor(...LIGHT_TEXT_COLOR);
   doc.setFont('helvetica', 'bold');
-  doc.text('TOTAL NETO A PAGAR', pageWidth - 55, startY + 10, { align: 'center' });
 
-  doc.setFontSize(16);
+  doc.text(
+    'TOTAL NETO A PAGAR',
+    pageWidth - 55,
+    conceptosY + 8,
+    {
+      align: 'center'
+    }
+  );
+
+  doc.setFontSize(15);
   doc.setTextColor(...COMPANY_COLOR);
-  doc.setFont('helvetica', 'bold');
-  doc.text(money(totalNeto), pageWidth - 55, startY + 22, { align: 'center' });
 
-  let currentY = Math.max(finalYConcepts, startY + 30) + 12;
-
-  // Viajes abajo y a todo el ancho
-  if (viajes && viajes.length > 0) {
-    currentY = ensureSpace(currentY, 35);
-
-    doc.setFontSize(10);
-    doc.setTextColor(...TEXT_COLOR);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Detalle de Viajes', 15, currentY);
-
-    const viajesData = viajes.map(v => {
-  const rutaObj =
-    v.rutaComisiones ||
-    (typeof v.ruta === 'object' ? v.ruta : null);
-
-  const rutaTexto =
-    typeof v.ruta === 'string'
-      ? v.ruta
-      : [rutaObj?.origen || v.origen, rutaObj?.destino || v.destino]
-          .filter(Boolean)
-          .join(' - ') || '-';
-
-  // Fecha en la que se realizó el viaje
-  const fechaViaje =
-    v.fechaSalida ||
-    v.fechaViaje ||
-    v.fecha ||
-    null;
-
-  return [
-    v.folio || v.viajeId || v.id || '-',
-    safeDate(fechaViaje),
-    rutaTexto,
-    money(v.comision)
-  ];
-});
-
-autoTable(doc, {
-  head: [['Folio', 'Fecha', 'Ruta', 'Comisión']],
-  body: viajesData,
-  startY: currentY + 3,
-  theme: 'striped',
-
-  styles: {
-    fontSize: 8,
-    cellPadding: 2.5,
-    textColor: TEXT_COLOR,
-    overflow: 'linebreak'
-  },
-
-  headStyles: {
-    fillColor: [100, 116, 139],
-    textColor: 255,
-    fontStyle: 'bold'
-  },
-
-  alternateRowStyles: {
-    fillColor: BG_COLOR
-  },
-
-  margin: {
-    left: 15,
-    right: 15,
-    top: 45,
-    bottom: 22
-  },
-
-  tableWidth: pageWidth - 30,
-
-  columnStyles: {
-    0: {
-      cellWidth: 35
-    },
-
-    1: {
-      cellWidth: 30,
-      halign: 'center'
-    },
-
-    2: {
-      cellWidth: pageWidth - 130
-    },
-
-    3: {
-      cellWidth: 35,
-      halign: 'right',
-      fontStyle: 'bold'
+  doc.text(
+    money(totalNeto),
+    pageWidth - 55,
+    conceptosY + 18,
+    {
+      align: 'center'
     }
-  },
+  );
 
-  didDrawPage: (data) => {
-    if (data.pageNumber > 1) {
-      addProfessionalHeader(
-        doc,
-        'Recibo de Nómina',
-        'Operador'
-      );
-    }
-  }
-});
+  // =========================
+  // VIAJES
+  // =========================
 
-    currentY = doc.lastAutoTable.finalY + 12;
-  }
+  let currentY =
+    Math.max(
+      conceptsFinalY,
+      conceptosY + 25
+    ) + 6;
 
-  // Observaciones dinámicas
-  if (nomina.observaciones) {
-    currentY = ensureSpace(currentY, 35);
-
+  if (
+    viajes &&
+    viajes.length > 0
+  ) {
     doc.setFontSize(9);
-    doc.setTextColor(...COMPANY_COLOR);
-    doc.setFont('helvetica', 'bold');
-    doc.text('OBSERVACIONES', 15, currentY);
+    doc.setTextColor(...TEXT_COLOR);
+    doc.setFont(
+      'helvetica',
+      'bold'
+    );
+
+    doc.text(
+      'Detalle de Viajes',
+      15,
+      currentY
+    );
+
+    const viajesData =
+      viajes.map((v) => {
+        const rutaObj =
+          v.rutaComisiones ||
+          (
+            typeof v.ruta === 'object'
+              ? v.ruta
+              : null
+          );
+
+        const rutaTexto =
+          typeof v.ruta === 'string'
+            ? v.ruta
+            : [
+                rutaObj?.origen ||
+                  v.origen,
+                rutaObj?.destino ||
+                  v.destino
+              ]
+                .filter(Boolean)
+                .join(' - ') ||
+              '-';
+
+        const fechaViaje =
+          v.fechaSalida ||
+          v.fechaViaje ||
+          v.fecha ||
+          null;
+
+        return [
+          v.folio ||
+            v.viajeId ||
+            v.id ||
+            '-',
+
+          safeDate(fechaViaje),
+
+          rutaTexto,
+
+          money(v.comision)
+        ];
+      });
+
+    // Ajuste automático según cantidad
+    // de viajes.
+    const cantidadViajes =
+      viajes.length;
+
+    let viajesFontSize = 7.7;
+    let viajesPadding = 1.7;
+
+    if (cantidadViajes >= 7) {
+      viajesFontSize = 7;
+      viajesPadding = 1.3;
+    }
+
+    if (cantidadViajes >= 10) {
+      viajesFontSize = 6.5;
+      viajesPadding = 1;
+    }
 
     autoTable(doc, {
-      body: [[nomina.observaciones]],
-      startY: currentY + 3,
-      theme: 'grid',
+      head: [
+        [
+          'Folio',
+          'Fecha',
+          'Ruta',
+          'Comisión'
+        ]
+      ],
+
+      body: viajesData,
+
+      startY: currentY + 2,
+
+      theme: 'striped',
+
       styles: {
-        fontSize: 9,
-        cellPadding: 4,
+        fontSize: viajesFontSize,
+        cellPadding: viajesPadding,
         textColor: TEXT_COLOR,
-        lineColor: [200, 200, 200],
-        lineWidth: 0.2,
-        overflow: 'linebreak'
+        overflow: 'linebreak',
+        valign: 'middle'
       },
+
+      headStyles: {
+        fillColor: [
+          100,
+          116,
+          139
+        ],
+
+        textColor: 255,
+        fontStyle: 'bold'
+      },
+
+      alternateRowStyles: {
+        fillColor: BG_COLOR
+      },
+
       margin: {
         left: 15,
         right: 15,
-        top: 45,
-        bottom: 22
+        top: 40,
+
+        // Reserva espacio para
+        // observaciones, firmas y footer.
+        bottom: 38
       },
-      tableWidth: pageWidth - 30,
+
+      tableWidth:
+        pageWidth - 30,
+
+      columnStyles: {
+        0: {
+          cellWidth: 35
+        },
+
+        1: {
+          cellWidth: 28,
+          halign: 'center'
+        },
+
+        2: {
+          cellWidth:
+            pageWidth - 128
+        },
+
+        3: {
+          cellWidth: 35,
+          halign: 'right',
+          fontStyle: 'bold'
+        }
+      },
+
+      rowPageBreak: 'avoid',
+
       didDrawPage: (data) => {
-        if (data.pageNumber > 1) {
-          addProfessionalHeader(doc, 'Recibo de Nómina', 'Operador');
+        if (
+          data.pageNumber > 1
+        ) {
+          drawHeader();
         }
       }
     });
 
-    currentY = doc.lastAutoTable.finalY + 18;
-  } else {
-    currentY += 10;
+    currentY =
+      doc.lastAutoTable.finalY + 5;
   }
 
-  // Firmas: ya no van forzadas al fondo
-  currentY = ensureSpace(currentY, 40);
+  // =========================
+  // OBSERVACIONES
+  // =========================
 
-  const signY = currentY + 15;
+  const signaturesY =
+    pageHeight - 29;
 
-  doc.setDrawColor(...LIGHT_TEXT_COLOR);
-  doc.setLineWidth(0.5);
+  const maxContentY =
+    signaturesY - 13;
 
-  doc.line(40, signY, 105, signY);
-  doc.line(pageWidth - 105, signY, pageWidth - 40, signY);
+  if (nomina.observaciones) {
+    const obsWidth =
+      pageWidth - 36;
 
-  doc.setFontSize(8);
-  doc.setTextColor(...LIGHT_TEXT_COLOR);
-  doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
 
-  doc.text(operadorNombre.toUpperCase(), 72.5, signY + 5, { align: 'center' });
-  doc.text('FIRMA DE CONFORMIDAD', 72.5, signY + 10, { align: 'center' });
+    let obsLines =
+      doc.splitTextToSize(
+        nomina.observaciones,
+        obsWidth
+      );
 
-  doc.text('AUTORIZADO POR', pageWidth - 72.5, signY + 5, { align: 'center' });
-  doc.text('FMPMEX', pageWidth - 72.5, signY + 10, { align: 'center' });
+    // Altura compacta pero legible.
+    let obsHeight =
+      Math.max(
+        11,
+        obsLines.length * 3.8 + 5
+      );
+
+    // Si en la página actual no cabe,
+    // se abre una nueva página.
+    // Esto evita cualquier amontonamiento.
+    if (
+      currentY +
+        obsHeight >
+      maxContentY
+    ) {
+      doc.addPage();
+
+      drawHeader();
+
+      currentY = 45;
+
+      obsLines =
+        doc.splitTextToSize(
+          nomina.observaciones,
+          obsWidth
+        );
+
+      obsHeight =
+        Math.max(
+          11,
+          obsLines.length *
+            3.8 +
+            5
+        );
+    }
+
+    doc.setFontSize(8);
+    doc.setTextColor(
+      ...COMPANY_COLOR
+    );
+
+    doc.setFont(
+      'helvetica',
+      'bold'
+    );
+
+    doc.text(
+      'OBSERVACIONES',
+      15,
+      currentY
+    );
+
+    doc.setDrawColor(
+      210,
+      215,
+      220
+    );
+
+    doc.setFillColor(
+      252,
+      252,
+      252
+    );
+
+    doc.roundedRect(
+      15,
+      currentY + 2,
+      pageWidth - 30,
+      obsHeight,
+      2,
+      2,
+      'FD'
+    );
+
+    doc.setFontSize(7.5);
+    doc.setTextColor(
+      ...TEXT_COLOR
+    );
+
+    doc.setFont(
+      'helvetica',
+      'normal'
+    );
+
+    doc.text(
+      obsLines,
+      18,
+      currentY + 7
+    );
+
+    currentY +=
+      obsHeight + 5;
+  }
+
+  // =========================
+  // FIRMAS
+  // =========================
+
+  const currentPageHeight =
+    doc.internal.pageSize.getHeight();
+
+  let signY =
+    currentPageHeight - 29;
+
+  // Protección adicional:
+  // si el contenido excepcionalmente
+  // llegó hasta la zona de firmas,
+  // se crea otra hoja.
+  if (
+    currentY >
+    signY - 10
+  ) {
+    doc.addPage();
+
+    drawHeader();
+
+    signY =
+      doc.internal.pageSize.getHeight() -
+      29;
+  }
+
+  drawSignatures(signY);
+
+  // =========================
+  // FOOTER
+  // =========================
 
   addFooter(doc);
 
-  doc.save(`Nomina_${operadorNombre.replace(/\s+/g, '_')}_${Date.now()}.pdf`);
+  doc.save(
+    `Nomina_${operadorNombre.replace(
+      /\s+/g,
+      '_'
+    )}_${Date.now()}.pdf`
+  );
 };
 
 // Exportar Recibo de Nómina Fija
