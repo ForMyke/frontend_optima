@@ -561,11 +561,22 @@ const addProfessionalHeader = (doc, title, subtitle) => {
 
 // Exportar Recibo de Nómina Operativa
 // Exportar Recibo de Nómina Operativa
-export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
+// ============================================================
+// EXPORTAR RECIBO DE NÓMINA OPERATIVA
+// ============================================================
+export const exportNominaOperativaPDF = (
+  nomina,
+  operador,
+  viajes = []
+) => {
   const doc = new jsPDF(commonConfig);
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
+
+  // ============================================================
+  // DATOS GENERALES
+  // ============================================================
 
   const operadorNombre =
     nomina.nombre ||
@@ -577,28 +588,53 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
     operador?.alias ||
     '';
 
-  // =========================
+  // ============================================================
   // HELPERS
-  // =========================
+  // ============================================================
 
-  const toNumber = (value) =>
-    Number.parseFloat(value || 0) || 0;
+  const toNumber = (value) => {
+    const numero = Number.parseFloat(value || 0);
+    return Number.isNaN(numero) ? 0 : numero;
+  };
 
-  const money = (value) =>
-    `$${toNumber(value).toLocaleString('es-MX', {
+  const money = (value) => {
+    return `$${toNumber(value).toLocaleString('es-MX', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     })}`;
+  };
 
   const safeDate = (value) => {
-    if (!value) return 'N/A';
+    if (!value) {
+      return 'N/A';
+    }
 
     try {
-      return new Date(value).toLocaleDateString('es-MX');
-    } catch {
+      // Evitamos desfases por zona horaria cuando viene YYYY-MM-DD
+      if (
+        typeof value === 'string' &&
+        /^\d{4}-\d{2}-\d{2}$/.test(value)
+      ) {
+        const [year, month, day] = value.split('-');
+
+        return `${Number(day)}/${Number(month)}/${year}`;
+      }
+
+      const fecha = new Date(value);
+
+      if (Number.isNaN(fecha.getTime())) {
+        return 'N/A';
+      }
+
+      return fecha.toLocaleDateString('es-MX');
+    } catch (error) {
       return 'N/A';
     }
   };
+
+  // ============================================================
+  // HEADER DE CADA PÁGINA
+  // ============================================================
 
   const drawHeader = () => {
     addProfessionalHeader(
@@ -607,6 +643,10 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
       'Operador'
     );
   };
+
+  // ============================================================
+  // FIRMAS
+  // ============================================================
 
   const drawSignatures = (signY) => {
     doc.setDrawColor(...LIGHT_TEXT_COLOR);
@@ -620,7 +660,7 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
       signY
     );
 
-    // Firma autorización
+    // Firma autorizado
     doc.line(
       pageWidth - 105,
       signY,
@@ -628,7 +668,7 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
       signY
     );
 
-    doc.setFontSize(7.5);
+    doc.setFontSize(7.2);
     doc.setTextColor(...LIGHT_TEXT_COLOR);
     doc.setFont('helvetica', 'normal');
 
@@ -670,15 +710,16 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
     );
   };
 
-  // =========================
+  // ============================================================
   // HEADER
-  // =========================
+  // ============================================================
 
   drawHeader();
 
-  // =========================
-  // INFORMACIÓN DEL OPERADOR
-  // =========================
+  // ============================================================
+  // TARJETA SUPERIOR
+  // OPERADOR / PERIODO / RESUMEN
+  // ============================================================
 
   doc.setFillColor(...BG_COLOR);
 
@@ -686,56 +727,66 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
     15,
     39,
     pageWidth - 30,
-    23,
+    22,
     3,
     3,
     'F'
   );
 
+  // ------------------------------------------------------------
   // OPERADOR
-  doc.setFontSize(8.5);
+  // ------------------------------------------------------------
+
+  doc.setFontSize(8);
   doc.setTextColor(...LIGHT_TEXT_COLOR);
   doc.setFont('helvetica', 'normal');
 
   doc.text(
     'OPERADOR',
     20,
-    46
+    45.5
   );
 
-  doc.setFontSize(11);
+  doc.setFontSize(10.5);
   doc.setTextColor(...TEXT_COLOR);
   doc.setFont('helvetica', 'bold');
 
   doc.text(
     operadorNombre,
     20,
-    52
+    51.5,
+    {
+      maxWidth: 100
+    }
   );
 
   if (operadorAlias) {
-    doc.setFontSize(8);
+    doc.setFontSize(7.5);
     doc.setTextColor(...LIGHT_TEXT_COLOR);
     doc.setFont('helvetica', 'normal');
 
     doc.text(
       `Alias: ${operadorAlias}`,
       20,
-      57.5
+      57
     );
   }
 
+  // ------------------------------------------------------------
   // PERIODO
-  doc.setFontSize(8.5);
+  // ------------------------------------------------------------
+
+  doc.setFontSize(8);
   doc.setTextColor(...LIGHT_TEXT_COLOR);
+  doc.setFont('helvetica', 'normal');
 
   doc.text(
     'PERIODO',
     pageWidth / 2,
-    46
+    45.5
   );
 
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   doc.setTextColor(...TEXT_COLOR);
 
   const periodoStr =
@@ -744,28 +795,31 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
   doc.text(
     periodoStr,
     pageWidth / 2,
-    52
+    51.5
   );
 
   if (nomina.cuenta) {
-    doc.setFontSize(8);
+    doc.setFontSize(7.5);
     doc.setTextColor(...LIGHT_TEXT_COLOR);
 
     doc.text(
       `Cuenta: ${nomina.cuenta}`,
       pageWidth / 2,
-      57.5
+      57
     );
   }
 
+  // ------------------------------------------------------------
   // RESUMEN
-  doc.setFontSize(8.5);
+  // ------------------------------------------------------------
+
+  doc.setFontSize(8);
   doc.setTextColor(...LIGHT_TEXT_COLOR);
 
   doc.text(
     'RESUMEN',
     pageWidth - 60,
-    46
+    45.5
   );
 
   doc.setFontSize(9.5);
@@ -774,46 +828,65 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
   doc.text(
     `Viajes: ${nomina.numeroViajes || viajes.length || 0}`,
     pageWidth - 60,
-    52
+    51.5
   );
 
-  // =========================
-  // TOTALES
-  // =========================
+  // ============================================================
+  // CÁLCULOS FINANCIEROS
+  // ============================================================
+
+  const sueldoBase =
+    toNumber(nomina.sueldoBase);
+
+  const comisionViajes =
+    toNumber(nomina.comisionViajes);
+
+  const bono =
+    toNumber(nomina.bono);
+
+  const compensacion =
+    toNumber(nomina.compensacion);
+
+  const descuentos =
+    toNumber(nomina.descuentos);
 
   const totalNeto =
-    toNumber(nomina.sueldoBase) +
-    toNumber(nomina.comisionViajes) +
-    toNumber(nomina.bono) +
-    toNumber(nomina.compensacion) -
-    toNumber(nomina.descuentos);
+    sueldoBase +
+    comisionViajes +
+    bono +
+    compensacion -
+    descuentos;
 
   const conceptos = [
     [
       'Sueldo Base',
-      money(nomina.sueldoBase)
+      money(sueldoBase)
     ],
     [
       'Comisión por Viajes',
-      money(nomina.comisionViajes)
+      money(comisionViajes)
     ],
     [
       'Bonos',
-      money(nomina.bono)
+      money(bono)
     ],
     [
       'Compensación',
-      money(nomina.compensacion)
+      money(compensacion)
     ],
     [
       'Descuentos',
-      `-${money(nomina.descuentos)}`
+      `-${money(descuentos)}`
     ]
   ];
 
-  const conceptosY = 70;
+  // ============================================================
+  // DESGLOSE DE CONCEPTOS
+  // ============================================================
 
-  doc.setFontSize(9);
+  const conceptosY = 67;
+
+  doc.setFontSize(8.5);
   doc.setTextColor(...TEXT_COLOR);
   doc.setFont('helvetica', 'bold');
 
@@ -823,13 +896,12 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
     conceptosY - 2
   );
 
-  // =========================
-  // TABLA DE CONCEPTOS
-  // =========================
-
   autoTable(doc, {
     head: [
-      ['Concepto', 'Monto']
+      [
+        'Concepto',
+        'Monto'
+      ]
     ],
 
     body: conceptos,
@@ -839,18 +911,20 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
     theme: 'grid',
 
     styles: {
-      fontSize: 8,
-      cellPadding: 2,
+      fontSize: 7.5,
+      cellPadding: 1.5,
       textColor: TEXT_COLOR,
       overflow: 'linebreak',
-      minCellHeight: 6
+      minCellHeight: 5.5
     },
 
     headStyles: {
       fillColor: COMPANY_COLOR,
       textColor: 255,
       fontStyle: 'bold',
-      minCellHeight: 7
+      fontSize: 7.5,
+      cellPadding: 1.5,
+      minCellHeight: 6
     },
 
     alternateRowStyles: {
@@ -880,9 +954,9 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
   const conceptsFinalY =
     doc.lastAutoTable.finalY;
 
-  // =========================
+  // ============================================================
   // TOTAL NETO
-  // =========================
+  // ============================================================
 
   doc.setFillColor(...BG_COLOR);
   doc.setDrawColor(...COMPANY_COLOR);
@@ -892,20 +966,20 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
     pageWidth - 95,
     conceptosY,
     80,
-    25,
+    24,
     3,
     3,
     'FD'
   );
 
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setTextColor(...LIGHT_TEXT_COLOR);
   doc.setFont('helvetica', 'bold');
 
   doc.text(
     'TOTAL NETO A PAGAR',
     pageWidth - 55,
-    conceptosY + 8,
+    conceptosY + 7.5,
     {
       align: 'center'
     }
@@ -917,32 +991,33 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
   doc.text(
     money(totalNeto),
     pageWidth - 55,
-    conceptosY + 18,
+    conceptosY + 17.5,
     {
       align: 'center'
     }
   );
 
-  // =========================
-  // VIAJES
-  // =========================
+  // ============================================================
+  // POSICIÓN PARA VIAJES
+  // ============================================================
 
   let currentY =
     Math.max(
       conceptsFinalY,
-      conceptosY + 25
-    ) + 6;
+      conceptosY + 24
+    ) + 5;
+
+  // ============================================================
+  // DETALLE DE VIAJES
+  // ============================================================
 
   if (
-    viajes &&
+    Array.isArray(viajes) &&
     viajes.length > 0
   ) {
-    doc.setFontSize(9);
+    doc.setFontSize(8.5);
     doc.setTextColor(...TEXT_COLOR);
-    doc.setFont(
-      'helvetica',
-      'bold'
-    );
+    doc.setFont('helvetica', 'bold');
 
     doc.text(
       'Detalle de Viajes',
@@ -950,66 +1025,80 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
       currentY
     );
 
-    const viajesData =
-      viajes.map((v) => {
-        const rutaObj =
-          v.rutaComisiones ||
-          (
-            typeof v.ruta === 'object'
-              ? v.ruta
-              : null
-          );
+    // ----------------------------------------------------------
+    // ARMAR DATOS
+    // ----------------------------------------------------------
 
-        const rutaTexto =
-          typeof v.ruta === 'string'
+    const viajesData = viajes.map((v) => {
+      const rutaObj =
+        v.rutaComisiones ||
+        (
+          typeof v.ruta === 'object'
             ? v.ruta
-            : [
-                rutaObj?.origen ||
-                  v.origen,
-                rutaObj?.destino ||
-                  v.destino
-              ]
-                .filter(Boolean)
-                .join(' - ') ||
-              '-';
+            : null
+        );
 
-        const fechaViaje =
-          v.fechaSalida ||
-          v.fechaViaje ||
-          v.fecha ||
-          null;
+      const rutaTexto =
+        typeof v.ruta === 'string'
+          ? v.ruta
+          : [
+              rutaObj?.origen ||
+                v.origen,
 
-        return [
-          v.folio ||
-            v.viajeId ||
-            v.id ||
-            '-',
+              rutaObj?.destino ||
+                v.destino
+            ]
+              .filter(Boolean)
+              .join(' - ') ||
+            '-';
 
-          safeDate(fechaViaje),
+      // Buscamos la fecha con varios nombres posibles.
+      // fechaSalida es la principal.
+      const fechaViaje =
+        v.fechaSalida ||
+        v.fechaViaje ||
+        v.fecha ||
+        v.fechaLlegada ||
+        null;
 
-          rutaTexto,
+      return [
+        v.folio ||
+          v.viajeId ||
+          v.id ||
+          '-',
 
-          money(v.comision)
-        ];
-      });
+        safeDate(fechaViaje),
 
-    // Ajuste automático según cantidad
-    // de viajes.
-    const cantidadViajes =
-      viajes.length;
+        rutaTexto,
 
-    let viajesFontSize = 7.7;
-    let viajesPadding = 1.7;
+        money(
+          v.comision ??
+          v.comisionOperador ??
+          0
+        )
+      ];
+    });
 
-    if (cantidadViajes >= 7) {
-      viajesFontSize = 7;
-      viajesPadding = 1.3;
-    }
+    // ----------------------------------------------------------
+    // TAMAÑO DINÁMICO
+    // ----------------------------------------------------------
 
-    if (cantidadViajes >= 10) {
-      viajesFontSize = 6.5;
+    let viajesFontSize = 7.2;
+    let viajesPadding = 1.2;
+
+    if (viajes.length >= 7) {
+      viajesFontSize = 6.8;
       viajesPadding = 1;
     }
+
+    if (viajes.length >= 10) {
+      viajesFontSize = 6.3;
+      viajesPadding = 0.8;
+    }
+
+    // ----------------------------------------------------------
+    // TABLA
+    // ----------------------------------------------------------
 
     autoTable(doc, {
       head: [
@@ -1032,7 +1121,8 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
         cellPadding: viajesPadding,
         textColor: TEXT_COLOR,
         overflow: 'linebreak',
-        valign: 'middle'
+        valign: 'middle',
+        minCellHeight: 5
       },
 
       headStyles: {
@@ -1043,7 +1133,10 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
         ],
 
         textColor: 255,
-        fontStyle: 'bold'
+        fontStyle: 'bold',
+        fontSize: viajesFontSize,
+        cellPadding: 1.2,
+        minCellHeight: 5.5
       },
 
       alternateRowStyles: {
@@ -1053,31 +1146,35 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
       margin: {
         left: 15,
         right: 15,
-        top: 40,
 
-        // Reserva espacio para
-        // observaciones, firmas y footer.
-        bottom: 38
+        // No reservamos demasiado espacio.
+        // Era una de las razones por las que
+        // se mandaban viajes a otra hoja.
+        bottom: 12
       },
 
       tableWidth:
         pageWidth - 30,
 
       columnStyles: {
+        // Folio
         0: {
           cellWidth: 35
         },
 
+        // Fecha
         1: {
           cellWidth: 28,
           halign: 'center'
         },
 
+        // Ruta
         2: {
           cellWidth:
             pageWidth - 128
         },
 
+        // Comisión
         3: {
           cellWidth: 35,
           halign: 'right',
@@ -1088,91 +1185,94 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
       rowPageBreak: 'avoid',
 
       didDrawPage: (data) => {
-        if (
-          data.pageNumber > 1
-        ) {
+        // Si por tener muchos viajes se genera
+        // otra hoja, ponemos header.
+        if (data.pageNumber > 1) {
           drawHeader();
         }
       }
     });
 
     currentY =
-      doc.lastAutoTable.finalY + 5;
+      doc.lastAutoTable.finalY + 4;
   }
 
-  // =========================
+  // ============================================================
   // OBSERVACIONES
-  // =========================
-
-  const signaturesY =
-    pageHeight - 29;
-
-  const maxContentY =
-    signaturesY - 13;
+  // ============================================================
 
   if (nomina.observaciones) {
     const obsWidth =
       pageWidth - 36;
 
-    doc.setFontSize(7.5);
+    doc.setFontSize(7.2);
 
     let obsLines =
       doc.splitTextToSize(
-        nomina.observaciones,
+        String(nomina.observaciones),
         obsWidth
       );
 
-    // Altura compacta pero legible.
     let obsHeight =
       Math.max(
-        11,
-        obsLines.length * 3.8 + 5
+        9,
+        obsLines.length * 3.3 + 4
       );
 
-    // Si en la página actual no cabe,
-    // se abre una nueva página.
-    // Esto evita cualquier amontonamiento.
+    // ----------------------------------------------------------
+    // ESPACIO REAL DISPONIBLE
+    // ----------------------------------------------------------
+
+    const signY =
+      pageHeight - 27;
+
+    const maxObsBottom =
+      signY - 10;
+
+    // ----------------------------------------------------------
+    // SOLO ABRIR OTRA PÁGINA SI DE VERDAD NO CABE
+    // ----------------------------------------------------------
+
     if (
-      currentY +
-        obsHeight >
-      maxContentY
+      currentY + obsHeight >
+      maxObsBottom
     ) {
       doc.addPage();
 
       drawHeader();
 
-      currentY = 45;
+      currentY = 43;
 
       obsLines =
         doc.splitTextToSize(
-          nomina.observaciones,
+          String(nomina.observaciones),
           obsWidth
         );
 
       obsHeight =
         Math.max(
-          11,
-          obsLines.length *
-            3.8 +
-            5
+          9,
+          obsLines.length * 3.3 + 4
         );
     }
 
-    doc.setFontSize(8);
-    doc.setTextColor(
-      ...COMPANY_COLOR
-    );
+    // ----------------------------------------------------------
+    // TÍTULO
+    // ----------------------------------------------------------
 
-    doc.setFont(
-      'helvetica',
-      'bold'
-    );
+    doc.setFontSize(7.5);
+    doc.setTextColor(...COMPANY_COLOR);
+    doc.setFont('helvetica', 'bold');
 
     doc.text(
       'OBSERVACIONES',
       15,
       currentY
     );
+
+    // ----------------------------------------------------------
+    // CAJA
+    // ----------------------------------------------------------
 
     doc.setDrawColor(
       210,
@@ -1196,66 +1296,68 @@ export const exportNominaOperativaPDF = (nomina, operador, viajes = []) => {
       'FD'
     );
 
-    doc.setFontSize(7.5);
-    doc.setTextColor(
-      ...TEXT_COLOR
-    );
+    // ----------------------------------------------------------
+    // TEXTO
+    // ----------------------------------------------------------
 
-    doc.setFont(
-      'helvetica',
-      'normal'
-    );
+    doc.setFontSize(7.2);
+    doc.setTextColor(...TEXT_COLOR);
+    doc.setFont('helvetica', 'normal');
 
     doc.text(
       obsLines,
       18,
-      currentY + 7
+      currentY + 6.5
     );
 
     currentY +=
-      obsHeight + 5;
+      obsHeight + 4;
   }
 
-  // =========================
+  // ============================================================
   // FIRMAS
-  // =========================
+  // ============================================================
 
-  const currentPageHeight =
-    doc.internal.pageSize.getHeight();
+  let finalSignY =
+    doc.internal.pageSize.getHeight() - 27;
 
-  let signY =
-    currentPageHeight - 29;
+  // ------------------------------------------------------------
+  // Protección:
+  // Si el contenido realmente invade las firmas,
+  // entonces sí creamos una página adicional.
+  // ------------------------------------------------------------
 
-  // Protección adicional:
-  // si el contenido excepcionalmente
-  // llegó hasta la zona de firmas,
-  // se crea otra hoja.
   if (
     currentY >
-    signY - 10
+    finalSignY - 8
   ) {
     doc.addPage();
 
     drawHeader();
 
-    signY =
-      doc.internal.pageSize.getHeight() -
-      29;
+    finalSignY =
+      doc.internal.pageSize.getHeight() - 27;
   }
 
-  drawSignatures(signY);
+  drawSignatures(finalSignY);
 
-  // =========================
+  // ============================================================
   // FOOTER
-  // =========================
+  // ============================================================
 
   addFooter(doc);
 
+  // ============================================================
+  // GUARDAR
+  // ============================================================
+
+  const nombreArchivo =
+    operadorNombre
+      .replace(/\s+/g, '_')
+      .replace(/[^\wÁÉÍÓÚÑáéíóúñ_-]/g, '');
+
   doc.save(
-    `Nomina_${operadorNombre.replace(
-      /\s+/g,
-      '_'
-    )}_${Date.now()}.pdf`
+    `Nomina_${nombreArchivo}_${Date.now()}.pdf`
   );
 };
 
