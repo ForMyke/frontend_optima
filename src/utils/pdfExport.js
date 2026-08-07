@@ -1362,161 +1362,779 @@ export const exportNominaOperativaPDF = (
 };
 
 // Exportar Recibo de Nómina Fija
+// ============================================================
+// EXPORTAR RECIBO DE NÓMINA FIJA
+// UNA SOLA HOJA + MISMA FUENTE
+// ============================================================
 export const exportNominaFijaPDF = (nomina) => {
+
   const doc = new jsPDF(commonConfig);
+
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
 
-  // Header
-  addProfessionalHeader(doc, 'Recibo de Nómina', 'Personal Administrativo');
+  // ============================================================
+  // FUENTE GENERAL
+  // ============================================================
 
-  // Info Card
-  doc.setFillColor(...BG_COLOR);
-  doc.roundedRect(15, 40, pageWidth - 30, 25, 3, 3, 'F');
+  const FONT_FAMILY = 'helvetica';
 
-  // Column 1: Info
-  doc.setFontSize(10);
-  doc.setTextColor(...LIGHT_TEXT_COLOR);
-  doc.text('COLABORADOR', 20, 48);
+  doc.setFont(FONT_FAMILY, 'normal');
 
-  doc.setFontSize(12);
-  doc.setTextColor(...TEXT_COLOR);
-  doc.setFont('helvetica', 'bold');
-  doc.text(nomina.nombre, 20, 55);
+  // ============================================================
+  // HELPERS
+  // ============================================================
 
-  if (nomina.alias) {
-    doc.setFontSize(9);
-    doc.setTextColor(...LIGHT_TEXT_COLOR);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Alias: ${nomina.alias}`, 20, 60);
-  }
+  const toNumber = (value) => {
+    const number = Number.parseFloat(value || 0);
 
-  // Column 2: Details
-  doc.setFontSize(10);
-  doc.setTextColor(...LIGHT_TEXT_COLOR);
-  doc.text('PERIODO', pageWidth / 2, 48);
+    return Number.isNaN(number)
+      ? 0
+      : number;
+  };
 
-  doc.setFontSize(11);
-  doc.setTextColor(...TEXT_COLOR);
-  doc.setFont('helvetica', 'medium');
-  const periodoStr = `${new Date(nomina.periodoInicio).toLocaleDateString('es-MX')} - ${new Date(nomina.periodoFin).toLocaleDateString('es-MX')}`;
-  doc.text(periodoStr, pageWidth / 2, 55);
 
-  if (nomina.cuenta) {
-    doc.setFontSize(9);
-    doc.setTextColor(...LIGHT_TEXT_COLOR);
-    doc.text(`Cuenta: ${nomina.cuenta}`, pageWidth / 2, 60);
-  }
+  const money = (value) => {
+    return `$${toNumber(value).toLocaleString('es-MX', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}`;
+  };
 
-  // Financial Details
-  const startY = 75;
-  const totalNeto = (
-    parseFloat(nomina.gananciaBase || 0) +
-    parseFloat(nomina.extra || 0) -
-    parseFloat(nomina.deben || 0)
+
+  const safeDate = (value) => {
+
+    if (!value) {
+      return 'N/A';
+    }
+
+    try {
+
+      // Evita desfases de un día por zona horaria
+      // cuando viene YYYY-MM-DD
+      if (
+        typeof value === 'string' &&
+        /^\d{4}-\d{2}-\d{2}$/.test(value)
+      ) {
+
+        const [year, month, day] = value.split('-');
+
+        return `${Number(day)}/${Number(month)}/${year}`;
+      }
+
+      const fecha = new Date(value);
+
+      if (Number.isNaN(fecha.getTime())) {
+        return 'N/A';
+      }
+
+      return fecha.toLocaleDateString('es-MX');
+
+    } catch (error) {
+
+      return 'N/A';
+
+    }
+  };
+
+
+  // ============================================================
+  // DATOS
+  // ============================================================
+
+  const nombre =
+    nomina.nombre ||
+    'Colaborador';
+
+  const alias =
+    nomina.alias ||
+    '';
+
+  const cuenta =
+    nomina.cuenta ||
+    '';
+
+  const gananciaBase =
+    toNumber(nomina.gananciaBase);
+
+  const extra =
+    toNumber(nomina.extra);
+
+  const deben =
+    toNumber(nomina.deben);
+
+  const totalNeto =
+    gananciaBase +
+    extra -
+    deben;
+
+
+  // ============================================================
+  // HEADER
+  // ============================================================
+
+  addProfessionalHeader(
+    doc,
+    'Recibo de Nómina',
+    'Personal Administrativo'
   );
 
-  const conceptos = [
-    ['Ganancia Base', `$${(nomina.gananciaBase || 0).toLocaleString('es-MX')}`],
-    ['Extra / Bonificaciones', `$${(nomina.extra || 0).toLocaleString('es-MX')}`],
-    ['Deben (Retención/Deuda)', `-$${(nomina.deben || 0).toLocaleString('es-MX')}`]
-  ];
+  // Aseguramos Helvetica después del header
+  doc.setFont(FONT_FAMILY, 'normal');
 
-  doc.text('Detalle de Movimientos', 15, startY - 2);
 
-  autoTable(doc, {
-    head: [['Concepto', 'Monto']],
-    body: conceptos,
-    startY: startY,
-    theme: 'grid',
-    styles: { fontSize: 10, cellPadding: 5, textColor: TEXT_COLOR },
-    headStyles: { fillColor: COMPANY_COLOR, textColor: 255, fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: BG_COLOR },
-    margin: { left: 15, right: 15 },
-    columnStyles: {
-      1: { halign: 'right', fontStyle: 'bold', cellWidth: 60 }
-    }
-  });
+  // ============================================================
+  // TARJETA DE INFORMACIÓN
+  // ============================================================
 
-  const finalYTable = doc.lastAutoTable.finalY + 10;
-
-  // Total Box
-  doc.setDrawColor(...COMPANY_COLOR);
-  doc.setLineWidth(0.5);
+  const cardY = 39;
+  const cardHeight = 22;
 
   doc.setFillColor(...BG_COLOR);
-  doc.roundedRect(pageWidth - 95, finalYTable, 80, 20, 2, 2, 'F');
 
-  doc.setFontSize(12);
-  doc.setTextColor(...TEXT_COLOR);
-  doc.setFont('helvetica', 'bold');
-  doc.text('TOTAL A PAGAR', pageWidth - 85, finalYTable + 8);
+  doc.roundedRect(
+    15,
+    cardY,
+    pageWidth - 30,
+    cardHeight,
+    3,
+    3,
+    'F'
+  );
 
-  doc.setFontSize(16);
-  doc.setTextColor(...COMPANY_COLOR);
-  doc.text(`$${totalNeto.toLocaleString('es-MX')}`, pageWidth - 25, finalYTable + 15, { align: 'right' });
 
+  // ------------------------------------------------------------
+  // COLABORADOR
+  // ------------------------------------------------------------
 
-  // Observaciones Area
-  // Observaciones Area
-const pageHeight = doc.internal.pageSize.getHeight();
-
-let obsY = finalYTable + 35;
-
-// Calculamos alto dinámico de observaciones
-let splitText = [];
-let obsBoxHeight = 0;
-
-if (nomina.observaciones) {
-  splitText = doc.splitTextToSize(nomina.observaciones, pageWidth - 40);
-  obsBoxHeight = Math.max(18, splitText.length * 5 + 10);
-
-  // Si ya no cabe observaciones + firmas + footer, agregamos nueva página
-  if (obsY + obsBoxHeight + 45 > pageHeight - 20) {
-    doc.addPage();
-    addProfessionalHeader(doc, 'Recibo de Nómina', 'Personal Administrativo');
-    obsY = 45;
-  }
-
-  doc.setFontSize(9);
-  doc.setTextColor(...COMPANY_COLOR);
-  doc.setFont('helvetica', 'bold');
-  doc.text('OBSERVACIONES', 15, obsY);
-
-  doc.setDrawColor(200, 200, 200);
-  doc.rect(15, obsY + 3, pageWidth - 30, obsBoxHeight);
-
-  doc.setFontSize(9);
-  doc.setTextColor(...TEXT_COLOR);
-  doc.setFont('helvetica', 'normal');
-  doc.text(splitText, 18, obsY + 9);
-}
-
-// Signatures
-let signY = nomina.observaciones
-  ? obsY + obsBoxHeight + 35
-  : finalYTable + 45;
-
-// Si las firmas ya no caben, agregamos nueva página
-if (signY + 20 > pageHeight - 15) {
-  doc.addPage();
-  addProfessionalHeader(doc, 'Recibo de Nómina', 'Personal Administrativo');
-  signY = 65;
-}
-
-  doc.setDrawColor(...LIGHT_TEXT_COLOR);
-  doc.setLineWidth(0.5);
-
-  doc.line(50, signY, 110, signY);
-  doc.line(pageWidth - 110, signY, pageWidth - 50, signY);
+  doc.setFont(
+    FONT_FAMILY,
+    'normal'
+  );
 
   doc.setFontSize(8);
-  doc.setTextColor(...LIGHT_TEXT_COLOR);
-  doc.text(nomina.nombre.toUpperCase(), 80, signY + 5, { align: 'center' });
-  doc.text('FIRMA DE RECIBIDO', 80, signY + 10, { align: 'center' });
 
-  doc.text('AUTORIZADO POR', pageWidth - 80, signY + 5, { align: 'center' });
-  doc.text('FMPMEX', pageWidth - 80, signY + 10, { align: 'center' });
+  doc.setTextColor(
+    ...LIGHT_TEXT_COLOR
+  );
+
+  doc.text(
+    'COLABORADOR',
+    20,
+    45
+  );
+
+
+  doc.setFont(
+    FONT_FAMILY,
+    'bold'
+  );
+
+  doc.setFontSize(10);
+
+  doc.setTextColor(
+    ...TEXT_COLOR
+  );
+
+  doc.text(
+    String(nombre),
+    20,
+    51,
+    {
+      maxWidth: 100
+    }
+  );
+
+
+  if (alias) {
+
+    doc.setFont(
+      FONT_FAMILY,
+      'normal'
+    );
+
+    doc.setFontSize(7.5);
+
+    doc.setTextColor(
+      ...LIGHT_TEXT_COLOR
+    );
+
+    doc.text(
+      `Alias: ${alias}`,
+      20,
+      57
+    );
+  }
+
+
+  // ------------------------------------------------------------
+  // PERIODO
+  // ------------------------------------------------------------
+
+  const periodoX =
+    pageWidth / 2 - 20;
+
+  doc.setFont(
+    FONT_FAMILY,
+    'normal'
+  );
+
+  doc.setFontSize(8);
+
+  doc.setTextColor(
+    ...LIGHT_TEXT_COLOR
+  );
+
+  doc.text(
+    'PERIODO',
+    periodoX,
+    45
+  );
+
+
+  doc.setFontSize(9);
+
+  doc.setTextColor(
+    ...TEXT_COLOR
+  );
+
+  const periodoStr =
+    `${safeDate(nomina.periodoInicio)} - ${safeDate(nomina.periodoFin)}`;
+
+  doc.text(
+    periodoStr,
+    periodoX,
+    51
+  );
+
+
+  if (cuenta) {
+
+    doc.setFontSize(7.5);
+
+    doc.setTextColor(
+      ...LIGHT_TEXT_COLOR
+    );
+
+    doc.text(
+      `Cuenta: ${cuenta}`,
+      periodoX,
+      57
+    );
+  }
+
+
+  // ============================================================
+  // DETALLE DE MOVIMIENTOS
+  // ============================================================
+
+  const startY = 69;
+
+  doc.setFont(
+    FONT_FAMILY,
+    'bold'
+  );
+
+  doc.setFontSize(8.5);
+
+  doc.setTextColor(
+    ...TEXT_COLOR
+  );
+
+  doc.text(
+    'Detalle de Movimientos',
+    15,
+    startY - 2
+  );
+
+
+  const conceptos = [
+    [
+      'Ganancia Base',
+      money(gananciaBase)
+    ],
+    [
+      'Extra / Bonificaciones',
+      money(extra)
+    ],
+    [
+      'Deben (Retención / Deuda)',
+      `-${money(deben)}`
+    ]
+  ];
+
+
+  // ============================================================
+  // TABLA
+  // ============================================================
+
+  autoTable(doc, {
+
+    head: [
+      [
+        'Concepto',
+        'Monto'
+      ]
+    ],
+
+    body: conceptos,
+
+    startY: startY,
+
+    theme: 'grid',
+
+    styles: {
+
+      font: FONT_FAMILY,
+
+      fontStyle: 'normal',
+
+      fontSize: 8,
+
+      cellPadding: 2,
+
+      textColor: TEXT_COLOR,
+
+      minCellHeight: 6,
+
+      overflow: 'linebreak'
+
+    },
+
+    headStyles: {
+
+      font: FONT_FAMILY,
+
+      fontStyle: 'bold',
+
+      fontSize: 8,
+
+      fillColor: COMPANY_COLOR,
+
+      textColor: 255,
+
+      cellPadding: 2,
+
+      minCellHeight: 6
+
+    },
+
+    alternateRowStyles: {
+
+      fillColor: BG_COLOR
+
+    },
+
+    margin: {
+
+      left: 15,
+
+      right: pageWidth - 155
+
+    },
+
+    tableWidth: 140,
+
+    columnStyles: {
+
+      0: {
+
+        cellWidth: 92
+
+      },
+
+      1: {
+
+        cellWidth: 48,
+
+        halign: 'right',
+
+        fontStyle: 'bold'
+
+      }
+
+    }
+
+  });
+
+
+  // ============================================================
+  // TOTAL A PAGAR
+  // Al lado de la tabla para ahorrar espacio vertical
+  // ============================================================
+
+  const totalBoxX =
+    pageWidth - 110;
+
+  const totalBoxY =
+    startY;
+
+  const totalBoxWidth =
+    95;
+
+  const totalBoxHeight =
+    27;
+
+
+  doc.setFillColor(
+    ...BG_COLOR
+  );
+
+  doc.setDrawColor(
+    ...COMPANY_COLOR
+  );
+
+  doc.setLineWidth(0.4);
+
+  doc.roundedRect(
+    totalBoxX,
+    totalBoxY,
+    totalBoxWidth,
+    totalBoxHeight,
+    3,
+    3,
+    'FD'
+  );
+
+
+  doc.setFont(
+    FONT_FAMILY,
+    'bold'
+  );
+
+  doc.setFontSize(8.5);
+
+  doc.setTextColor(
+    ...LIGHT_TEXT_COLOR
+  );
+
+  doc.text(
+    'TOTAL NETO A PAGAR',
+    totalBoxX + totalBoxWidth / 2,
+    totalBoxY + 8,
+    {
+      align: 'center'
+    }
+  );
+
+
+  doc.setFontSize(15);
+
+  doc.setTextColor(
+    ...COMPANY_COLOR
+  );
+
+  doc.text(
+    money(totalNeto),
+    totalBoxX + totalBoxWidth / 2,
+    totalBoxY + 19,
+    {
+      align: 'center'
+    }
+  );
+
+
+  // ============================================================
+  // OBSERVACIONES
+  // ============================================================
+
+  let currentY =
+    Math.max(
+      doc.lastAutoTable.finalY,
+      totalBoxY + totalBoxHeight
+    ) + 7;
+
+
+  // Las firmas tendrán una posición fija.
+  // Así garantizamos que todo permanezca en una hoja.
+  const signatureY =
+    pageHeight - 30;
+
+  const observationBottom =
+    signatureY - 18;
+
+
+  if (
+    nomina.observaciones &&
+    String(nomina.observaciones).trim() !== ''
+  ) {
+
+    doc.setFont(
+      FONT_FAMILY,
+      'bold'
+    );
+
+    doc.setFontSize(7.5);
+
+    doc.setTextColor(
+      ...COMPANY_COLOR
+    );
+
+    doc.text(
+      'OBSERVACIONES',
+      15,
+      currentY
+    );
+
+
+    const obsTop =
+      currentY + 3;
+
+    const obsWidth =
+      pageWidth - 30;
+
+    const textWidth =
+      obsWidth - 8;
+
+    let fontSize = 7.5;
+
+    doc.setFont(
+      FONT_FAMILY,
+      'normal'
+    );
+
+    doc.setFontSize(fontSize);
+
+
+    let lines =
+      doc.splitTextToSize(
+        String(nomina.observaciones),
+        textWidth
+      );
+
+
+    // Alto disponible real
+    const maxObsHeight =
+      Math.max(
+        14,
+        observationBottom - obsTop
+      );
+
+
+    // Reducimos tamaño si las observaciones son largas
+    while (
+      lines.length * 3.4 + 7 > maxObsHeight &&
+      fontSize > 6
+    ) {
+
+      fontSize -= 0.3;
+
+      doc.setFontSize(fontSize);
+
+      lines =
+        doc.splitTextToSize(
+          String(nomina.observaciones),
+          textWidth
+        );
+    }
+
+
+    // Protección extrema:
+    // si todavía no cabe, limitamos líneas para no generar
+    // una segunda hoja.
+    const lineHeight =
+      fontSize * 0.42;
+
+    const maxLines =
+      Math.max(
+        1,
+        Math.floor(
+          (maxObsHeight - 7) /
+          lineHeight
+        )
+      );
+
+
+    if (lines.length > maxLines) {
+
+      lines =
+        lines.slice(
+          0,
+          maxLines
+        );
+
+      const lastIndex =
+        lines.length - 1;
+
+      lines[lastIndex] =
+        `${String(lines[lastIndex]).replace(/\.*$/, '')}...`;
+    }
+
+
+    const calculatedHeight =
+      Math.min(
+        maxObsHeight,
+        Math.max(
+          13,
+          lines.length * lineHeight + 7
+        )
+      );
+
+
+    // Caja
+    doc.setDrawColor(
+      210,
+      215,
+      220
+    );
+
+    doc.setFillColor(
+      252,
+      252,
+      252
+    );
+
+    doc.roundedRect(
+      15,
+      obsTop,
+      obsWidth,
+      calculatedHeight,
+      2,
+      2,
+      'FD'
+    );
+
+
+    // Texto
+    doc.setFont(
+      FONT_FAMILY,
+      'normal'
+    );
+
+    doc.setFontSize(fontSize);
+
+    doc.setTextColor(
+      ...TEXT_COLOR
+    );
+
+    doc.text(
+      lines,
+      19,
+      obsTop + 5
+    );
+  }
+
+
+  // ============================================================
+  // FIRMAS
+  // POSICIÓN FIJA PARA GARANTIZAR UNA SOLA PÁGINA
+  // ============================================================
+
+  doc.setDrawColor(
+    ...LIGHT_TEXT_COLOR
+  );
+
+  doc.setLineWidth(0.4);
+
+
+  // ------------------------------------------------------------
+  // FIRMA DEL COLABORADOR
+  // ------------------------------------------------------------
+
+  const firmaEmpleadoX =
+    75;
+
+  doc.line(
+    40,
+    signatureY,
+    110,
+    signatureY
+  );
+
+
+  // ------------------------------------------------------------
+  // FIRMA AUTORIZADA
+  // ------------------------------------------------------------
+
+  const firmaEmpresaX =
+    pageWidth - 75;
+
+  doc.line(
+    pageWidth - 110,
+    signatureY,
+    pageWidth - 40,
+    signatureY
+  );
+
+
+  // ============================================================
+  // TEXTOS DE FIRMAS
+  // ============================================================
+
+  doc.setFont(
+    FONT_FAMILY,
+    'normal'
+  );
+
+  doc.setFontSize(7.2);
+
+  doc.setTextColor(
+    ...LIGHT_TEXT_COLOR
+  );
+
+
+  doc.text(
+    String(nombre).toUpperCase(),
+    firmaEmpleadoX,
+    signatureY + 4,
+    {
+      align: 'center',
+      maxWidth: 70
+    }
+  );
+
+
+  doc.text(
+    'FIRMA DE RECIBIDO',
+    firmaEmpleadoX,
+    signatureY + 8,
+    {
+      align: 'center'
+    }
+  );
+
+
+  doc.text(
+    'AUTORIZADO POR',
+    firmaEmpresaX,
+    signatureY + 4,
+    {
+      align: 'center'
+    }
+  );
+
+
+  doc.text(
+    'FMPMEX',
+    firmaEmpresaX,
+    signatureY + 8,
+    {
+      align: 'center'
+    }
+  );
+
+
+  // ============================================================
+  // FOOTER
+  // ============================================================
 
   addFooter(doc);
-  doc.save(`NominaFija_${nomina.nombre.replace(/\s+/g, '_')}_${Date.now()}.pdf`);
-}
+
+
+  // ============================================================
+  // GUARDAR PDF
+  // ============================================================
+
+  const nombreArchivo =
+    String(nombre)
+      .replace(/\s+/g, '_')
+      .replace(
+        /[^\wÁÉÍÓÚÑáéíóúñ_-]/g,
+        ''
+      );
+
+
+  doc.save(
+    `NominaFija_${nombreArchivo}_${Date.now()}.pdf`
+  );
+};
