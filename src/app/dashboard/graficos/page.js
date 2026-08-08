@@ -102,76 +102,86 @@ const StatCard = ({
   </div>
 )
 
-const CustomTooltip = ({
-  active,
-  payload,
-  label
-}) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-white p-3 rounded-lg shadow-lg border border-slate-200">
-        <p className="font-bold text-slate-900 mb-1">
-          {label}
-        </p>
-
-        {payload.map((entry, index) => (
-          <p
-            key={index}
-            className="text-sm font-semibold"
-            style={{ color: entry.color }}
-          >
-            {entry.name}:{' '}
-            {typeof entry.value === 'number'
-              ? entry.value.toLocaleString(
-                  'es-MX',
-                  {
-                    minimumFractionDigits: 0
-                  }
-                )
-              : entry.value}
-          </p>
-        ))}
-      </div>
-    )
+const CustomTooltip = ({ active, payload, label }) => {
+  if (!active || !payload || payload.length === 0) {
+    return null
   }
 
-  return null
-}
-
-const CustomMoneyTooltip = ({
-  active,
-  payload,
-  label
-}) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-white p-3 rounded-lg shadow-lg border border-slate-200">
+  return (
+    <div className="bg-white p-3 rounded-lg shadow-lg border border-slate-200">
+      {label && (
         <p className="font-bold text-slate-900 mb-1">
           {label}
         </p>
+      )}
 
-        {payload.map((entry, index) => (
+      {payload.map((entry, index) => {
+        const valor = entry?.value ?? 0
+
+        return (
           <p
             key={index}
             className="text-sm font-semibold"
-            style={{ color: entry.color }}
+            style={{
+              color: entry?.color || '#334155'
+            }}
           >
-            {entry.name}:{' '}
+            {entry?.name || 'Valor'}:{' '}
+            {typeof valor === 'number'
+              ? valor.toLocaleString('es-MX', {
+                  minimumFractionDigits: 0
+                })
+              : valor}
+          </p>
+        )
+      })}
+    </div>
+  )
+}
 
-            {Number(
-              entry.value || 0
-            ).toLocaleString('es-MX', {
+const CustomMoneyTooltip = ({ active, payload, label }) => {
+  if (!active || !payload || payload.length === 0) {
+    return null
+  }
+
+  return (
+    <div className="bg-white p-3 rounded-lg shadow-lg border border-slate-200">
+      {label && (
+        <p className="font-bold text-slate-900 mb-1">
+          {label}
+        </p>
+      )}
+
+      {payload.map((entry, index) => {
+        const valor = Number(entry?.value ?? 0)
+
+        return (
+          <p
+            key={index}
+            className="text-sm font-semibold"
+            style={{
+              color: entry?.color || '#334155'
+            }}
+          >
+            {entry?.name || 'Valor'}:{' '}
+            {valor.toLocaleString('es-MX', {
               style: 'currency',
               currency: 'MXN',
               minimumFractionDigits: 2
             })}
           </p>
-        ))}
-      </div>
-    )
-  }
+        )
+      })}
+    </div>
+  )
+}
 
-  return null
+const formatMoney = (value) => {
+  return Number(value ?? 0).toLocaleString('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+    minimumFractionDigits: 0
+  })
 }
 
 export default function GraficosPage() {
@@ -3489,34 +3499,26 @@ export default function GraficosPage() {
                   />
 
                   <Legend
-                    verticalAlign="bottom"
-                    height={
-                      36
-                    }
-                    formatter={(
-                      value,
-                      entry
-                    ) => (
+  verticalAlign="bottom"
+  height={36}
+  formatter={(value, entry) => {
+    const cantidad =
+      entry?.payload?.value ??
+      entry?.payload?.payload?.value ??
+      0
 
-                      <span
-                        style={{
-                          color:
-                            '#475569',
-                          fontSize:
-                            '12px'
-                        }}
-                      >
-
-                        {value}: $
-
-                        {entry.payload.value.toLocaleString(
-                          'es-MX'
-                        )}
-
-                      </span>
-
-                    )}
-                  />
+    return (
+      <span
+        style={{
+          color: '#475569',
+          fontSize: '12px'
+        }}
+      >
+        {value}: {formatMoney(cantidad)}
+      </span>
+    )
+  }}
+/>
 
                 </PieChart>
 
@@ -4085,34 +4087,26 @@ export default function GraficosPage() {
                   />
 
                   <Legend
-                    verticalAlign="bottom"
-                    height={
-                      60
-                    }
-                    formatter={(
-                      value,
-                      entry
-                    ) => (
+  verticalAlign="bottom"
+  height={60}
+  formatter={(value, entry) => {
+    const cantidad =
+      entry?.payload?.value ??
+      entry?.payload?.payload?.value ??
+      0
 
-                      <span
-                        style={{
-                          color:
-                            '#475569',
-                          fontSize:
-                            '11px'
-                        }}
-                      >
-
-                        {value}: $
-
-                        {entry.payload.value.toLocaleString(
-                          'es-MX'
-                        )}
-
-                      </span>
-
-                    )}
-                  />
+    return (
+      <span
+        style={{
+          color: '#475569',
+          fontSize: '11px'
+        }}
+      >
+        {value}: {formatMoney(cantidad)}
+      </span>
+    )
+  }}
+/>
 
                 </PieChart>
 
